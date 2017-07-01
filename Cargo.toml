@@ -10,10 +10,14 @@ repository = "https://github.com/ethereumproject/etcommon"
 etcommon-rlp = { path = "./rlp" }
 etcommon-util = { path = "./util" }
 etcommon-bigint = { path = "./bigint" }
+etcommon-block = { path = "./block" }
+etcommon-worldstate = { path = "./worldstate" }
 
 [workspace]
 members = [
   "./rlp",
   "./bigint",
-  "./util"
+  "./util",
+  "./block",
+  "./worldstate"
 ]

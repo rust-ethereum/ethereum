@@ -1,0 +1,7 @@
+[package]
+name = "etcommon-worldstate"
+version = "0.1.0"
+license = "Apache-2.0"
+authors = ["Wei Tang <hi@that.world>"]
+description = "Lightweight Ethereum world state storage."
+repository = "https://github.com/ethereumproject/etcommon"
