@@ -1,3 +1,16 @@
+[package]
+name = "etcommon"
+version = "0.1.1"
+license = "Apache-2.0"
+authors = ["Wei Tang <hi@that.world>"]
+description = "Apache-2 licensed common Ethereum structs shared by crates."
+repository = "https://github.com/ethereumproject/etcommon"
+
+[dependencies]
+etcommon-rlp = { path = "./rlp" }
+etcommon-util = { path = "./util" }
+etcommon-bigint = { path = "./bigint" }
+
 [workspace]
 members = [
   "./rlp",
