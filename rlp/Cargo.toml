@@ -1,0 +1,13 @@
+[package]
+name = "etcommon-rlp"
+description = "Recursive-length prefix encoding, decoding, and compression"
+repository = "https://github.com/ethereumproject/etcommon"
+license = "MIT/Apache-2.0"
+version = "0.1.0"
+authors = ["Parity Technologies <admin@parity.io>"]
+
+[dependencies]
+elastic-array = "0.7.0"
+lazy_static = "0.2"
+rustc-serialize = "0.3"
+byteorder = "1.0"
