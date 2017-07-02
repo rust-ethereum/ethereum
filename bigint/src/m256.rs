@@ -79,6 +79,15 @@ impl From<u64> for M256 { fn from(val: u64) -> M256 { M256(U256::from(val)) } }
 impl Into<u64> for M256 { fn into(self) -> u64 { self.0.into() } }
 impl From<usize> for M256 { fn from(val: usize) -> M256 { M256(U256::from(val)) } }
 impl<'a> From<&'a [u8]> for M256 { fn from(val: &'a [u8]) -> M256 { M256(U256::from(val)) } }
+impl From<bool> for M256 {
+    fn from(val: bool) -> M256 {
+        if val {
+            M256::one()
+        } else {
+            M256::zero()
+        }
+    }
+}
 impl From<U256> for M256 { fn from(val: U256) -> M256 { M256(val) } }
 impl Into<U256> for M256 { fn into(self) -> U256 { self.0 } }
 impl From<U512> for M256 { fn from(val: U512) -> M256 { M256(val.into()) } }
