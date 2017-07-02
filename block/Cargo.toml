@@ -5,3 +5,6 @@ license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Block and transaction types for Ethereum."
 repository = "https://github.com/ethereumproject/etcommon"
+
+[dependencies]
+etcommon-bigint = { path = "../bigint" }

@@ -7,5 +7,7 @@ description = "Big integer (256-bit and 512-bit) implementation for SputnikVM an
 repository = "https://github.com/ethereumproject/etcommon"
 
 [dependencies]
+heapsize = "0.4"
+byteorder = "1.0"
 etcommon-rlp = { path = '../rlp' }
 etcommon-util = { path = '../util' }
