@@ -603,13 +603,14 @@ macro_rules! construct_uint {
 				arr[index / 64] & (1 << (index % 64)) != 0
 			}
 
-			/// Return specific byte.
+			/// Return specific byte. This is in the big endian format.
 			///
 			/// # Panics
 			///
 			/// Panics if `index` exceeds the byte width of the number.
 			#[inline]
 			pub fn byte(&self, index: usize) -> u8 {
+			    let index = $n_words * 8 - 1 - index;
 				let &$name(ref arr) = self;
 				(arr[index / 8] >> (((index % 8)) * 8)) as u8
 			}
