@@ -9,5 +9,11 @@ repository = "https://github.com/ethereumproject/etcommon"
 [dependencies]
 heapsize = "0.4"
 byteorder = "1.0"
+rand = "0.3.12"
+libc = "0.2"
 etcommon-rlp = { path = '../rlp' }
 etcommon-util = { path = '../util' }
+
+[features]
+x64asm_arithmetic=[]
+rust_arithmetic=[]
