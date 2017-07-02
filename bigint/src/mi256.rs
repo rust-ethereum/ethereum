@@ -4,12 +4,14 @@ use std::convert::{From, Into};
 use std::ops::{Div, Rem};
 use std::cmp::Ordering;
 
-use super::{Sign, M256};
-use super::u256::SIGN_BIT_MASK;
+use super::{Sign, M256, U256};
+
+const SIGN_BIT_MASK: M256 = M256(U256([0xffffffffffffffff, 0xffffffffffffffff,
+                                       0xffffffffffffffff, 0x7fffffffffffffff]));
 
 #[derive(Eq, PartialEq, Debug, Copy, Clone, Hash)]
 /// Represents a signed module 256-bit integer.
-pub struct MI256(Sign, M256);
+pub struct MI256(pub Sign, pub M256);
 
 impl MI256 {
     /// Zero value of MI256.
@@ -17,9 +19,9 @@ impl MI256 {
     /// One value of MI256.
     pub fn one() -> MI256 { MI256(Sign::Plus, M256::one()) }
     /// Maximum value of MI256.
-    pub fn max_value() -> MI256 { MI256(Sign::Plus, M256::max_value() & SIGN_BIT_MASK.into()) }
+    pub fn max_value() -> MI256 { MI256(Sign::Plus, M256::max_value() & SIGN_BIT_MASK) }
     /// Minimum value of MI256.
-    pub fn min_value() -> MI256 { MI256(Sign::Minus, (M256::max_value() & SIGN_BIT_MASK.into()) + M256::from(1u64)) }
+    pub fn min_value() -> MI256 { MI256(Sign::Minus, (M256::max_value() & SIGN_BIT_MASK) + M256::from(1u64)) }
 }
 
 impl Default for MI256 { fn default() -> MI256 { MI256::zero() } }

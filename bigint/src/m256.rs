@@ -7,12 +7,12 @@ use std::cmp::Ordering;
 use std::fmt;
 
 use util::ParseHexError;
-use rlp::{Encodable, RlpStream};
+use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 use super::{U512, U256};
 
 #[derive(Eq, PartialEq, Debug, Copy, Clone, Hash)]
 /// Represent an unsigned modulo 256-bit integer
-pub struct M256(U256);
+pub struct M256(pub U256);
 
 impl M256 {
     /// Zero value of M256,
@@ -27,6 +27,39 @@ impl M256 {
     pub fn bits(self) -> usize { self.0.bits() }
     /// Equals `floor(log2(*))`. This is always an integer.
     pub fn log2floor(self) -> usize { self.0.log2floor() }
+    /// Conversion to u32 with overflow checking
+    ///
+    /// # Panics
+    ///
+    /// Panics if the number is larger than 2^32.
+    pub fn as_u32(&self) -> u32 {
+        self.0.as_u32()
+    }
+    /// Conversion to u64 with overflow checking
+    ///
+    /// # Panics
+    ///
+    /// Panics if the number is larger than 2^64.
+    pub fn as_u64(&self) -> u64 {
+        self.0.as_u64()
+    }
+    /// Conversion to usize with overflow checking
+    ///
+    /// # Panics
+    ///
+    /// Panics if the number is larger than usize::max_value().
+    pub fn as_usize(&self) -> usize {
+        self.0.as_usize()
+    }
+    /// Return specific byte.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index` exceeds the byte width of the number.
+    #[inline]
+    pub fn byte(&self, index: usize) -> u8 {
+        self.0.byte(index)
+    }
 }
 
 impl Default for M256 { fn default() -> M256 { M256::zero() } }
@@ -41,22 +74,29 @@ impl FromStr for M256 {
 
 impl Encodable for M256 {
     fn rlp_append(&self, s: &mut RlpStream) {
-        let leading_empty_bytes = 32 - (self.bits() + 7) / 8;
-        let buffer: [u8; 32] = self.clone().into();
-        s.encoder().encode_value(&buffer[leading_empty_bytes..]);
+        self.0.rlp_append(s);
     }
 }
 
-impl From<bool> for M256 { fn from(val: bool) -> M256 { M256(U256::from(val)) } }
+impl Decodable for M256 {
+    fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
+        Ok(M256(U256::decode(rlp)?))
+    }
+}
+
 impl From<u64> for M256 { fn from(val: u64) -> M256 { M256(U256::from(val)) } }
 impl Into<u64> for M256 { fn into(self) -> u64 { self.0.into() } }
 impl From<usize> for M256 { fn from(val: usize) -> M256 { M256(U256::from(val)) } }
-impl Into<usize> for M256 { fn into(self) -> usize { self.0.into() } }
 impl<'a> From<&'a [u8]> for M256 { fn from(val: &'a [u8]) -> M256 { M256(U256::from(val)) } }
-impl From<[u8; 32]> for M256 { fn from(val: [u8; 32]) -> M256 { M256(U256::from(val)) } }
-impl Into<[u8; 32]> for M256 { fn into(self) -> [u8; 32] { self.0.into() } }
-impl Into<[u32; 8]> for M256 { fn into(self) -> [u32; 8] { self.0.into() } }
-impl From<[u32; 8]> for M256 { fn from(val: [u32; 8]) -> M256 { M256(U256::from(val)) } }
+impl From<bool> for M256 {
+    fn from(val: bool) -> M256 {
+        if val {
+            M256::one()
+        } else {
+            M256::zero()
+        }
+    }
+}
 impl From<U256> for M256 { fn from(val: U256) -> M256 { M256(val) } }
 impl Into<U256> for M256 { fn into(self) -> U256 { self.0 } }
 impl From<U512> for M256 { fn from(val: U512) -> M256 { M256(val.into()) } }
