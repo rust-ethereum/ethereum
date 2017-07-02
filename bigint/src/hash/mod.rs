@@ -8,6 +8,8 @@
 
 //! General hash types, a fixed-size raw-data type used as the output of hash functions.
 
+mod rlp;
+
 use std::{ops, fmt, cmp};
 use std::cmp::{min, Ordering};
 use std::ops::{Deref, DerefMut, BitXor, BitAnd, BitOr, IndexMut, Index};
