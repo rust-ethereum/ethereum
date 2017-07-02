@@ -51,6 +51,15 @@ impl M256 {
     pub fn as_usize(&self) -> usize {
         self.0.as_usize()
     }
+    /// Return specific byte.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index` exceeds the byte width of the number.
+    #[inline]
+    pub fn byte(&self, index: usize) -> u8 {
+        self.0.byte(index)
+    }
 }
 
 impl Default for M256 { fn default() -> M256 { M256::zero() } }
