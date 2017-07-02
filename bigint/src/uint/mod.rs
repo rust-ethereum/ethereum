@@ -556,6 +556,24 @@ macro_rules! construct_uint {
 				arr[0]
 			}
 
+		    /// Conversion to usize with overflow checking
+			///
+			/// # Panics
+			///
+			/// Panics if the number is larger than usize::max_value().
+            #[inline]
+            pub fn as_usize(&self) -> usize {
+                use std::mem::size_of;
+                if size_of::<usize>() > size_of::<u64>() && size_of::<usize>() < size_of::<u32>() {
+                    panic!("Unsupported platform")
+                }
+                if size_of::<usize>() == size_of::<u64>() {
+                    self.as_u64() as usize
+                } else {
+                    self.as_u32() as usize
+                }
+            }
+
 			/// Whether this is zero.
 			#[inline]
 			pub fn is_zero(&self) -> bool {

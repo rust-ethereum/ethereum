@@ -27,6 +27,30 @@ impl M256 {
     pub fn bits(self) -> usize { self.0.bits() }
     /// Equals `floor(log2(*))`. This is always an integer.
     pub fn log2floor(self) -> usize { self.0.log2floor() }
+    /// Conversion to u32 with overflow checking
+    ///
+    /// # Panics
+    ///
+    /// Panics if the number is larger than 2^32.
+    pub fn as_u32(&self) -> u32 {
+        self.0.as_u32()
+    }
+    /// Conversion to u64 with overflow checking
+    ///
+    /// # Panics
+    ///
+    /// Panics if the number is larger than 2^64.
+    pub fn as_u64(&self) -> u64 {
+        self.0.as_u64()
+    }
+    /// Conversion to usize with overflow checking
+    ///
+    /// # Panics
+    ///
+    /// Panics if the number is larger than usize::max_value().
+    pub fn as_usize(&self) -> usize {
+        self.0.as_usize()
+    }
 }
 
 impl Default for M256 { fn default() -> M256 { M256::zero() } }
