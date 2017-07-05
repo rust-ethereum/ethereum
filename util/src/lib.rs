@@ -47,3 +47,14 @@ pub fn read_hex(s: &str) -> Result<Vec<u8>, ParseHexError> {
 
     return Ok(res);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::read_hex;
+
+    #[test]
+    fn read_hex_zero() {
+        assert_eq!(read_hex("0x0").unwrap(), vec![0u8]);
+        assert_eq!(read_hex("0").unwrap(), vec![0u8]);
+    }
+}

@@ -31,7 +31,7 @@
 
 use std::{fmt, cmp};
 use std::str::{FromStr};
-use std::ops::{Shr, Shl, BitAnd, BitOr, BitXor, Not, Div, Rem, Mul, Add, Sub};
+use std::ops::{Shr, Shl, BitAnd, BitOr, BitXor, Not, Div, Rem, Mul, Add, Sub, Index};
 use std::cmp::Ordering;
 use byteorder::{ByteOrder, BigEndian, LittleEndian};
 use util::{ParseHexError, read_hex};
@@ -603,17 +603,27 @@ macro_rules! construct_uint {
 				arr[index / 64] & (1 << (index % 64)) != 0
 			}
 
-			/// Return specific byte. This is in the big endian format.
+			/// Return specific byte.
 			///
 			/// # Panics
 			///
 			/// Panics if `index` exceeds the byte width of the number.
 			#[inline]
 			pub fn byte(&self, index: usize) -> u8 {
-			    let index = $n_words * 8 - 1 - index;
 				let &$name(ref arr) = self;
 				(arr[index / 8] >> (((index % 8)) * 8)) as u8
 			}
+
+            /// Return specific byte in big-endian format.
+            ///
+			/// # Panics
+			///
+			/// Panics if `index` exceeds the byte width of the number.
+            #[inline]
+            pub fn index(&self, index: usize) -> u8 {
+                let index = $n_words * 8 - 1 - index;
+                self.byte(index)
+            }
 
 			/// Write to the slice in big-endian format.
 			#[inline]
