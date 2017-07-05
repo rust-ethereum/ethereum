@@ -11,8 +11,8 @@ heapsize = "0.4"
 byteorder = "1.0"
 rand = "0.3.12"
 libc = "0.2"
-etcommon-rlp = { path = '../rlp' }
-etcommon-util = { path = '../util' }
+etcommon-rlp = "0.1.1"
+etcommon-util = "0.1.0"
 
 [features]
 x64asm_arithmetic=[]
