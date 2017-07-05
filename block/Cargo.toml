@@ -7,4 +7,4 @@ description = "Block and transaction types for Ethereum."
 repository = "https://github.com/ethereumproject/etcommon"
 
 [dependencies]
-etcommon-bigint = { path = "../bigint" }
+etcommon-bigint = "0.1.8"
