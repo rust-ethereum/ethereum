@@ -171,6 +171,24 @@ macro_rules! impl_hash {
 			}
 		}
 
+        impl fmt::LowerHex for $from {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                for i in self.0.as_ref() {
+                    write!(f, "{:02x}", i)?;
+                }
+                Ok(())
+            }
+        }
+
+        impl fmt::UpperHex for $from {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                for i in self.0.as_ref() {
+                    write!(f, "{:02X}", i)?;
+                }
+                Ok(())
+            }
+        }
+
 		impl fmt::Display for $from {
 			fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 				for i in &self.0[0..2] {
