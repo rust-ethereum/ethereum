@@ -60,6 +60,15 @@ impl M256 {
     pub fn byte(&self, index: usize) -> u8 {
         self.0.byte(index)
     }
+    /// Return specific byte in big-endian format.
+    ///
+	/// # Panics
+	///
+	/// Panics if `index` exceeds the byte width of the number.
+    #[inline]
+    pub fn index(&self, index: usize) -> u8 {
+        self.0.index(index)
+    }
 }
 
 impl Default for M256 { fn default() -> M256 { M256::zero() } }
