@@ -8,7 +8,7 @@ use std::fmt;
 
 use util::ParseHexError;
 use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
-use super::{U512, U256};
+use super::{U512, U256, H256, H160};
 
 #[derive(Eq, PartialEq, Debug, Copy, Clone, Hash)]
 /// Represent an unsigned modulo 256-bit integer
@@ -111,6 +111,30 @@ impl Into<U256> for M256 { fn into(self) -> U256 { self.0 } }
 impl From<U512> for M256 { fn from(val: U512) -> M256 { M256(val.into()) } }
 impl Into<U512> for M256 { fn into(self) -> U512 { self.0.into() } }
 impl From<i32> for M256 { fn from(val: i32) -> M256 { (val as u64).into() } }
+impl From<H256> for M256 {
+    fn from(val: H256) -> M256 {
+        let inter: U256 = val.into();
+        inter.into()
+    }
+}
+impl From<M256> for H256 {
+    fn from(val: M256) -> H256 {
+        let inter: U256 = val.into();
+        inter.into()
+    }
+}
+impl From<H160> for M256 {
+    fn from(val: H160) -> M256 {
+        let inter: H256 = val.into();
+        inter.into()
+    }
+}
+impl From<M256> for H160 {
+    fn from(val: M256) -> H160 {
+        let inter: H256 = val.into();
+        inter.into()
+    }
+}
 
 impl Ord for M256 { fn cmp(&self, other: &M256) -> Ordering { self.0.cmp(&other.0) } }
 impl PartialOrd for M256 {
