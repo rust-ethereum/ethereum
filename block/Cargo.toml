@@ -1,12 +1,12 @@
 [package]
 name = "etcommon-block"
-version = "0.1.3"
+version = "0.1.4"
 license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Block and transaction types for Ethereum."
 repository = "https://github.com/ethereumproject/etcommon"
 
 [dependencies]
-etcommon-bigint = "0.1.10"
+etcommon-bigint = "0.1.11"
 etcommon-util = "0.1.0"
 etcommon-rlp = "0.1.1"
