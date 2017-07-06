@@ -1,7 +1,7 @@
 //! Gas capped at the maximum number of U256. It is practically
 //! impossible to obtain this number during a block formation.
 
-use bigint::{M256, U256};
+use super::{M256, U256};
 use util::ParseHexError;
 use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 use std::ops::{Add, Sub, Not, Mul, Div, Shr, Shl, BitAnd, BitOr, BitXor, Rem};

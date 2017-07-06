@@ -2,15 +2,7 @@ extern crate etcommon_bigint as bigint;
 extern crate etcommon_util as util;
 extern crate etcommon_rlp as rlp;
 
-mod bytes;
-mod gas;
-
-use bytes::B256;
-use bigint::{H256, H160, H2048, U256};
-
-pub use gas::Gas;
-pub type LogsBloom = H2048;
-pub type Address = H160;
+use bigint::{Address, LogsBloom, Gas, H256, U256, B256};
 
 pub struct BlockHeader {
     pub parent_hash: H256,

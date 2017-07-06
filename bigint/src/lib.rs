@@ -11,7 +11,14 @@ mod m256;
 mod mi256;
 mod uint;
 mod hash;
+mod bytes;
+mod gas;
 
+pub type Address = H160;
+pub type LogsBloom = H2048;
+
+pub use self::bytes::B256;
+pub use self::gas::Gas;
 pub use self::uint::{U128, U256, U512};
 pub use self::m256::M256;
 pub use self::mi256::MI256;
