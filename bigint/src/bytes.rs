@@ -1,6 +1,7 @@
 use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 
 /// Maximum 256-bit byte-array that does not require heap allocation.
+#[derive(Eq, PartialEq, Debug, Copy, Clone, Hash)]
 pub struct B256(usize, [u8; 32]);
 
 impl Encodable for B256 {
