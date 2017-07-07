@@ -19,5 +19,6 @@ members = [
   "./bigint",
   "./util",
   "./block",
-  "./worldstate"
+  "./worldstate",
+  "./hash",
 ]
