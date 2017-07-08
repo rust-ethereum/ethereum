@@ -1,5 +1,5 @@
 [package]
-name = "etcommon-hash"
+name = "etcommon-crypto"
 version = "0.1.1"
 license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
