@@ -1,6 +1,7 @@
 use rlp::{RlpStream, Encodable, Decodable, Rlp, Prototype};
 use std::ops::Deref;
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct NibbleSlice<'a> {
     data: &'a [u8],
     start_odd: bool,
@@ -15,8 +16,8 @@ impl<'a, 'view> NibbleSlice<'a> where 'a: 'view {
 
     pub fn decode(rlp: &Rlp<'a>) -> Self {
         let data = rlp.data();
-        let start_odd = if data[0] & 16 == 16 { true } else { false };
-        let is_leaf = data[0] & 32 == 32;
+        let start_odd = if data[0] & 0b00010000 == 0b00010000 { true } else { false };
+        let is_leaf = data[0] & 0b00100000 == 0b00100000;
 
         if start_odd {
             NibbleSlice {
@@ -119,7 +120,7 @@ impl<'a> Encodable for NibbleSlice<'a> {
                     ret.push(self.at(i) << 4);
                 } else {
                     let end = ret.len()-1;
-                    ret[end] &= self.at(i);
+                    ret[end] |= self.at(i);
                 }
             }
         } else {
@@ -128,14 +129,14 @@ impl<'a> Encodable for NibbleSlice<'a> {
             for i in 0..self.len() {
                 if i & 1 == 0 { // even
                     let end = ret.len()-1;
-                    ret[end] &= self.at(i);
+                    ret[end] |= self.at(i);
                 } else {
                     ret.push(self.at(i) << 4);
                 }
             }
         }
 
-        ret[0] &= if self.is_leaf {
+        ret[0] |= if self.is_leaf {
             0b00100000
         } else {
             0b00000000
@@ -145,6 +146,7 @@ impl<'a> Encodable for NibbleSlice<'a> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct LeafNibbleSlice<'a>(NibbleSlice<'a>);
 
 impl<'a> LeafNibbleSlice<'a> {
@@ -172,6 +174,7 @@ impl<'a> Deref for LeafNibbleSlice<'a> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct ExtensionNibbleSlice<'a>(NibbleSlice<'a>);
 
 impl<'a> ExtensionNibbleSlice<'a> {

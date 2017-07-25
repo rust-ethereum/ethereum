@@ -6,6 +6,7 @@ use rlp::{self, RlpStream, Encodable, Decodable, Rlp, Prototype};
 use bigint::H256;
 use std::borrow::Borrow;
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum MerkleNode<'a> {
     Blank,
     Leaf(LeafNibbleSlice<'a>, &'a [u8]),
@@ -85,6 +86,7 @@ impl<'a> Encodable for MerkleNode<'a> {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub enum MerkleValue<'a> {
     Empty,
     Full(Box<MerkleNode<'a>>),
@@ -124,5 +126,21 @@ impl<'a> Encodable for MerkleValue<'a> {
                 s.append(hash);
             },
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rlp::{self, Rlp};
+    use super::{LeafNibbleSlice, MerkleNode};
+
+    #[test]
+    fn encode_decode() {
+        let key = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+        let val = [1, 2, 3, 4, 5];
+        let node = MerkleNode::Leaf(LeafNibbleSlice::new(&key), &val);
+        let rlp_raw = rlp::encode(&node);
+        let decoded_node: MerkleNode = MerkleNode::decode(&Rlp::new(&rlp_raw));
+        assert_eq!(node, decoded_node);
     }
 }
