@@ -1,3 +1,6 @@
+use rlp::{RlpStream, Encodable, Decodable, Rlp, Prototype};
+use std::ops::Deref;
+
 pub struct NibbleSlice<'a> {
     data: &'a [u8],
     start_odd: bool,
@@ -6,9 +9,13 @@ pub struct NibbleSlice<'a> {
 }
 
 impl<'a, 'view> NibbleSlice<'a> where 'a: 'view {
+    pub fn is_leaf(&self) -> bool {
+        self.is_leaf
+    }
+
     pub fn decode(rlp: &Rlp<'a>) -> Self {
         let data = rlp.data();
-        let start_odd = if data[0] & 16 == 16 { true } else { else };
+        let start_odd = if data[0] & 16 == 16 { true } else { false };
         let is_leaf = data[0] & 32 == 32;
 
         if start_odd {
@@ -20,7 +27,7 @@ impl<'a, 'view> NibbleSlice<'a> where 'a: 'view {
             }
         } else {
             NibbleSlice {
-                data: data[1..],
+                data: &data[1..],
                 start_odd: false,
                 end_odd: false,
                 is_leaf
@@ -55,7 +62,7 @@ impl<'a, 'view> NibbleSlice<'a> where 'a: 'view {
         };
 
         NibbleSlice {
-            data: self.data[start_i..(end_i+1)],
+            data: &self.data[start_i..(end_i+1)],
             start_odd, end_odd, is_leaf
         }
     }
@@ -111,7 +118,8 @@ impl<'a> Encodable for NibbleSlice<'a> {
                 if i & 1 == 0 { // even
                     ret.push(self.at(i) << 4);
                 } else {
-                    ret[ret.len()-1] &= self.at(i);
+                    let end = ret.len()-1;
+                    ret[end] &= self.at(i);
                 }
             }
         } else {
@@ -119,7 +127,8 @@ impl<'a> Encodable for NibbleSlice<'a> {
 
             for i in 0..self.len() {
                 if i & 1 == 0 { // even
-                    ret[ret.len()-1] &= self.at(i);
+                    let end = ret.len()-1;
+                    ret[end] &= self.at(i);
                 } else {
                     ret.push(self.at(i) << 4);
                 }
@@ -141,11 +150,17 @@ pub struct LeafNibbleSlice<'a>(NibbleSlice<'a>);
 impl<'a> LeafNibbleSlice<'a> {
     pub fn from_generic(n: NibbleSlice<'a>) -> Self {
         assert!(n.is_leaf);
-        Self(n)
+        LeafNibbleSlice(n)
     }
 
     pub fn new(key: &'a [u8]) -> Self {
         LeafNibbleSlice(NibbleSlice::new(key, true))
+    }
+}
+
+impl<'a> Encodable for LeafNibbleSlice<'a> {
+    fn rlp_append(&self, s: &mut RlpStream) {
+        self.0.rlp_append(s)
     }
 }
 
@@ -157,12 +172,12 @@ impl<'a> Deref for LeafNibbleSlice<'a> {
     }
 }
 
-pub struct ExtensionNibbleSlice<'a>(ExtensionNibbleSlice<'a>);
+pub struct ExtensionNibbleSlice<'a>(NibbleSlice<'a>);
 
 impl<'a> ExtensionNibbleSlice<'a> {
     pub fn from_generic(n: NibbleSlice<'a>) -> Self {
         assert!(!n.is_leaf);
-        Self(n)
+        ExtensionNibbleSlice(n)
     }
 
     pub fn new(key: &'a [u8]) -> Self {
@@ -170,7 +185,13 @@ impl<'a> ExtensionNibbleSlice<'a> {
     }
 }
 
-impl<'a> Deref for LeafNibbleSlice<'a> {
+impl<'a> Encodable for ExtensionNibbleSlice<'a> {
+    fn rlp_append(&self, s: &mut RlpStream) {
+        self.0.rlp_append(s)
+    }
+}
+
+impl<'a> Deref for ExtensionNibbleSlice<'a> {
     type Target = NibbleSlice<'a>;
 
     fn deref(&self) -> &NibbleSlice<'a> {
