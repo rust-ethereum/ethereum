@@ -6,7 +6,6 @@ use std::borrow::Borrow;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum MerkleNode<'a> {
-    Blank,
     Leaf(LeafNibbleSlice<'a>, &'a [u8]),
     Extension(ExtensionNibbleSlice<'a>, MerkleValue<'a>),
     Branch([MerkleValue<'a>; 16], Option<&'a [u8]>),
@@ -15,7 +14,6 @@ pub enum MerkleNode<'a> {
 impl<'a> MerkleNode<'a> {
     pub fn decode(rlp: &Rlp<'a>) -> Self {
         match rlp.prototype() {
-            Prototype::Data(0) => MerkleNode::Blank,
             Prototype::List(2) => {
                 let nibble = NibbleSlice::decode(&rlp.at(0));
                 if nibble.is_leaf() {
@@ -57,9 +55,6 @@ impl<'a> MerkleNode<'a> {
 impl<'a> Encodable for MerkleNode<'a> {
     fn rlp_append(&self, s: &mut RlpStream) {
         match self {
-            &MerkleNode::Blank => {
-                s.append_empty_data();
-            },
             &MerkleNode::Leaf(ref nibble, ref value) => {
                 s.begin_list(2);
                 s.append(nibble);
