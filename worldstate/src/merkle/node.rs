@@ -1,4 +1,4 @@
-use super::{NibbleSlice, LeafNibbleSlice, ExtensionNibbleSlice};
+use super::{NibbleSlice, NibbleType};
 
 use rlp::{self, RlpStream, Encodable, Decodable, Rlp, Prototype};
 use bigint::H256;
@@ -6,8 +6,8 @@ use std::borrow::Borrow;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum MerkleNode<'a> {
-    Leaf(LeafNibbleSlice<'a>, &'a [u8]),
-    Extension(ExtensionNibbleSlice<'a>, MerkleValue<'a>),
+    Leaf(NibbleSlice<'a>, &'a [u8]),
+    Extension(NibbleSlice<'a>, MerkleValue<'a>),
     Branch([MerkleValue<'a>; 16], Option<&'a [u8]>),
 }
 
@@ -15,13 +15,14 @@ impl<'a> MerkleNode<'a> {
     pub fn decode(rlp: &Rlp<'a>) -> Self {
         match rlp.prototype() {
             Prototype::List(2) => {
-                let nibble = NibbleSlice::decode(&rlp.at(0));
-                if nibble.is_leaf() {
-                    let nibble = LeafNibbleSlice::from_generic(nibble);
-                    MerkleNode::Leaf(nibble, rlp.at(1).data())
-                } else {
-                    let nibble = ExtensionNibbleSlice::from_generic(nibble);
-                    MerkleNode::Extension(nibble, MerkleValue::decode(&rlp.at(1)))
+                let (nibble, typ) = NibbleSlice::decode(&rlp.at(0));
+                match typ {
+                    NibbleType::Leaf => {
+                        MerkleNode::Leaf(nibble, rlp.at(1).data())
+                    },
+                    NibbleType::Extension => {
+                        MerkleNode::Extension(nibble, MerkleValue::decode(&rlp.at(1)))
+                    },
                 }
             },
             Prototype::List(17) => {
@@ -57,12 +58,12 @@ impl<'a> Encodable for MerkleNode<'a> {
         match self {
             &MerkleNode::Leaf(ref nibble, ref value) => {
                 s.begin_list(2);
-                s.append(nibble);
+                nibble.encode(s, NibbleType::Leaf);
                 s.append(value);
             },
             &MerkleNode::Extension(ref nibble, ref value) => {
                 s.begin_list(2);
-                s.append(nibble);
+                nibble.encode(s, NibbleType::Extension);
                 s.append(value);
             },
             &MerkleNode::Branch(ref nodes, ref value) => {

@@ -1,5 +1,6 @@
 extern crate etcommon_bigint as bigint;
 extern crate etcommon_rlp as rlp;
+extern crate etcommon_crypto as crypto;
 extern crate etcommon_util;
 
 pub mod merkle;
