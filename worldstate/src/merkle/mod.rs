@@ -6,10 +6,23 @@ pub use self::node::{MerkleNode, MerkleValue};
 
 use crypto::keccak256;
 use rlp;
+use bigint::H256;
 use std::collections::HashMap;
 use std::cmp::min;
 
-pub fn build<'a>(map: &HashMap<NibbleSlice<'a>, &'a [u8]>) -> MerkleNode<'a> {
+pub fn build_hash<'a>(map: &HashMap<&'a [u8], &'a [u8]>) -> H256 {
+    let mut node_map = HashMap::new();
+
+    for (key, value) in map {
+        node_map.insert(NibbleSlice::new(key), value.clone());
+    }
+
+    let node = build_node(&node_map);
+
+    keccak256(&rlp::encode(&node).to_vec())
+}
+
+pub fn build_node<'a>(map: &HashMap<NibbleSlice<'a>, &'a [u8]>) -> MerkleNode<'a> {
     if map.len() == 0 {
         panic!();
     }
@@ -35,7 +48,7 @@ pub fn build<'a>(map: &HashMap<NibbleSlice<'a>, &'a [u8]>) -> MerkleNode<'a> {
         for (key, value) in map {
             sub_map.insert(key.sub(common.len(), key.len()), value.clone());
         }
-        let node = build(&sub_map);
+        let node = build_node(&sub_map);
         let value = if node.inlinable() {
             MerkleValue::Full(Box::new(node))
         } else {
@@ -60,7 +73,7 @@ pub fn build<'a>(map: &HashMap<NibbleSlice<'a>, &'a [u8]>) -> MerkleNode<'a> {
                 sub_map.insert(key.sub(1, key.len()), value.clone());
             }
         }
-        let node = build(&sub_map);
+        let node = build_node(&sub_map);
         let value = if node.inlinable() {
             MerkleValue::Full(Box::new(node))
         } else {
