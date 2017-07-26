@@ -126,13 +126,13 @@ impl<'a> Encodable for MerkleValue<'a> {
 #[cfg(test)]
 mod tests {
     use rlp::{self, Rlp};
-    use super::{LeafNibbleSlice, MerkleNode};
+    use super::{NibbleSlice, MerkleNode};
 
     #[test]
     fn encode_decode() {
         let key = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
         let val = [1, 2, 3, 4, 5];
-        let node = MerkleNode::Leaf(LeafNibbleSlice::new(&key), &val);
+        let node = MerkleNode::Leaf(NibbleSlice::new(&key), &val);
         let rlp_raw = rlp::encode(&node);
         let decoded_node: MerkleNode = MerkleNode::decode(&Rlp::new(&rlp_raw));
         assert_eq!(node, decoded_node);

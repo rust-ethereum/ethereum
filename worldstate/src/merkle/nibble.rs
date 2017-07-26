@@ -2,6 +2,7 @@ use rlp::{RlpStream, Encodable, Decodable, Rlp, Prototype};
 use std::ops::Deref;
 use std::cmp::min;
 use std::hash::{Hash, Hasher};
+use std::fmt::{self, Debug, Formatter};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NibbleType {
@@ -9,11 +10,25 @@ pub enum NibbleType {
     Extension
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct NibbleSlice<'a> {
     data: &'a [u8],
     start_odd: bool,
     end_odd: bool
+}
+
+impl<'a> Debug for NibbleSlice<'a> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        write!(f, "NibbleSlice [ 0x");
+
+        for i in 0..self.len() {
+            write!(f, "{:x}", self.at(i));
+        }
+
+        write!(f, " ]");
+
+        Ok(())
+    }
 }
 
 impl<'a> Hash for NibbleSlice<'a> {
@@ -128,11 +143,11 @@ impl<'a, 'view> NibbleSlice<'a> where 'a: 'view {
         } else {
             false
         };
-        let end_odd = if to & 1 == 1 && self.start_odd {
+        let end_odd = if to & 1 == 0 && self.start_odd {
             false
-        } else if to & 1 == 1 && !self.start_odd {
+        } else if to & 1 == 0 && !self.start_odd {
             true
-        } else if to & 1 == 0 && self.start_odd {
+        } else if to & 1 == 1 && self.start_odd {
             true
         } else {
             false
