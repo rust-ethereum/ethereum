@@ -1,11 +1,14 @@
 [package]
 name = "etcommon-crypto"
-version = "0.1.1"
+version = "0.1.2"
 license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Shortcuts and helper functions for various hash functions needed in Ethereum."
 repository = "https://github.com/ethereumproject/etcommon"
 
 [dependencies]
+etcommon-bigint = "0.1.14"
 lazy_static = "0.2"
 devp2p-secp256k1 = "0.5"
+sha3 = "0.6"
+digest = { version = "0.6", features = ["std"]}
