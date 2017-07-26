@@ -187,7 +187,7 @@ impl<'a, 'view> NibbleSlice<'a> where 'a: 'view {
         return true;
     }
 
-    pub fn common(&self, other: &NibbleSlice) -> NibbleSlice {
+    pub fn common(&self, other: &NibbleSlice<'a>) -> NibbleSlice<'a> {
         let mut common_len = 0;
 
         for i in 0..min(self.len(), other.len()) {

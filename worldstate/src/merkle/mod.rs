@@ -20,7 +20,7 @@ pub fn build<'a>(map: &HashMap<NibbleSlice<'a>, &'a [u8]>) -> MerkleNode<'a> {
     }
 
     let common = {
-        let iter = map.keys();
+        let mut iter = map.keys();
 
         let mut common = iter.next().unwrap().common(iter.next().unwrap());
         for key in iter {
@@ -31,7 +31,7 @@ pub fn build<'a>(map: &HashMap<NibbleSlice<'a>, &'a [u8]>) -> MerkleNode<'a> {
     };
 
     if common.len() > 0 {
-        let sub_map = HashMap::new();
+        let mut sub_map = HashMap::new();
         for (key, value) in map {
             sub_map.insert(key.sub(common.len(), key.len()), value.clone());
         }
@@ -54,7 +54,7 @@ pub fn build<'a>(map: &HashMap<NibbleSlice<'a>, &'a [u8]>) -> MerkleNode<'a> {
                      MerkleValue::Empty, MerkleValue::Empty];
 
     for i in 0..16 {
-        let sub_map = HashMap::new();
+        let mut sub_map = HashMap::new();
         for (key, value) in map {
             if key.at(0) == i as u8 {
                 sub_map.insert(key.sub(1, key.len()), value.clone());
