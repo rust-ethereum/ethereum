@@ -70,7 +70,7 @@ pub fn build_node<'a>(map: &HashMap<NibbleSlice<'a>, &'a [u8]>) -> MerkleNode<'a
     for i in 0..16 {
         let mut sub_map = HashMap::new();
         for (key, value) in map {
-            if key.at(0) == i as u8 {
+            if key.len() > 0 && key.at(0) == i as u8 {
                 sub_map.insert(key.sub(1, key.len()), value.clone());
             }
         }
@@ -108,7 +108,7 @@ mod tests {
     use bigint::H256;
 
     #[test]
-    fn test_simple_hash() {
+    fn simple_hash() {
         let key1 = [1, 2, 3, 4, 5, 6, 7, 8];
         let value1 = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
 
@@ -124,5 +124,18 @@ mod tests {
         map.insert(key3.as_ref(), value3.as_ref());
 
         assert_eq!(build_hash(&map), H256::from_str("0x93449281d65dfbf69fa473311939d18595cbbb9e7f7a41ad10d7e62407561816").unwrap());
+    }
+
+    #[test]
+    fn insert_middle_leaf() {
+        let mut map = HashMap::new();
+        map.insert("key1aa".as_bytes(), "0123456789012345678901234567890123456789xxx".as_bytes());
+        map.insert("key1".as_bytes(), "0123456789012345678901234567890123456789Very_Long".as_bytes());
+        map.insert("key2bb".as_bytes(), "aval3".as_bytes());
+        map.insert("key2".as_bytes(), "short".as_bytes());
+        map.insert("key3cc".as_bytes(), "aval3".as_bytes());
+        map.insert("key3".as_bytes(), "1234567890123456789012345678901".as_bytes());
+
+        assert_eq!(build_hash(&map), H256::from_str("0xcb65032e2f76c48b82b5c24b3db8f670ce73982869d38cd39a624f23d62a9e89").unwrap());
     }
 }
