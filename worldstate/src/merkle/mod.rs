@@ -106,25 +106,7 @@ mod tests {
     use std::collections::HashMap;
     use std::str::FromStr;
     use bigint::H256;
-
-    #[test]
-    fn simple_hash() {
-        let key1 = [1, 2, 3, 4, 5, 6, 7, 8];
-        let value1 = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
-
-        let key2 = [1, 2, 3, 5, 6, 7, 8, 9];
-        let value2 = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
-
-        let key3 = [1, 2, 4, 5, 6, 7, 8, 9];
-        let value3 = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
-
-        let mut map = HashMap::new();
-        map.insert(key1.as_ref(), value1.as_ref());
-        map.insert(key2.as_ref(), value2.as_ref());
-        map.insert(key3.as_ref(), value3.as_ref());
-
-        assert_eq!(build_hash(&map), H256::from_str("0x93449281d65dfbf69fa473311939d18595cbbb9e7f7a41ad10d7e62407561816").unwrap());
-    }
+    use etcommon_util::read_hex;
 
     #[test]
     fn insert_middle_leaf() {
@@ -137,5 +119,45 @@ mod tests {
         map.insert("key3".as_bytes(), "1234567890123456789012345678901".as_bytes());
 
         assert_eq!(build_hash(&map), H256::from_str("0xcb65032e2f76c48b82b5c24b3db8f670ce73982869d38cd39a624f23d62a9e89").unwrap());
+    }
+
+    #[test]
+    fn single_item() {
+        let mut map = HashMap::new();
+        map.insert("A".as_bytes(), "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".as_bytes());
+
+        assert_eq!(build_hash(&map), H256::from_str("0xd23786fb4a010da3ce639d66d5e904a11dbc02746d1ce25029e53290cabf28ab").unwrap());
+    }
+
+    #[test]
+    fn foo() {
+        let mut map = HashMap::new();
+        map.insert("foo".as_bytes(), "bar".as_bytes());
+        map.insert("food".as_bytes(), "bass".as_bytes());
+
+        assert_eq!(build_hash(&map), H256::from_str("0x17beaa1648bafa633cda809c90c04af50fc8aed3cb40d16efbddee6fdf63c4c3").unwrap());
+    }
+
+    #[test]
+    fn testy() {
+        let mut map = HashMap::new();
+        map.insert("test".as_bytes(), "test".as_bytes());
+        map.insert("te".as_bytes(), "testy".as_bytes());
+
+        assert_eq!(build_hash(&map), H256::from_str("0x8452568af70d8d140f58d941338542f645fcca50094b20f3c3d8c3df49337928").unwrap());
+    }
+
+    #[test]
+    fn sub_genesis() {
+        let k1 = read_hex("0x204188718653cd7e50f3fd51a820db66112517ca190c637e7cdd80782d56").unwrap();
+        let v1 = vec![248, 78, 128, 138, 21, 45, 2, 199, 225, 74, 246, 128, 0, 0, 160, 86, 232, 31, 23, 27, 204, 85, 166, 255, 131, 69, 230, 146, 192, 248, 110, 91, 72, 224, 27, 153, 108, 173, 192, 1, 98, 47, 181, 227, 99, 180, 33, 160, 197, 210, 70, 1, 134, 247, 35, 60, 146, 126, 125, 178, 220, 199, 3, 192, 229, 0, 182, 83, 202, 130, 39, 59, 123, 250, 216, 4, 93, 133, 164, 112];
+        let k2 = read_hex("0xa390953f116afb00f89fbedb2f8e77297e4e7e1749e2ef0e32e17808e4ad").unwrap();
+        let v2 = vec![248, 77, 128, 137, 108, 107, 147, 91, 139, 189, 64, 0, 0, 160, 86, 232, 31, 23, 27, 204, 85, 166, 255, 131, 69, 230, 146, 192, 248, 110, 91, 72, 224, 27, 153, 108, 173, 192, 1, 98, 47, 181, 227, 99, 180, 33, 160, 197, 210, 70, 1, 134, 247, 35, 60, 146, 126, 125, 178, 220, 199, 3, 192, 229, 0, 182, 83, 202, 130, 39, 59, 123, 250, 216, 4, 93, 133, 164, 112];
+
+        let mut map = HashMap::new();
+        map.insert(k1.as_slice(), v1.as_slice());
+        map.insert(k2.as_slice(), v2.as_slice());
+
+        assert_eq!(build_hash(&map), H256::from_str("bcb5ffb5c6c3e43ef07550fa30af86d66b4015ee3f64aaf70cd0bf8fcc60a9c6").unwrap());
     }
 }
