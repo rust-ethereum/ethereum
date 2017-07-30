@@ -15,16 +15,16 @@ use std::borrow::Borrow;
 use std::clone::Clone;
 
 pub trait Database {
-    fn get<'a>(&'a self, hash: H256) -> &'a [u8];
+    fn get<'a>(&'a self, hash: H256) -> Option<&'a [u8]>;
     fn set<'a, 'b>(&'a mut self, hash: H256, value: &'b [u8]);
 }
 
-pub struct Trie<D: Deref<Target=Database> + DerefMut<Target=Database> + Clone> {
+pub struct Trie<D: Database> {
     database: D,
     root: H256,
 }
 
-impl<D: Deref<Target=Database> + DerefMut<Target=Database> + Clone> Trie<D> {
+impl<D: Database> Trie<D> {
     fn build_node<'a>(database: &mut D, map: &HashMap<NibbleSlice<'a>, &'a [u8]>) -> MerkleNode<'a> {
         if map.len() == 0 {
             panic!();
@@ -117,7 +117,9 @@ impl<D: Deref<Target=Database> + DerefMut<Target=Database> + Clone> Trie<D> {
         }
 
         let node = Self::build_node(&mut database, &node_map);
-        let hash = keccak256(&rlp::encode(&node).to_vec());
+        let root_rlp = rlp::encode(&node).to_vec();
+        let hash = keccak256(&root_rlp);
+        database.set(hash, &root_rlp);
 
         Trie {
             database,
@@ -136,7 +138,10 @@ impl<D: Deref<Target=Database> + DerefMut<Target=Database> + Clone> Trie<D> {
                     sub_node)
             },
             MerkleValue::Hash(h) => {
-                let node = MerkleNode::decode(&Rlp::new(self.database.get(self.root)));
+                let node = MerkleNode::decode(&Rlp::new(match self.database.get(h) {
+                    Some(val) => val,
+                    None => return None,
+                }));
                 self.get_by_node(nibble, node)
             },
         }
@@ -173,7 +178,10 @@ impl<D: Deref<Target=Database> + DerefMut<Target=Database> + Clone> Trie<D> {
     }
 
     fn get_by_nibble<'a, 'b>(&'a self, nibble: NibbleSlice<'b>) -> Option<&'a [u8]> {
-        let node = MerkleNode::decode(&Rlp::new(self.database.get(self.root)));
+        let node = MerkleNode::decode(&Rlp::new(match self.database.get(self.root) {
+            Some(val) => val,
+            None => return None,
+        }));
         self.get_by_node(nibble, node)
     }
 
@@ -183,5 +191,42 @@ impl<D: Deref<Target=Database> + DerefMut<Target=Database> + Clone> Trie<D> {
 
     pub fn get<'a, 'b>(&'a self, key: &'b [u8]) -> Option<&'a [u8]> {
         self.get_by_key(key)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Database, Trie};
+    use std::collections::HashMap;
+    use std::str::FromStr;
+    use std::sync::{Mutex, MutexGuard};
+    use bigint::H256;
+    use etcommon_util::read_hex;
+
+    impl Database for HashMap<H256, Vec<u8>> {
+        fn get(&self, hash: H256) -> Option<&[u8]> {
+            self.get(&hash).map(|v| v.as_ref())
+        }
+
+        fn set(&mut self, hash: H256, value: &[u8]) {
+            self.insert(hash, value.into());
+        }
+    }
+
+    #[test]
+    fn trie_middle_leaf() {
+        let mut map = HashMap::new();
+        map.insert("key1aa".as_bytes(), "0123456789012345678901234567890123456789xxx".as_bytes());
+        map.insert("key1".as_bytes(), "0123456789012345678901234567890123456789Very_Long".as_bytes());
+        map.insert("key2bb".as_bytes(), "aval3".as_bytes());
+        map.insert("key2".as_bytes(), "short".as_bytes());
+        map.insert("key3cc".as_bytes(), "aval3".as_bytes());
+        map.insert("key3".as_bytes(), "1234567890123456789012345678901".as_bytes());
+
+        let mut database: HashMap<H256, Vec<u8>> =HashMap::new();
+        let trie: Trie<HashMap<H256, Vec<u8>>> = Trie::build(database, &map);
+
+        assert_eq!(trie.get("key2bb".as_bytes()), Some("aval3".as_bytes()));
+        assert_eq!(trie.get("key2bbb".as_bytes()), None);
     }
 }
