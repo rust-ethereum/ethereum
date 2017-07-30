@@ -177,20 +177,13 @@ impl<D: Database> Trie<D> {
         }
     }
 
-    fn get_by_nibble<'a, 'b>(&'a self, nibble: NibbleSlice<'b>) -> Option<&'a [u8]> {
+    pub fn get<'a, 'b>(&'a self, key: &'b [u8]) -> Option<&'a [u8]> {
+        let nibble = NibbleSlice::<'a>::new(key);
         let node = MerkleNode::decode(&Rlp::new(match self.database.get(self.root) {
             Some(val) => val,
             None => return None,
         }));
         self.get_by_node(nibble, node)
-    }
-
-    fn get_by_key<'a, 'b>(&'a self, key: &'b [u8]) -> Option<&'a [u8]> {
-        self.get_by_nibble(NibbleSlice::<'a>::new(key))
-    }
-
-    pub fn get<'a, 'b>(&'a self, key: &'b [u8]) -> Option<&'a [u8]> {
-        self.get_by_key(key)
     }
 }
 
