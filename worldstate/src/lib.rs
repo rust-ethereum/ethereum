@@ -5,74 +5,80 @@ extern crate etcommon_util;
 
 pub mod merkle;
 
+use bigint::H256;
+use rlp::Rlp;
+use merkle::{NibbleSlice, MerkleValue, MerkleNode};
+use std::ops::Deref;
+use std::borrow::Borrow;
+use std::clone::Clone;
+
 pub trait Database {
     fn get(&self, hash: H256) -> &[u8];
-    fn set(&self, hash: H256, value: &[u8]);
 }
 
-pub struct Trie<D: Deref<Database> + Clone> {
+pub struct Trie<D: Deref<Target=Database> + Clone> {
     database: D,
     root: H256,
 }
 
-impl<D: Deref<Database>> Trie<D> {
-    fn get_by_value(&self, nibble: NibbleSlice, value: MerkleValue) -> Option<&[u8]> {
+impl<D: Deref<Target=Database> + Clone> Trie<D> {
+    fn get_by_value<'a, 'b>(&'a self, nibble: NibbleSlice<'b>, value: MerkleValue<'a>) -> Option<&'a [u8]> {
         match value {
-            Empty => None,
-            Full(ref sub_node) => {
+            MerkleValue::Empty => None,
+            MerkleValue::Full(ref sub_node) => {
+                let sub_node: &MerkleNode<'a> = sub_node.borrow();
+                let sub_node: MerkleNode<'a> = (*sub_node).clone();
                 self.get_by_node(
                     nibble,
                     sub_node)
             },
-            Hash(h) => {
-                let sub_trie = Trie {
-                    database: self.database.clone(),
-                    root: h
-                };
-                sub_trie.get_by_nibble(
-                    nibble)
+            MerkleValue::Hash(h) => {
+                let node = MerkleNode::decode(&Rlp::new(self.database.get(self.root)));
+                self.get_by_node(nibble, node)
             },
         }
     }
 
-    fn get_by_node(&self, nibble: NibbleSlice, node: MerkleNode) -> Option<&[u8]> {
+    fn get_by_node<'a, 'b>(&'a self, nibble: NibbleSlice<'b>, node: MerkleNode<'a>) -> Option<&'a [u8]> {
         match node {
             MerkleNode::Leaf(ref node_nibble, ref node_value) => {
+                let node_nibble = node_nibble.clone();
                 if node_nibble == nibble {
-                    Some(node_value)
+                    Some(node_value.clone())
                 } else {
                     None
                 }
             },
             MerkleNode::Extension(ref node_nibble, ref node_value) => {
                 if nibble.starts_with(node_nibble) {
+                    let node_value: MerkleValue<'a> = (*node_value).clone();
                     self.get_by_value(nibble.sub(node_nibble.len(), nibble.len()),
                                       node_value)
                 } else {
                     None
                 }
             },
-            MerkelNode::Branch(ref nodes, ref additional) => {
+            MerkleNode::Branch(ref nodes, ref additional) => {
                 if nibble.len() == 0 {
-                    additional
+                    additional.clone()
                 } else {
-                    let node = &nodes[nibble.at(0)];
-                    self.get_by_value(nibble.sub(1, nibble.len()), node)
+                    let node = &nodes[nibble.at(0) as usize];
+                    self.get_by_value(nibble.sub(1, nibble.len()), node.clone())
                 }
             },
         }
     }
 
-    fn get_by_nibble(&self, nibble: NibbleSlice) -> Option<&[u8]> {
-        let node = MerkleNode::decode(Rlp::new(self.database.get(self.root)));
+    fn get_by_nibble<'a, 'b>(&'a self, nibble: NibbleSlice<'b>) -> Option<&'a [u8]> {
+        let node = MerkleNode::decode(&Rlp::new(self.database.get(self.root)));
         self.get_by_node(nibble, node)
     }
 
-    fn get_by_key(&self, key: &[u8]) -> Option<&[u8]> {
-        self.get_by_nibble(NibbleSlice::new(key))
+    fn get_by_key<'a, 'b>(&'a self, key: &'b [u8]) -> Option<&'a [u8]> {
+        self.get_by_nibble(NibbleSlice::<'a>::new(key))
     }
 
-    pub fn get(&self, key: &[u8]) -> Option<&[u8]> {
+    pub fn get<'a, 'b>(&'a self, key: &'b [u8]) -> Option<&'a [u8]> {
         self.get_by_key(key)
     }
 }

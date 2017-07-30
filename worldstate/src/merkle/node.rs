@@ -53,6 +53,33 @@ impl<'a> MerkleNode<'a> {
     }
 }
 
+impl<'a> Clone for MerkleNode<'a> {
+    fn clone(&self) -> MerkleNode<'a> {
+        match self {
+            &MerkleNode::Leaf(ref nibble, ref value) => {
+                MerkleNode::Leaf(nibble.clone(), value.clone())
+            },
+            &MerkleNode::Extension(ref nibble, ref value) => {
+                MerkleNode::Extension(nibble.clone(), value.clone())
+            },
+            &MerkleNode::Branch(ref nodes, ref additional) => {
+                let mut cloned_nodes = [MerkleValue::Empty, MerkleValue::Empty,
+                                        MerkleValue::Empty, MerkleValue::Empty,
+                                        MerkleValue::Empty, MerkleValue::Empty,
+                                        MerkleValue::Empty, MerkleValue::Empty,
+                                        MerkleValue::Empty, MerkleValue::Empty,
+                                        MerkleValue::Empty, MerkleValue::Empty,
+                                        MerkleValue::Empty, MerkleValue::Empty,
+                                        MerkleValue::Empty, MerkleValue::Empty];
+                for i in 0..16 {
+                    cloned_nodes[i] = nodes[i].clone();
+                }
+                MerkleNode::Branch(cloned_nodes, additional.clone())
+            },
+        }
+    }
+}
+
 impl<'a> Encodable for MerkleNode<'a> {
     fn rlp_append(&self, s: &mut RlpStream) {
         match self {
@@ -80,7 +107,7 @@ impl<'a> Encodable for MerkleNode<'a> {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum MerkleValue<'a> {
     Empty,
     Full(Box<MerkleNode<'a>>),
