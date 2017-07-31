@@ -14,6 +14,10 @@ use std::ops::{Deref, DerefMut};
 use std::borrow::Borrow;
 use std::clone::Clone;
 
+fn empty_trie_hash() -> H256 {
+    H256::from("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
+}
+
 pub trait Database {
     fn get<'a>(&'a self, hash: H256) -> Option<&'a [u8]>;
     fn set<'a, 'b>(&'a self, hash: H256, value: &'b [u8]);
@@ -25,6 +29,21 @@ pub struct Trie<D: Database> {
 }
 
 impl<D: Database> Trie<D> {
+    pub fn root(&self) -> H256 {
+        self.root
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.root() == empty_trie_hash()
+    }
+
+    pub fn empty(database: D) -> Self {
+        Self {
+            database,
+            root: empty_trie_hash()
+        }
+    }
+
     fn build_node<'a, 'b>(database: &'a D, map: &HashMap<NibbleSlice<'b>, &'b [u8]>) -> MerkleNode<'b> {
         if map.len() == 0 {
             panic!();
@@ -34,6 +53,8 @@ impl<D: Database> Trie<D> {
             let key = map.keys().next().unwrap();
             return MerkleNode::Leaf(key.clone(), map.get(&key).unwrap().clone());
         }
+
+        debug_assert!(map.len() > 1);
 
         let common = {
             let mut iter = map.keys();
@@ -110,6 +131,10 @@ impl<D: Database> Trie<D> {
     }
 
     pub fn build<'a>(mut database: D, map: &HashMap<&'a [u8], &'a [u8]>) -> Self {
+        if map.len() == 0 {
+            return Self::empty(database);
+        }
+
         let mut node_map = HashMap::new();
 
         for (key, value) in map {
@@ -176,6 +201,10 @@ impl<D: Database> Trie<D> {
     }
 
     pub fn get<'a, 'b>(&'a self, key: &'b [u8]) -> Option<&'a [u8]> {
+        if self.is_empty() {
+            return None;
+        }
+
         let nibble = NibbleSlice::<'a>::new(key);
         let node = MerkleNode::decode(&Rlp::new(match self.database.get(self.root) {
             Some(val) => val,
@@ -368,6 +397,19 @@ impl<D: Database> Trie<D> {
     }
 
     pub fn insert<'a, 'b: 'a>(&'a mut self, key: &'b [u8], value: &'b [u8]) {
+        if self.is_empty() {
+            let mut node_map = HashMap::new();
+            node_map.insert(NibbleSlice::new(key), value.clone());
+
+            let node = Self::build_node(&self.database, &node_map);
+            let root_rlp = rlp::encode(&node).to_vec();
+            let hash = keccak256(&root_rlp);
+            self.database.set(hash, &root_rlp);
+
+            self.root = hash;
+            return;
+        }
+
         let hash = {
             let root_rlp = {
                 let nibble = NibbleSlice::<'a>::new(key);
@@ -480,13 +522,54 @@ impl<D: Database> Trie<D> {
                 } else {
                     additional = None;
                 }
+
+                let mut value_count = 0;
+
+                if additional.is_some() {
+                    value_count += 1;
+                }
+                for i in 0..16 {
+                    if nodes[i] != MerkleValue::Empty {
+                        value_count += 1;
+                    }
+                }
+
                 if nodes.iter().all(|v| *v == MerkleValue::Empty) && additional.is_none() {
                     None
+                } else if value_count == 1 {
+                    panic!(); // TODO: deal with this situation
                 } else {
                     Some(MerkleNode::Branch(nodes, additional))
                 }
             },
         }
+    }
+
+    pub fn remove<'a, 'b: 'a>(&'a mut self, key: &'b [u8]) {
+        if self.is_empty() {
+            return;
+        }
+
+        let nibble = NibbleSlice::<'a>::new(key);
+        let node = MerkleNode::decode(&Rlp::new(match self.database.get(self.root) {
+            Some(val) => val,
+            None => panic!(),
+        }));
+
+        let hash = {
+            let new_node = self.remove_by_node(nibble, node);
+            if new_node.is_none() {
+                empty_trie_hash()
+            } else {
+                let new_node = new_node.unwrap();
+                let root_rlp = rlp::encode(&new_node).to_vec();
+                let hash = keccak256(&root_rlp);
+                self.database.set(hash, &root_rlp);
+                hash
+            }
+        };
+
+        self.root = hash;
     }
 }
 
@@ -526,7 +609,47 @@ mod tests {
 
         assert_eq!(trie.get("key2bb".as_bytes()), Some("aval3".as_bytes()));
         assert_eq!(trie.get("key2bbb".as_bytes()), None);
+        let prev_hash = trie.root();
         trie.insert("key2bbb".as_bytes(), "aval4".as_bytes());
         assert_eq!(trie.get("key2bbb".as_bytes()), Some("aval4".as_bytes()));
+    }
+
+    #[test]
+    fn trie_insert() {
+        let mut map = HashMap::new();
+
+        let mut database: UnsafeCell<HashMap<H256, Vec<u8>>> = UnsafeCell::new(HashMap::new());
+        let mut trie: Trie<UnsafeCell<HashMap<H256, Vec<u8>>>> = Trie::build(database, &map);
+
+        trie.insert("foo".as_bytes(), "bar".as_bytes());
+        trie.insert("food".as_bytes(), "bass".as_bytes());
+
+        assert_eq!(trie.root(), H256::from_str("0x17beaa1648bafa633cda809c90c04af50fc8aed3cb40d16efbddee6fdf63c4c3").unwrap());
+    }
+
+    #[test]
+    fn trie_delete() {
+        let mut map = HashMap::new();
+
+        let mut database: UnsafeCell<HashMap<H256, Vec<u8>>> = UnsafeCell::new(HashMap::new());
+        let mut trie: Trie<UnsafeCell<HashMap<H256, Vec<u8>>>> = Trie::build(database, &map);
+
+        trie.insert("fooa".as_bytes(), "bar".as_bytes());
+        trie.insert("food".as_bytes(), "bass".as_bytes());
+        let prev_hash = trie.root();
+        trie.insert("fooc".as_bytes(), "basss".as_bytes());
+        trie.remove("fooc".as_bytes());
+        assert_eq!(trie.root(), prev_hash);
+    }
+
+    #[test]
+    fn trie_empty() {
+        let mut map = HashMap::new();
+
+        let mut database: UnsafeCell<HashMap<H256, Vec<u8>>> = UnsafeCell::new(HashMap::new());
+        let mut trie: Trie<UnsafeCell<HashMap<H256, Vec<u8>>>> = Trie::build(database, &map);
+
+        assert_eq!(H256::from("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),
+                   trie.root());
     }
 }
