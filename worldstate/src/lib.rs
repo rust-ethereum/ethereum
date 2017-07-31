@@ -385,6 +385,109 @@ impl<D: Database> Trie<D> {
 
         self.root = hash;
     }
+
+    fn remove_by_value<'a, 'b: 'a>(
+        &'a self, nibble: NibbleSlice<'b>, merkle: MerkleValue<'a>
+    ) -> MerkleValue<'a> {
+        match merkle {
+            MerkleValue::Empty => {
+                MerkleValue::Empty
+            },
+            MerkleValue::Full(ref sub_node) => {
+                let sub_node: &MerkleNode<'a> = sub_node.borrow();
+                let sub_node: MerkleNode<'a> = (*sub_node).clone();
+
+                let new_node = self.remove_by_node(nibble, sub_node);
+                if new_node.is_none() {
+                    MerkleValue::Empty
+                } else {
+                    let new_node = new_node.unwrap();
+                    if new_node.inlinable() {
+                        MerkleValue::Full(Box::new(new_node))
+                    } else {
+                        let new_rlp = rlp::encode(&new_node).to_vec();
+                        let hash = keccak256(&new_rlp);
+                        self.database.set(hash, &new_rlp);
+                        MerkleValue::Hash(hash)
+                    }
+                }
+            },
+            MerkleValue::Hash(h) => {
+                let node = MerkleNode::decode(&Rlp::new(match self.database.get(h) {
+                    Some(val) => val,
+                    None => panic!(),
+                }));
+                let new_node = self.remove_by_node(nibble, node);
+                if new_node.is_none() {
+                    MerkleValue::Empty
+                } else {
+                    let new_node = new_node.unwrap();
+                    if new_node.inlinable() {
+                        MerkleValue::Full(Box::new(new_node))
+                    } else {
+                        let new_rlp = rlp::encode(&new_node).to_vec();
+                        let hash = keccak256(&new_rlp);
+                        self.database.set(hash, &new_rlp);
+                        MerkleValue::Hash(hash)
+                    }
+                }
+            },
+        }
+    }
+
+    fn remove_by_node<'a, 'b: 'a>(
+        &'a self, nibble: NibbleSlice<'b>, node: MerkleNode<'a>
+    ) -> Option<MerkleNode<'a>> {
+        match node {
+            MerkleNode::Leaf(ref node_nibble, ref node_value) => {
+                if *node_nibble == nibble {
+                    None
+                } else {
+                    Some(MerkleNode::Leaf(node_nibble.clone(), node_value.clone()))
+                }
+            },
+            MerkleNode::Extension(ref node_nibble, ref node_value) => {
+                if nibble.starts_with(node_nibble) {
+                    let value = self.remove_by_value(
+                        nibble.sub(node_nibble.len(), nibble.len()),
+                        node_value.clone());
+                    if value == MerkleValue::Empty {
+                        None
+                    } else {
+                        Some(MerkleNode::Extension(node_nibble.clone(), value))
+                    }
+                } else {
+                    Some(MerkleNode::Extension(node_nibble.clone(), node_value.clone()))
+                }
+            },
+            MerkleNode::Branch(ref node_nodes, ref node_additional) => {
+                let mut nodes = [MerkleValue::Empty, MerkleValue::Empty,
+                                 MerkleValue::Empty, MerkleValue::Empty,
+                                 MerkleValue::Empty, MerkleValue::Empty,
+                                 MerkleValue::Empty, MerkleValue::Empty,
+                                 MerkleValue::Empty, MerkleValue::Empty,
+                                 MerkleValue::Empty, MerkleValue::Empty,
+                                 MerkleValue::Empty, MerkleValue::Empty,
+                                 MerkleValue::Empty, MerkleValue::Empty];
+                let mut additional = node_additional.clone();
+                for i in 0..16 {
+                    nodes[i] = node_nodes[i].clone();
+                }
+                if nibble.len() > 0 {
+                    nodes[nibble.at(0) as usize] = self.remove_by_value(
+                        nibble.sub(1, nibble.len()),
+                        nodes[nibble.at(0) as usize].clone());
+                } else {
+                    additional = None;
+                }
+                if nodes.iter().all(|v| *v == MerkleValue::Empty) && additional.is_none() {
+                    None
+                } else {
+                    Some(MerkleNode::Branch(nodes, additional))
+                }
+            },
+        }
+    }
 }
 
 #[cfg(test)]
