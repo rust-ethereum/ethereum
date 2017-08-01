@@ -501,10 +501,24 @@ impl<D: Database> Trie<D> {
                     let value = self.remove_by_value(
                         nibble.split_at(node_nibble.len()).1.into(),
                         node_value.clone());
-                    if value == MerkleValue::Empty {
-                        None
-                    } else {
-                        Some(MerkleNode::Extension(node_nibble.clone(), value))
+                    let subnode = match value.clone() {
+                        MerkleValue::Empty => return None,
+                        MerkleValue::Hash(h) => MerkleNode::decode(&Rlp::new(match self.database.get(h) {
+                            Some(val) => val,
+                            None => panic!(),
+                        })),
+                        MerkleValue::Full(f) => {
+                            let t: &MerkleNode = &f;
+                            t.clone()
+                        },
+                    };
+                    match subnode {
+                        MerkleNode::Leaf(mut sub_nibble, sub_value) => {
+                            let mut node_nibble = node_nibble.clone();
+                            node_nibble.append(&mut sub_nibble);
+                            Some(MerkleNode::Leaf(node_nibble, sub_value))
+                        },
+                        _ => Some(MerkleNode::Extension(node_nibble.clone(), value)),
                     }
                 } else {
                     Some(MerkleNode::Extension(node_nibble.clone(), node_value.clone()))
@@ -546,7 +560,99 @@ impl<D: Database> Trie<D> {
                 if nodes.iter().all(|v| *v == MerkleValue::Empty) && additional.is_none() {
                     None
                 } else if value_count == 1 {
-                    panic!(); // TODO: deal with this situation
+                    if additional.is_some() {
+                        Some(MerkleNode::Leaf(NibbleVec::new(), additional.unwrap()))
+                    } else { // one value in nodes
+                        let mut value_index = 16;
+                        let mut value = MerkleValue::Empty;
+                        for i in 0..16 {
+                            if nodes[i] != MerkleValue::Empty {
+                                value = nodes[i].clone();
+                                value_index = i;
+                            }
+                        }
+                        let value_nibble: Nibble = value_index.into();
+                        let subnode = match value {
+                            MerkleValue::Empty => panic!(),
+                            MerkleValue::Hash(h) => MerkleNode::decode(&Rlp::new(match self.database.get(h) {
+                                Some(val) => val,
+                                None => panic!(),
+                            })),
+                            MerkleValue::Full(f) => {
+                                let t: &MerkleNode = &f;
+                                t.clone()
+                            },
+                        };
+                        match subnode {
+                            MerkleNode::Leaf(mut sub_nibble, sub_value) => {
+                                sub_nibble.insert(0, value_index.into());
+                                Some(MerkleNode::Leaf(sub_nibble, sub_value))
+                            },
+                            MerkleNode::Extension(mut sub_nibble, sub_value) => {
+                                sub_nibble.insert(0, value_index.into());
+                                Some(MerkleNode::Extension(sub_nibble, sub_value))
+                            },
+                            MerkleNode::Branch(sub_nodes, sub_additional) => {
+                                let mut value_count = 0;
+
+                                if sub_additional.is_some() {
+                                            value_count += 1;
+                                }
+                                for i in 0..16 {
+                                    if sub_nodes[i] != MerkleValue::Empty {
+                                        value_count += 1;
+                                    }
+                                }
+
+                                if value_count > 1 {
+                                    Some(MerkleNode::Branch(nodes, additional))
+                                } else {
+                                    if sub_additional.is_some() {
+                                        let nibble = vec![value_nibble];
+                                        Some(MerkleNode::Leaf(nibble, sub_additional.unwrap()))
+                                    } else {
+                                        let mut sub_value_index = 16;
+                                        let mut sub_value = MerkleValue::Empty;
+                                        for i in 0..16 {
+                                            if sub_nodes[i] != MerkleValue::Empty {
+                                                sub_value = sub_nodes[i].clone();
+                                                sub_value_index = i;
+                                            }
+                                        }
+                                        let sub_value_nibble: Nibble = sub_value_index.into();
+                                        let sub_subnode = match sub_value.clone() {
+                                            MerkleValue::Empty => panic!(),
+                                            MerkleValue::Hash(h) => MerkleNode::decode(&Rlp::new(match self.database.get(h) {
+                                                Some(val) => val,
+                                                None => panic!(),
+                                            })),
+                                            MerkleValue::Full(f) => {
+                                                let t: &MerkleNode = &f;
+                                                t.clone()
+                                            },
+                                        };
+
+                                        match sub_subnode.clone() {
+                                            MerkleNode::Leaf(mut sub_nibble, sub_value) => {
+                                                sub_nibble.insert(0, value_nibble);
+                                                sub_nibble.insert(1, sub_value_nibble);
+                                                Some(MerkleNode::Leaf(sub_nibble, sub_value))
+                                            },
+                                            MerkleNode::Extension(mut sub_nibble, sub_value) => {
+                                                sub_nibble.insert(0, value_nibble);
+                                                sub_nibble.insert(1, sub_value_nibble);
+                                                Some(MerkleNode::Extension(sub_nibble, sub_value))
+                                            },
+                                            MerkleNode::Branch(_, _) => {
+                                                let sub_nibble = vec![ value_nibble, sub_value_nibble ];
+                                                Some(MerkleNode::Extension(sub_nibble, sub_value))
+                                            },
+                                        }
+                                    }
+                                }
+                            },
+                        }
+                    }
                 } else {
                     Some(MerkleNode::Branch(nodes, additional))
                 }
@@ -621,6 +727,9 @@ mod tests {
         let prev_hash = trie.root();
         trie.insert("key2bbb".as_bytes(), "aval4".as_bytes());
         assert_eq!(trie.get("key2bbb".as_bytes()), Some("aval4".as_bytes()));
+        trie.remove("key2bbb".as_bytes());
+        assert_eq!(trie.get("key2bbb".as_bytes()), None);
+        assert_eq!(prev_hash, trie.root());
     }
 
     #[test]
