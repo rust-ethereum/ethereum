@@ -4,215 +4,165 @@ use std::cmp::min;
 use std::hash::{Hash, Hasher};
 use std::fmt::{self, Debug, Formatter};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Nibble {
+    N0, N1, N2, N3, N4, N5, N6, N7,
+    N8, N9, N10, N11, N12, N13, N14, N15,
+}
+
+impl From<usize> for Nibble {
+    fn from(val: usize) -> Nibble {
+        match val {
+            0 => Nibble::N0, 1 => Nibble::N1, 2 => Nibble::N2, 3 =>
+            Nibble::N3, 4 => Nibble::N4, 5 => Nibble::N5, 6 =>
+            Nibble::N6, 7 => Nibble::N7, 8 => Nibble::N8, 9 =>
+            Nibble::N9, 10 => Nibble::N10, 11 => Nibble::N11, 12 =>
+            Nibble::N12, 13 => Nibble::N13, 14 => Nibble::N14, 15 =>
+            Nibble::N15, _ => panic!(),
+        }
+    }
+}
+
+impl Into<usize> for Nibble {
+    fn into(self) -> usize {
+        match self {
+            Nibble::N0 => 0, Nibble::N1 => 1, Nibble::N2 => 2,
+            Nibble::N3 => 3, Nibble::N4 => 4, Nibble::N5 => 5,
+            Nibble::N6 => 6, Nibble::N7 => 7, Nibble::N8 => 8,
+            Nibble::N9 => 9, Nibble::N10 => 10, Nibble::N11 => 11,
+            Nibble::N12 => 12, Nibble::N13 => 13, Nibble::N14 => 14,
+            Nibble::N15 => 15,
+        }
+    }
+}
+
+impl From<u8> for Nibble {
+    fn from(val: u8) -> Nibble {
+        match val {
+            0 => Nibble::N0, 1 => Nibble::N1, 2 => Nibble::N2, 3 =>
+            Nibble::N3, 4 => Nibble::N4, 5 => Nibble::N5, 6 =>
+            Nibble::N6, 7 => Nibble::N7, 8 => Nibble::N8, 9 =>
+            Nibble::N9, 10 => Nibble::N10, 11 => Nibble::N11, 12 =>
+            Nibble::N12, 13 => Nibble::N13, 14 => Nibble::N14, 15 =>
+            Nibble::N15, _ => panic!(),
+        }
+    }
+}
+
+impl Into<u8> for Nibble {
+    fn into(self) -> u8 {
+        match self {
+            Nibble::N0 => 0, Nibble::N1 => 1, Nibble::N2 => 2,
+            Nibble::N3 => 3, Nibble::N4 => 4, Nibble::N5 => 5,
+            Nibble::N6 => 6, Nibble::N7 => 7, Nibble::N8 => 8,
+            Nibble::N9 => 9, Nibble::N10 => 10, Nibble::N11 => 11,
+            Nibble::N12 => 12, Nibble::N13 => 13, Nibble::N14 => 14,
+            Nibble::N15 => 15,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NibbleType {
     Leaf,
     Extension
 }
 
-#[derive(Clone)]
-pub struct NibbleSlice<'a> {
-    data: &'a [u8],
-    start_odd: bool,
-    end_odd: bool
-}
+pub type NibbleVec = Vec<Nibble>;
+pub type NibbleSlice<'a> = &'a [Nibble];
 
-impl<'a> Debug for NibbleSlice<'a> {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-        write!(f, "NibbleSlice [ 0x");
+pub fn from_key(key: &[u8]) -> NibbleVec {
+    let mut vec = NibbleVec::new();
 
-        for i in 0..self.len() {
-            write!(f, "{:x}", self.at(i));
-        }
-
-        write!(f, " ]");
-
-        Ok(())
-    }
-}
-
-impl<'a> Hash for NibbleSlice<'a> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        for i in 0..self.len() {
-            self.at(i).hash(state);
+    for i in 0..(key.len()*2) {
+        if i & 1 == 0 { // even
+            vec.push(((key[i / 2] & 0xf0) >> 4).into());
+        } else {
+            vec.push((key[i / 2] & 0x0f).into());
         }
     }
+
+    vec
 }
 
-impl<'a> Eq for NibbleSlice<'a> { }
+pub fn decode(rlp: &Rlp) -> (NibbleVec, NibbleType) {
+    let mut vec = NibbleVec::new();
 
-impl<'a> PartialEq for NibbleSlice<'a> {
-    fn eq(&self, other: &NibbleSlice<'a>) -> bool {
-        if self.len() != other.len() {
-            return false;
-        }
+    let data = rlp.data();
+    let start_odd = if data[0] & 0b00010000 == 0b00010000 { true } else { false };
+    let start_index = if start_odd { 1 } else { 2 };
+    let is_leaf = data[0] & 0b00100000 == 0b00100000;
 
-        for i in 0..self.len() {
-            if self.at(i) != other.at(i) {
-                return false;
-            }
-        }
+    let len = data.len() * 2 -
+        if start_odd { 1 } else { 0 };
 
-        return true;
-    }
-}
-
-impl<'a, 'view> NibbleSlice<'a> where 'a: 'view {
-    pub fn decode(rlp: &Rlp<'a>) -> (Self, NibbleType) {
-        let data = rlp.data();
-        let start_odd = if data[0] & 0b00010000 == 0b00010000 { true } else { false };
-        let is_leaf = data[0] & 0b00100000 == 0b00100000;
-
-        (
-            if start_odd {
-                NibbleSlice {
-                    data: data,
-                    start_odd: true,
-                    end_odd: false,
-                }
+    for i in start_index..len {
+        let v = if start_odd {
+            if i & 1 == 0 { // even
+                data[(i + 1) / 2] & 0x0f
             } else {
-                NibbleSlice {
-                    data: &data[1..],
-                    start_odd: false,
-                    end_odd: false,
-                }
-            },
-            if is_leaf {
-                NibbleType::Leaf
-            } else {
-                NibbleType::Extension
-            }
-        )
-    }
-
-    pub fn encode(&self, s: &mut RlpStream, typ: NibbleType) {
-        let mut ret = Vec::new();
-        if (self.start_odd && self.end_odd) || (!self.start_odd && !self.end_odd) {
-            ret.push(0b00000000);
-
-            for i in 0..self.len() {
-                if i & 1 == 0 { // even
-                    ret.push(self.at(i) << 4);
-                } else {
-                    let end = ret.len()-1;
-                    ret[end] |= self.at(i);
-                }
+                (data[(i + 1) / 2] & 0xf0) >> 4
             }
         } else {
-            ret.push(0b00010000);
-
-            for i in 0..self.len() {
-                if i & 1 == 0 { // even
-                    let end = ret.len()-1;
-                    ret[end] |= self.at(i);
-                } else {
-                    ret.push(self.at(i) << 4);
-                }
+            if i & 1 == 0 { // even
+                (data[i / 2] & 0xf0) >> 4
+            } else {
+                data[i / 2] & 0x0f
             }
-        }
-
-        ret[0] |= match typ {
-            NibbleType::Leaf => 0b00100000,
-            NibbleType::Extension => 0b00000000
         };
-
-        s.append(&ret);
+        vec.push(v.into());
     }
 
-    pub fn sub(&'view self, from: usize, to: usize) -> Self { // Exclusive of to
-        if from == to {
-            return NibbleSlice {
-                data: &[],
-                start_odd: false,
-                end_odd: false
-            };
-        }
+    (vec, if is_leaf { NibbleType::Leaf } else { NibbleType::Extension })
+}
 
-        let to = to - 1; // Turn it to inclusive of to.
-        assert!(from <= to && from < self.len() && to < self.len());
+pub fn encode(vec: NibbleSlice, typ: NibbleType, s: &mut RlpStream) {
+    let mut ret: Vec<u8> = Vec::new();
 
-        let start_i = (from + if self.start_odd { 1 } else { 0 }) / 2;
-        let end_i = (to + if self.start_odd { 1 } else { 0 }) / 2;
+    if vec.len() & 1 == 0 { // even
+        ret.push(0b00000000);
 
-        let start_odd = if from & 1 == 1 && self.start_odd {
-            false
-        } else if from & 1 == 1 && !self.start_odd {
-            true
-        } else if from & 1 == 0 && self.start_odd {
-            true
-        } else {
-            false
-        };
-        let end_odd = if to & 1 == 0 && self.start_odd {
-            false
-        } else if to & 1 == 0 && !self.start_odd {
-            true
-        } else if to & 1 == 1 && self.start_odd {
-            true
-        } else {
-            false
-        };
-
-        NibbleSlice {
-            data: &self.data[start_i..(end_i+1)],
-            start_odd, end_odd
-        }
-    }
-
-    pub fn new(key: &'a [u8]) -> Self {
-        NibbleSlice {
-            data: key,
-            start_odd: false,
-            end_odd: false
-        }
-    }
-
-    pub fn len(&self) -> usize {
-        self.data.len() * 2 -
-            if self.start_odd { 1 } else { 0 } -
-            if self.end_odd { 1 } else { 0 }
-    }
-
-    pub fn at(&self, pos: usize) -> u8 {
-        assert!(pos < self.len());
-        if self.start_odd {
-            if pos & 1 == 0 { // even
-                self.data[(pos + 1) / 2] & 0x0f
+        for i in 0..vec.len() {
+            if i & 1 == 0 {
+                let v: u8 = vec[i].into();
+                ret.push(v << 4);
             } else {
-                (self.data[(pos + 1) / 2] & 0xf0) >> 4
+                let end = ret.len() - 1;
+                ret[end] |= vec[i].into();
             }
+        }
+    } else {
+        ret.push(0b00010000);
+
+        for i in 0..vec.len() {
+            if i & 1 == 0 {
+                let end = ret.len() - 1;
+                ret[end] |= vec[i].into();
+            } else {
+                let v: u8 = vec[i].into();
+                ret.push(v << 4);
+            }
+        }
+    }
+
+    ret[0] |= match typ {
+        NibbleType::Leaf => 0b00100000,
+        NibbleType::Extension => 0b00000000
+    };
+
+    s.append(&ret);
+}
+
+pub fn common<'a, 'b>(a: NibbleSlice<'a>, b: NibbleSlice<'b>) -> NibbleSlice<'a> {
+    let mut common_len = 0;
+
+    for i in 0..min(a.len(), b.len()) {
+        if a[i] == b[i] {
+            common_len += 1;
         } else {
-            if pos & 1 == 0 { // even
-                (self.data[pos / 2] & 0xf0) >> 4
-            } else {
-                self.data[pos / 2] & 0x0f
-            }
+            break;
         }
     }
 
-    pub fn starts_with(&self, other: &NibbleSlice) -> bool {
-        if self.len() < other.len() {
-            return false;
-        }
-        for i in 0..other.len() {
-            if self.at(i) != other.at(i) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    pub fn common(&self, other: &NibbleSlice<'a>) -> NibbleSlice<'a> {
-        let mut common_len = 0;
-
-        for i in 0..min(self.len(), other.len()) {
-            if self.at(i) == other.at(i) {
-                common_len += 1;
-            } else {
-                break;
-            }
-        }
-
-        self.sub(0, common_len)
-    }
+    &a[0..common_len]
 }

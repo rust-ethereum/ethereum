@@ -1,4 +1,4 @@
-use super::{NibbleSlice, NibbleType};
+use super::nibble::{self, Nibble, NibbleVec, NibbleSlice, NibbleType};
 
 use rlp::{self, RlpStream, Encodable, Decodable, Rlp, Prototype};
 use bigint::H256;
@@ -6,8 +6,8 @@ use std::borrow::Borrow;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum MerkleNode<'a> {
-    Leaf(NibbleSlice<'a>, &'a [u8]),
-    Extension(NibbleSlice<'a>, MerkleValue<'a>),
+    Leaf(NibbleVec, &'a [u8]),
+    Extension(NibbleVec, MerkleValue<'a>),
     Branch([MerkleValue<'a>; 16], Option<&'a [u8]>),
 }
 
@@ -15,7 +15,7 @@ impl<'a> MerkleNode<'a> {
     pub fn decode(rlp: &Rlp<'a>) -> Self {
         match rlp.prototype() {
             Prototype::List(2) => {
-                let (nibble, typ) = NibbleSlice::decode(&rlp.at(0));
+                let (nibble, typ) = nibble::decode(&rlp.at(0));
                 match typ {
                     NibbleType::Leaf => {
                         MerkleNode::Leaf(nibble, rlp.at(1).data())
@@ -85,12 +85,12 @@ impl<'a> Encodable for MerkleNode<'a> {
         match self {
             &MerkleNode::Leaf(ref nibble, ref value) => {
                 s.begin_list(2);
-                nibble.encode(s, NibbleType::Leaf);
+                nibble::encode(nibble, NibbleType::Leaf, s);
                 value.rlp_append(s);
             },
             &MerkleNode::Extension(ref nibble, ref value) => {
                 s.begin_list(2);
-                nibble.encode(s, NibbleType::Extension);
+                nibble::encode(nibble, NibbleType::Extension, s);
                 value.rlp_append(s);
             },
             &MerkleNode::Branch(ref nodes, ref value) => {
@@ -155,13 +155,14 @@ mod tests {
     use etcommon_util::read_hex;
     use rlp::{self, Rlp};
     use crypto::keccak256;
-    use super::{NibbleSlice, MerkleNode};
+    use merkle::nibble::{self, NibbleVec, NibbleSlice, Nibble};
+    use super::MerkleNode;
 
     #[test]
     fn encode_decode() {
         let key = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
         let val = [1, 2, 3, 4, 5];
-        let node = MerkleNode::Leaf(NibbleSlice::new(&key), &val);
+        let node = MerkleNode::Leaf(nibble::from_key(&key), &val);
         let rlp_raw = rlp::encode(&node);
         let decoded_node: MerkleNode = MerkleNode::decode(&Rlp::new(&rlp_raw));
         assert_eq!(node, decoded_node);
