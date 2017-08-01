@@ -1,7 +1,7 @@
-mod nibble;
+pub mod nibble;
 mod node;
 
-pub use self::nibble::{NibbleSlice, NibbleType};
+use self::nibble::{Nibble, NibbleVec, NibbleSlice, NibbleType};
 pub use self::node::{MerkleNode, MerkleValue};
 
 use crypto::keccak256;
@@ -14,7 +14,7 @@ pub fn build_hash<'a>(map: &HashMap<&'a [u8], &'a [u8]>) -> H256 {
     let mut node_map = HashMap::new();
 
     for (key, value) in map {
-        node_map.insert(NibbleSlice::new(key), value.clone());
+        node_map.insert(nibble::from_key(key), value.clone());
     }
 
     let node = build_node(&node_map);
@@ -22,22 +22,22 @@ pub fn build_hash<'a>(map: &HashMap<&'a [u8], &'a [u8]>) -> H256 {
     keccak256(&rlp::encode(&node).to_vec())
 }
 
-pub fn build_node<'a>(map: &HashMap<NibbleSlice<'a>, &'a [u8]>) -> MerkleNode<'a> {
+pub fn build_node<'a>(map: &HashMap<NibbleVec, &'a [u8]>) -> MerkleNode<'a> {
     if map.len() == 0 {
         panic!();
     }
 
     if map.len() == 1 {
         let key = map.keys().next().unwrap();
-        return MerkleNode::Leaf(key.clone(), map.get(&key).unwrap().clone());
+        return MerkleNode::Leaf(key.clone(), map.get(key).unwrap().clone());
     }
 
     let common = {
         let mut iter = map.keys();
 
-        let mut common = iter.next().unwrap().common(iter.next().unwrap());
+        let mut common = nibble::common(iter.next().unwrap(), iter.next().unwrap());
         for key in iter {
-            common = common.common(key);
+            common = nibble::common(common, key);
         }
 
         common
@@ -46,7 +46,7 @@ pub fn build_node<'a>(map: &HashMap<NibbleSlice<'a>, &'a [u8]>) -> MerkleNode<'a
     if common.len() > 1 {
         let mut sub_map = HashMap::new();
         for (key, value) in map {
-            sub_map.insert(key.sub(common.len(), key.len()), value.clone());
+            sub_map.insert(key.split_at(common.len()).1.into(), value.clone());
         }
         debug_assert!(sub_map.len() > 0);
         let node = build_node(&sub_map);
@@ -55,7 +55,7 @@ pub fn build_node<'a>(map: &HashMap<NibbleSlice<'a>, &'a [u8]>) -> MerkleNode<'a
         } else {
             MerkleValue::Hash(keccak256(&rlp::encode(&node).to_vec()))
         };
-        return MerkleNode::Extension(common, value);
+        return MerkleNode::Extension(common.into(), value);
     }
 
     let mut nodes = [MerkleValue::Empty, MerkleValue::Empty,
@@ -68,10 +68,12 @@ pub fn build_node<'a>(map: &HashMap<NibbleSlice<'a>, &'a [u8]>) -> MerkleNode<'a
                      MerkleValue::Empty, MerkleValue::Empty];
 
     for i in 0..16 {
+        let nibble_index: Nibble = i.into();
+
         let mut sub_map = HashMap::new();
         for (key, value) in map {
-            if key.len() > 0 && key.at(0) == i as u8 {
-                sub_map.insert(key.sub(1, key.len()), value.clone());
+            if key.len() > 0 && key[0] == nibble_index {
+                sub_map.insert(key.split_at(1).1.into(), value.clone());
             }
         }
         let value = if sub_map.len() == 0 {
