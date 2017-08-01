@@ -93,24 +93,14 @@ pub fn decode(rlp: &Rlp) -> (NibbleVec, NibbleType) {
     let start_index = if start_odd { 1 } else { 2 };
     let is_leaf = data[0] & 0b00100000 == 0b00100000;
 
-    let len = data.len() * 2 -
-        if start_odd { 1 } else { 0 };
+    let len = data.len() * 2;
 
     for i in start_index..len {
-        let v = if start_odd {
-            if i & 1 == 0 { // even
-                data[(i + 1) / 2] & 0x0f
-            } else {
-                (data[(i + 1) / 2] & 0xf0) >> 4
-            }
+        if i & 1 == 0 { // even
+            vec.push(((data[i / 2] & 0xf0) >> 4).into());
         } else {
-            if i & 1 == 0 { // even
-                (data[i / 2] & 0xf0) >> 4
-            } else {
-                data[i / 2] & 0x0f
-            }
-        };
-        vec.push(v.into());
+            vec.push((data[i / 2] & 0x0f).into());
+        }
     }
 
     (vec, if is_leaf { NibbleType::Leaf } else { NibbleType::Extension })
