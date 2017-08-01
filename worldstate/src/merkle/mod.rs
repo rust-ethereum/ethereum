@@ -43,7 +43,7 @@ pub fn build_node<'a>(map: &HashMap<NibbleSlice<'a>, &'a [u8]>) -> MerkleNode<'a
         common
     };
 
-    if common.len() > 0 {
+    if common.len() > 1 {
         let mut sub_map = HashMap::new();
         for (key, value) in map {
             sub_map.insert(key.sub(common.len(), key.len()), value.clone());
