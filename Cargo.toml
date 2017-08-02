@@ -12,6 +12,7 @@ etcommon-util = { path = "./util" }
 etcommon-bigint = { path = "./bigint" }
 etcommon-block = { path = "./block" }
 etcommon-worldstate = { path = "./worldstate" }
+etcommon-bloom = { path = "./bloom" }
 
 [workspace]
 members = [
@@ -21,4 +22,5 @@ members = [
   "./block",
   "./worldstate",
   "./crypto",
+  "./bloom",
 ]
