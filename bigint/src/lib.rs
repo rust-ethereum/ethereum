@@ -15,7 +15,6 @@ mod bytes;
 mod gas;
 
 pub type Address = H160;
-pub type LogsBloom = H2048;
 
 pub use self::bytes::B256;
 pub use self::gas::Gas;
