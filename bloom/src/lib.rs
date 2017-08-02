@@ -2,29 +2,43 @@
 
 extern crate etcommon_bigint as bigint;
 extern crate etcommon_crypto as crypto;
+extern crate etcommon_rlp as rlp;
 extern crate etcommon_util;
 
 use bigint::H2048;
 use crypto::keccak256;
+use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 
 /// A log bloom for Ethereum
-pub struct Bloom(H2048);
+pub struct LogsBloom(H2048);
 
-impl From<H2048> for Bloom {
-    fn from(val: H2048) -> Bloom {
-        Bloom(val)
+impl From<H2048> for LogsBloom {
+    fn from(val: H2048) -> LogsBloom {
+        LogsBloom(val)
     }
 }
 
-impl Into<H2048> for Bloom {
+impl Into<H2048> for LogsBloom {
     fn into(self) -> H2048 {
         self.0
     }
 }
 
-impl Default for Bloom {
-    fn default() -> Bloom {
-        Bloom(H2048::zero())
+impl Encodable for LogsBloom {
+    fn rlp_append(&self, s: &mut RlpStream) {
+        self.0.rlp_append(s);
+    }
+}
+
+impl Decodable for LogsBloom {
+    fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
+        Ok(LogsBloom(H2048::decode(rlp)?))
+    }
+}
+
+impl Default for LogsBloom {
+    fn default() -> LogsBloom {
+        LogsBloom(H2048::zero())
     }
 }
 
@@ -38,10 +52,10 @@ fn single_set(arr: &[u8]) -> H2048 {
     r
 }
 
-impl Bloom {
+impl LogsBloom {
     /// Create a new log bloom
-    pub fn new() -> Bloom {
-        Bloom::default()
+    pub fn new() -> LogsBloom {
+        LogsBloom::default()
     }
 
     /// Set respective bits in the bloom with the array
@@ -58,13 +72,13 @@ impl Bloom {
 
 #[cfg(test)]
 mod tests {
-    use super::Bloom;
+    use super::LogsBloom;
     use bigint::H2048;
     use etcommon_util::read_hex;
 
     #[test]
     fn test_bloom() {
-        let mut bloom = Bloom::new();
+        let mut bloom = LogsBloom::new();
         bloom.set(&read_hex("0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6").unwrap());
         assert!(bloom.check(&read_hex("0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6").unwrap()));
 
