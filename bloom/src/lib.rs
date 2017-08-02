@@ -10,6 +10,7 @@ use crypto::keccak256;
 use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 
 /// A log bloom for Ethereum
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LogsBloom(H2048);
 
 impl From<H2048> for LogsBloom {

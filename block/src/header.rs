@@ -1,5 +1,6 @@
 use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
-use bigint::{Address, LogsBloom, Gas, H256, U256, B256, H64};
+use bigint::{Address, Gas, H256, U256, B256, H64};
+use bloom::LogsBloom;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Header {
@@ -164,7 +165,8 @@ impl Decodable for PartialHeader {
 mod tests {
     use rlp::{encode, decode, Rlp};
     use util::read_hex;
-    use bigint::{U256, H256, LogsBloom, Address, Gas};
+    use bigint::{U256, H256, Address, Gas};
+    use bloom::LogsBloom;
     use header::{Header, PartialHeader};
     use std::str::FromStr;
 
@@ -174,6 +176,10 @@ mod tests {
         let block_raw = Rlp::new(&raw);
         let block: Header = block_raw.val_at(0);
         assert_eq!(block.number, U256::from(0u64));
+
+        let encoded = encode(&block).to_vec();
+        let encoded_ref: &[u8] = encoded.as_ref();
+        assert_eq!(encoded_ref, block_raw.at(0).as_raw());
     }
 
     #[test]
@@ -193,5 +199,9 @@ mod tests {
         assert_eq!(block.gas_used, Gas::zero());
         assert_eq!(block.timestamp, 1438269988u64);
         assert_eq!(block, decode(&encode(&block).to_vec()));
+
+        let encoded = encode(&block).to_vec();
+        let encoded_ref: &[u8] = encoded.as_ref();
+        assert_eq!(encoded_ref, block_raw.at(0).as_raw());
     }
 }
