@@ -1,5 +1,5 @@
 use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
-use bigint::{Address, LogsBloom, Gas, H256, U256, B256};
+use bigint::{Address, Gas, H256, U256, B256};
 use super::{Header, Transaction};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -32,7 +32,8 @@ impl Decodable for Block {
 mod tests {
     use rlp::{encode, decode, Rlp};
     use util::read_hex;
-    use bigint::{U256, H256, LogsBloom, Address, Gas};
+    use bigint::{U256, H256, Address, Gas};
+    use bloom::LogsBloom;
     use block::Block;
     use transaction::TransactionAction;
     use std::str::FromStr;
@@ -48,5 +49,8 @@ mod tests {
         assert_eq!(block.ommers[0].parent_hash, H256::from_str("59c53a8471fdc848352699052890b6156753a94743cfb4dc3f921df67e16978a").unwrap());
         assert_eq!(block.ommers[0].beneficiary, Address::from_str("f2d2aff1320476cb8c6b607199d23175cc595693").unwrap());
         assert_eq!(block, decode(&encode(&block).to_vec()));
+
+        let encoded = encode(&block).to_vec();
+        assert_eq!(encoded, raw);
     }
 }
