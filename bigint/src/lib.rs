@@ -1,7 +1,7 @@
 #![cfg_attr(asm_available, feature(asm))]
 
-extern crate etcommon_rlp as rlp;
-extern crate etcommon_util as util;
+extern crate rlp;
+extern crate hexutil;
 extern crate rand;
 extern crate libc;
 extern crate byteorder;

@@ -34,7 +34,7 @@ use std::str::{FromStr};
 use std::ops::{Shr, Shl, BitAnd, BitOr, BitXor, Not, Div, Rem, Mul, Add, Sub, Index};
 use std::cmp::Ordering;
 use byteorder::{ByteOrder, BigEndian, LittleEndian};
-use util::{ParseHexError, read_hex};
+use hexutil::{ParseHexError, read_hex, clean_0x};
 
 mod rlp;
 
