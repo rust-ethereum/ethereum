@@ -1,13 +1,13 @@
-extern crate etcommon_bigint as bigint;
-extern crate etcommon_rlp as rlp;
-extern crate etcommon_crypto as crypto;
-extern crate etcommon_util;
+extern crate bigint;
+extern crate rlp;
+extern crate sha3;
+#[cfg(test)] extern crate hexutil;
 
 pub mod merkle;
 
 use bigint::H256;
 use rlp::Rlp;
-use crypto::keccak256;
+use sha3::{Digest, Keccak256};
 use std::collections::HashMap;
 use merkle::{MerkleValue, MerkleNode};
 use merkle::nibble::{self, NibbleVec, NibbleSlice, Nibble};
@@ -79,7 +79,7 @@ impl<D: Database> Trie<D> {
                 MerkleValue::Full(Box::new(node))
             } else {
                 let sub_node = rlp::encode(&node).to_vec();
-                let hash = keccak256(&sub_node);
+                let hash = H256::from(Keccak256::digest(&sub_node).as_slice());
                 database.set(hash, &sub_node);
                 MerkleValue::Hash(hash)
             };
@@ -112,7 +112,7 @@ impl<D: Database> Trie<D> {
                     MerkleValue::Full(Box::new(node))
                 } else {
                     let sub_node = rlp::encode(&node).to_vec();
-                    let hash = keccak256(&sub_node);
+                    let hash = H256::from(Keccak256::digest(&sub_node).as_slice());
                     database.set(hash, &sub_node);
                     MerkleValue::Hash(hash)
                 }
@@ -146,7 +146,7 @@ impl<D: Database> Trie<D> {
 
         let node = Self::build_node(&mut database, &node_map);
         let root_rlp = rlp::encode(&node).to_vec();
-        let hash = keccak256(&root_rlp);
+        let hash = H256::from(Keccak256::digest(&root_rlp).as_slice());
         database.set(hash, &root_rlp);
 
         Trie {
@@ -230,7 +230,7 @@ impl<D: Database> Trie<D> {
                     MerkleValue::Full(Box::new(new_node))
                 } else {
                     let new_rlp = rlp::encode(&new_node).to_vec();
-                    let hash = keccak256(&new_rlp);
+                    let hash = H256::from(Keccak256::digest(&new_rlp).as_slice());
                     self.database.set(hash, &new_rlp);
                     MerkleValue::Hash(hash)
                 }
@@ -244,7 +244,7 @@ impl<D: Database> Trie<D> {
                     MerkleValue::Full(Box::new(new_node))
                 } else {
                     let new_rlp = rlp::encode(&new_node).to_vec();
-                    let hash = keccak256(&new_rlp);
+                    let hash = H256::from(Keccak256::digest(&new_rlp).as_slice());
                     self.database.set(hash, &new_rlp);
                     MerkleValue::Hash(hash)
                 }
@@ -259,7 +259,7 @@ impl<D: Database> Trie<D> {
                     MerkleValue::Full(Box::new(new_node))
                 } else {
                     let new_rlp = rlp::encode(&new_node).to_vec();
-                    let hash = keccak256(&new_rlp);
+                    let hash = H256::from(Keccak256::digest(&new_rlp).as_slice());
                     self.database.set(hash, &new_rlp);
                     MerkleValue::Hash(hash)
                 }
@@ -300,7 +300,7 @@ impl<D: Database> Trie<D> {
                             MerkleValue::Full(Box::new(new_node))
                         } else {
                             let new_rlp = rlp::encode(&new_node).to_vec();
-                            let hash = keccak256(&new_rlp);
+                            let hash = H256::from(Keccak256::digest(&new_rlp).as_slice());
                             self.database.set(hash, &new_rlp);
                             MerkleValue::Hash(hash)
                         }
@@ -320,7 +320,7 @@ impl<D: Database> Trie<D> {
                             MerkleValue::Full(Box::new(new_node))
                         } else {
                             let new_rlp = rlp::encode(&new_node).to_vec();
-                            let hash = keccak256(&new_rlp);
+                            let hash = H256::from(Keccak256::digest(&new_rlp).as_slice());
                             self.database.set(hash, &new_rlp);
                             MerkleValue::Hash(hash)
                         }
@@ -349,7 +349,7 @@ impl<D: Database> Trie<D> {
                             MerkleValue::Full(Box::new(branched_node))
                         } else {
                             let new_rlp = rlp::encode(&branched_node).to_vec();
-                            let hash = keccak256(&new_rlp);
+                            let hash = H256::from(Keccak256::digest(&new_rlp).as_slice());
                             self.database.set(hash, &new_rlp);
                             MerkleValue::Hash(hash)
                         };
@@ -359,7 +359,7 @@ impl<D: Database> Trie<D> {
                             MerkleValue::Full(Box::new(branched_node))
                         } else {
                             let new_rlp = rlp::encode(&branched_node).to_vec();
-                            let hash = keccak256(&new_rlp);
+                            let hash = H256::from(Keccak256::digest(&new_rlp).as_slice());
                             self.database.set(hash, &new_rlp);
                             MerkleValue::Hash(hash)
                         };
@@ -411,7 +411,7 @@ impl<D: Database> Trie<D> {
 
             let node = Self::build_node(&self.database, &node_map);
             let root_rlp = rlp::encode(&node).to_vec();
-            let hash = keccak256(&root_rlp);
+            let hash = H256::from(Keccak256::digest(&root_rlp).as_slice());
             self.database.set(hash, &root_rlp);
 
             self.root = hash;
@@ -428,7 +428,7 @@ impl<D: Database> Trie<D> {
                 let new_node = self.insert_by_node(nibble, node, value);
                 rlp::encode(&new_node).to_vec()
             };
-            let hash = keccak256(&root_rlp);
+            let hash = H256::from(Keccak256::digest(&root_rlp).as_slice());
             self.database.set(hash, &root_rlp);
             hash
         };
@@ -456,7 +456,7 @@ impl<D: Database> Trie<D> {
                         MerkleValue::Full(Box::new(new_node))
                     } else {
                         let new_rlp = rlp::encode(&new_node).to_vec();
-                        let hash = keccak256(&new_rlp);
+                        let hash = H256::from(Keccak256::digest(&new_rlp).as_slice());
                         self.database.set(hash, &new_rlp);
                         MerkleValue::Hash(hash)
                     }
@@ -476,7 +476,7 @@ impl<D: Database> Trie<D> {
                         MerkleValue::Full(Box::new(new_node))
                     } else {
                         let new_rlp = rlp::encode(&new_node).to_vec();
-                        let hash = keccak256(&new_rlp);
+                        let hash = H256::from(Keccak256::digest(&new_rlp).as_slice());
                         self.database.set(hash, &new_rlp);
                         MerkleValue::Hash(hash)
                     }
@@ -678,7 +678,7 @@ impl<D: Database> Trie<D> {
             } else {
                 let new_node = new_node.unwrap();
                 let root_rlp = rlp::encode(&new_node).to_vec();
-                let hash = keccak256(&root_rlp);
+                let hash = H256::from(Keccak256::digest(&root_rlp).as_slice());
                 self.database.set(hash, &root_rlp);
                 hash
             }
@@ -695,7 +695,7 @@ mod tests {
     use std::str::FromStr;
     use std::cell::UnsafeCell;
     use bigint::H256;
-    use etcommon_util::read_hex;
+    use hexutil::read_hex;
 
     impl Database for UnsafeCell<HashMap<H256, Vec<u8>>> {
         fn get<'a>(&'a self, hash: H256) -> Option<&'a [u8]> {

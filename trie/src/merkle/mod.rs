@@ -4,7 +4,7 @@ mod node;
 use self::nibble::{Nibble, NibbleVec, NibbleSlice, NibbleType};
 pub use self::node::{MerkleNode, MerkleValue};
 
-use crypto::keccak256;
+use sha3::{Digest, Keccak256};
 use rlp;
 use bigint::H256;
 use std::collections::HashMap;
@@ -19,7 +19,7 @@ pub fn build_hash<'a>(map: &HashMap<&'a [u8], &'a [u8]>) -> H256 {
 
     let node = build_node(&node_map);
 
-    keccak256(&rlp::encode(&node).to_vec())
+    H256::from(Keccak256::digest(&rlp::encode(&node).to_vec()).as_slice())
 }
 
 pub fn build_node<'a>(map: &HashMap<NibbleVec, &'a [u8]>) -> MerkleNode<'a> {
@@ -53,7 +53,7 @@ pub fn build_node<'a>(map: &HashMap<NibbleVec, &'a [u8]>) -> MerkleNode<'a> {
         let value = if node.inlinable() {
             MerkleValue::Full(Box::new(node))
         } else {
-            MerkleValue::Hash(keccak256(&rlp::encode(&node).to_vec()))
+            MerkleValue::Hash(H256::from(Keccak256::digest(&rlp::encode(&node).to_vec()).as_slice()))
         };
         return MerkleNode::Extension(common.into(), value);
     }
@@ -83,7 +83,7 @@ pub fn build_node<'a>(map: &HashMap<NibbleVec, &'a [u8]>) -> MerkleNode<'a> {
             if node.inlinable() {
                 MerkleValue::Full(Box::new(node))
             } else {
-                MerkleValue::Hash(keccak256(&rlp::encode(&node).to_vec()))
+                MerkleValue::Hash(H256::from(Keccak256::digest(&rlp::encode(&node).to_vec()).as_slice()))
             }
         };
         nodes[i] = value;
@@ -108,7 +108,7 @@ mod tests {
     use std::collections::HashMap;
     use std::str::FromStr;
     use bigint::H256;
-    use etcommon_util::read_hex;
+    use hexutil::read_hex;
 
     #[test]
     fn insert_middle_leaf() {
