@@ -31,7 +31,7 @@ impl Decodable for Block {
 #[cfg(test)]
 mod tests {
     use rlp::{encode, decode, Rlp};
-    use util::read_hex;
+    use hexutil::read_hex;
     use bigint::{U256, H256, Address, Gas};
     use bloom::LogsBloom;
     use block::Block;

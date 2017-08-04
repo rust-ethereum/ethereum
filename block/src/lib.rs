@@ -1,7 +1,7 @@
-extern crate etcommon_bigint as bigint;
-extern crate etcommon_util as util;
-extern crate etcommon_rlp as rlp;
-extern crate etcommon_bloom as bloom;
+extern crate bigint;
+extern crate rlp;
+extern crate bloom;
+#[cfg(test)] extern crate hexutil;
 
 mod header;
 mod transaction;
