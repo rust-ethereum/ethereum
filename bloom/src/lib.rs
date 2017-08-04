@@ -1,12 +1,13 @@
 //! Log bloom implementation for Ethereum
 
-extern crate etcommon_bigint as bigint;
-extern crate etcommon_crypto as crypto;
-extern crate etcommon_rlp as rlp;
-extern crate etcommon_util;
+extern crate bigint;
+extern crate rlp;
+#[cfg(test)]
+extern crate hexutil;
+extern crate sha3;
 
 use bigint::H2048;
-use crypto::keccak256;
+use sha3::{Digest, Keccak256};
 use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 
 /// A log bloom for Ethereum
@@ -45,7 +46,7 @@ impl Default for LogsBloom {
 
 fn single_set(arr: &[u8]) -> H2048 {
     let mut r = H2048::zero();
-    let h = keccak256(arr);
+    let h = Keccak256::digest(arr);
     for i in [0usize, 2usize, 4usize].iter() {
         let m = (((h[*i] as usize) << 8) + (h[*i + 1] as usize)) % 2048;
         r[m / 8] = r[m / 8] | (1 << (m % 8));
@@ -75,7 +76,7 @@ impl LogsBloom {
 mod tests {
     use super::LogsBloom;
     use bigint::H2048;
-    use etcommon_util::read_hex;
+    use hexutil::read_hex;
 
     #[test]
     fn test_bloom() {

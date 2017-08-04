@@ -1,13 +1,18 @@
 [package]
 name = "etcommon-bloom"
-version = "0.1.1"
+version = "0.2"
 license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Log bloom implementation for Ethereum."
 repository = "https://github.com/ethereumproject/etcommon"
 
+[lib]
+name = "bloom"
+
 [dependencies]
-etcommon-rlp = "0.1.1"
-etcommon-bigint = "0.1"
-etcommon-crypto = "0.1"
-etcommon-util = "0.1"
+etcommon-rlp = "0.2"
+etcommon-bigint = "0.2"
+sha3 = "0.6"
+
+[dev-dependencies]
+etcommon-hexutil = "0.2"
