@@ -7,19 +7,19 @@ description = "Apache-2 licensed common Ethereum structs shared by crates."
 repository = "https://github.com/ethereumproject/etcommon"
 
 [dependencies]
-etcommon-rlp = { path = "./rlp" }
-etcommon-util = { path = "./util" }
-etcommon-bigint = { path = "./bigint" }
-etcommon-block = { path = "./block" }
-etcommon-worldstate = { path = "./worldstate" }
-etcommon-bloom = { path = "./bloom" }
+etcommon-rlp = "0.2"
+etcommon-hexutil = "0.2"
+etcommon-bigint = "0.2"
+etcommon-block = "0.2"
+etcommon-trie = "0.2"
+etcommon-bloom = "0.2"
 
 [workspace]
 members = [
   "./rlp",
   "./bigint",
-  "./util",
+  "./hexutil",
   "./block",
-  "./worldstate",
+  "./trie",
   "./bloom",
 ]
