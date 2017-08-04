@@ -1,7 +1,0 @@
-[package]
-name = "etcommon-util"
-version = "0.1.0"
-license = "Apache-2.0"
-authors = ["Wei Tang <hi@that.world>"]
-description = "Utils for dealing with Ethereum structs."
-repository = "https://github.com/ethereumproject/etcommon"
