@@ -21,6 +21,5 @@ members = [
   "./util",
   "./block",
   "./worldstate",
-  "./crypto",
   "./bloom",
 ]
