@@ -8,6 +8,15 @@ pub enum ParseHexError {
     Other
 }
 
+/// Return `s` without the `0x` at the beginning of it, if any.
+pub fn clean_0x(s: &str) -> &str {
+    if s.starts_with("0x") {
+        &s[2..]
+    } else {
+        s
+    }
+}
+
 /// Parses a given hex string and return a list of bytes if
 /// succeeded. The string can optionally start by `0x`, which
 /// indicates that it is a hex representation.
