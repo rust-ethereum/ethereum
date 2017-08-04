@@ -6,7 +6,7 @@ use std::ops::{Add, Sub, Not, Mul, Div, Shr, Shl, BitAnd, BitOr, BitXor, Rem};
 use std::cmp::Ordering;
 use std::fmt;
 
-use util::ParseHexError;
+use hexutil::ParseHexError;
 use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 use super::{U512, U256, H256, H160};
 

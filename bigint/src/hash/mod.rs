@@ -20,16 +20,7 @@ use rand::Rng;
 use rand::os::OsRng;
 use super::U256;
 use libc::{c_void, memcmp};
-use util::{read_hex, ParseHexError};
-
-/// Return `s` without the `0x` at the beginning of it, if any.
-pub fn clean_0x(s: &str) -> &str {
-    if s.starts_with("0x") {
-        &s[2..]
-    } else {
-        s
-    }
-}
+use hexutil::{read_hex, ParseHexError, clean_0x};
 
 macro_rules! impl_hash {
 	($from: ident, $size: expr) => {

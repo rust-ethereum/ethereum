@@ -152,9 +152,9 @@ impl<'a> Encodable for MerkleValue<'a> {
 
 #[cfg(test)]
 mod tests {
-    use etcommon_util::read_hex;
+    use hexutil::read_hex;
     use rlp::{self, Rlp};
-    use crypto::keccak256;
+    use sha3::{Digest, Keccak256};
     use merkle::nibble::{self, NibbleVec, NibbleSlice, Nibble};
     use super::MerkleNode;
 
