@@ -45,6 +45,27 @@ impl<D: Database> Trie<D> {
         }
     }
 
+    fn build_value<'a, 'b>(database: &'a D, node: MerkleNode<'b>) -> MerkleValue<'b> {
+        if node.inlinable() {
+            MerkleValue::Full(Box::new(node))
+        } else {
+            let subnode = rlp::encode(&node).to_vec();
+            let hash = H256::from(Keccak256::digest(&subnode).as_slice());
+            database.set(hash, &subnode);
+            MerkleValue::Hash(hash)
+        }
+    }
+
+    fn build_submap<'b>(
+        common_len: usize, map: &HashMap<NibbleVec, &'b [u8]>
+    ) -> HashMap<NibbleVec, &'b [u8]> {
+        let mut submap = HashMap::new();
+        for (key, value) in map {
+            submap.insert(key.split_at(common_len).1.into(), value.clone());
+        }
+        submap
+    }
+
     fn build_node<'a, 'b>(database: &'a D, map: &HashMap<NibbleVec, &'b [u8]>) -> MerkleNode<'b> {
         if map.len() == 0 {
             panic!();
@@ -60,20 +81,10 @@ impl<D: Database> Trie<D> {
         let common: NibbleSlice = nibble::common_all(map.keys().map(|v| v.as_ref()));
 
         if common.len() > 1 {
-            let mut sub_map = HashMap::new();
-            for (key, value) in map {
-                sub_map.insert(key.split_at(common.len()).1.into(), value.clone());
-            }
-            debug_assert!(sub_map.len() > 0);
-            let node = Self::build_node(database, &sub_map);
-            let value = if node.inlinable() {
-                MerkleValue::Full(Box::new(node))
-            } else {
-                let sub_node = rlp::encode(&node).to_vec();
-                let hash = H256::from(Keccak256::digest(&sub_node).as_slice());
-                database.set(hash, &sub_node);
-                MerkleValue::Hash(hash)
-            };
+            let submap = Self::build_submap(common.len(), map);
+            debug_assert!(submap.len() > 0);
+            let node = Self::build_node(database, &submap);
+            let value = Self::build_value(database, node);
             return MerkleNode::Extension(common.into(), value);
         }
 
