@@ -57,16 +57,7 @@ impl<D: Database> Trie<D> {
 
         debug_assert!(map.len() > 1);
 
-        let common = {
-            let mut iter = map.keys();
-
-            let mut common = nibble::common(iter.next().unwrap(), iter.next().unwrap());
-            for key in iter {
-                common = nibble::common(common, key);
-            }
-
-            common
-        };
+        let common: NibbleSlice = nibble::common_all(map.keys().map(|v| v.as_ref()));
 
         if common.len() > 1 {
             let mut sub_map = HashMap::new();
