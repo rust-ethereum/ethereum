@@ -15,6 +15,19 @@ use std::ops::{Deref, DerefMut};
 use std::borrow::Borrow;
 use std::clone::Clone;
 
+macro_rules! empty_nodes {
+    () => (
+        [MerkleValue::Empty, MerkleValue::Empty,
+         MerkleValue::Empty, MerkleValue::Empty,
+         MerkleValue::Empty, MerkleValue::Empty,
+         MerkleValue::Empty, MerkleValue::Empty,
+         MerkleValue::Empty, MerkleValue::Empty,
+         MerkleValue::Empty, MerkleValue::Empty,
+         MerkleValue::Empty, MerkleValue::Empty,
+         MerkleValue::Empty, MerkleValue::Empty]
+    )
+}
+
 fn empty_trie_hash() -> H256 {
     H256::from("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
 }
@@ -88,14 +101,7 @@ impl<D: Database> Trie<D> {
             return MerkleNode::Extension(common.into(), value);
         }
 
-        let mut nodes = [MerkleValue::Empty, MerkleValue::Empty,
-                         MerkleValue::Empty, MerkleValue::Empty,
-                         MerkleValue::Empty, MerkleValue::Empty,
-                         MerkleValue::Empty, MerkleValue::Empty,
-                         MerkleValue::Empty, MerkleValue::Empty,
-                         MerkleValue::Empty, MerkleValue::Empty,
-                         MerkleValue::Empty, MerkleValue::Empty,
-                         MerkleValue::Empty, MerkleValue::Empty];
+        let mut nodes = empty_nodes!();
 
         for i in 0..16 {
             let nibble_index: Nibble = i.into();
