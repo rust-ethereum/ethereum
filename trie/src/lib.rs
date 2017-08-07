@@ -69,8 +69,8 @@ impl<D: Database> Trie<D> {
         }
     }
 
-    fn build_submap<'b>(
-        common_len: usize, map: &HashMap<NibbleVec, &'b [u8]>
+    fn build_submap<'a, 'b: 'a, T: Iterator<Item=(&'a NibbleVec, &'a &'b [u8])>>(
+        common_len: usize, map: T
     ) -> HashMap<NibbleVec, &'b [u8]> {
         let mut submap = HashMap::new();
         for (key, value) in map {
@@ -94,7 +94,7 @@ impl<D: Database> Trie<D> {
         let common: NibbleSlice = nibble::common_all(map.keys().map(|v| v.as_ref()));
 
         if common.len() > 1 {
-            let submap = Self::build_submap(common.len(), map);
+            let submap = Self::build_submap(common.len(), map.iter());
             debug_assert!(submap.len() > 0);
             let node = Self::build_node(database, &submap);
             let value = Self::build_value(database, node);
@@ -106,37 +106,21 @@ impl<D: Database> Trie<D> {
         for i in 0..16 {
             let nibble_index: Nibble = i.into();
 
-            let mut sub_map = HashMap::new();
-            for (key, value) in map {
-                if key.len() > 0 && key[0] == nibble_index {
-                    sub_map.insert(key.split_at(1).1.into(), value.clone());
-                }
-            }
-            let value = if sub_map.len() == 0 {
+            let submap = Self::build_submap(1, map.iter().filter(|&(key, value)| {
+                key.len() > 0 && key[0] == nibble_index
+            }));
+            let value = if submap.len() == 0 {
                 MerkleValue::Empty
             } else {
-                let node = Self::build_node(database, &sub_map);
-                if node.inlinable() {
-                    MerkleValue::Full(Box::new(node))
-                } else {
-                    let sub_node = rlp::encode(&node).to_vec();
-                    let hash = H256::from(Keccak256::digest(&sub_node).as_slice());
-                    database.set(hash, &sub_node);
-                    MerkleValue::Hash(hash)
-                }
+                let node = Self::build_node(database, &submap);
+                Self::build_value(database, node)
             };
             nodes[i] = value;
         }
 
-        let additional = {
-            let mut additional = None;
-            for (key, value) in map {
-                if key.len() == 0 {
-                    additional = Some(value.clone())
-                }
-            }
-            additional
-        };
+        let additional = map.iter()
+            .filter(|&(key, value)| key.len() == 0).next()
+            .map(|(key, value)| value.clone());
 
         return MerkleNode::Branch(nodes, additional);
     }
