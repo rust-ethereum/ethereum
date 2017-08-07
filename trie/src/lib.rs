@@ -385,6 +385,21 @@ impl<D: Database> Trie<D> {
     fn remove_by_node<'a, 'b: 'a>(
         &'a self, nibble: NibbleVec, node: MerkleNode<'a>
     ) -> Option<MerkleNode<'a>> {
+        fn find_subnode<'a: 'b, 'b, D: Database>(database: &'a D, value: MerkleValue<'b>) -> MerkleNode<'b> {
+            match value {
+                MerkleValue::Empty => panic!(),
+                MerkleValue::Hash(h) =>
+                    MerkleNode::decode(&Rlp::new(match database.get(h) {
+                        Some(val) => val,
+                        None => panic!(),
+                    })),
+                MerkleValue::Full(f) => {
+                    let t: &MerkleNode = &f;
+                    t.clone()
+                },
+            }
+        }
+
         match node {
             MerkleNode::Leaf(ref node_nibble, ref node_value) => {
                 if *node_nibble == nibble {
@@ -398,17 +413,7 @@ impl<D: Database> Trie<D> {
                     let value = self.remove_by_value(
                         nibble.split_at(node_nibble.len()).1.into(),
                         node_value.clone());
-                    let subnode = match value.clone() {
-                        MerkleValue::Empty => return None,
-                        MerkleValue::Hash(h) => MerkleNode::decode(&Rlp::new(match self.database.get(h) {
-                            Some(val) => val,
-                            None => panic!(),
-                        })),
-                        MerkleValue::Full(f) => {
-                            let t: &MerkleNode = &f;
-                            t.clone()
-                        },
-                    };
+                    let subnode = find_subnode(&self.database, value.clone());
                     match subnode {
                         MerkleNode::Leaf(mut sub_nibble, sub_value) => {
                             let mut node_nibble = node_nibble.clone();
@@ -449,21 +454,6 @@ impl<D: Database> Trie<D> {
                             }).next()
                             .map(|(value_index, value)| (value_index, value.clone())).unwrap();
                         let value_nibble: Nibble = value_index.into();
-
-                        fn find_subnode<'a: 'b, 'b, D: Database>(database: &'a D, value: MerkleValue<'b>) -> MerkleNode<'b> {
-                            match value {
-                                MerkleValue::Empty => panic!(),
-                                MerkleValue::Hash(h) =>
-                                    MerkleNode::decode(&Rlp::new(match database.get(h) {
-                                        Some(val) => val,
-                                        None => panic!(),
-                                    })),
-                                MerkleValue::Full(f) => {
-                                    let t: &MerkleNode = &f;
-                                    t.clone()
-                                },
-                            }
-                        }
 
                         let subnode = find_subnode(&self.database, value);
                         match subnode {
