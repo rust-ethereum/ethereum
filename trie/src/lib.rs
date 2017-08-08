@@ -287,7 +287,7 @@ impl<D: Database> Trie<D> {
 
                     let rest = if rest_len > 0 {
                         let new_node = MerkleNode::Extension(
-                            node_nibble.split_at(common.len()).1.into(),
+                            node_nibble.split_at(common.len() + 1).1.into(),
                             node_value.clone());
                         Self::build_value(database, new_node)
                     } else /* if rest_len == 0 */ {
@@ -298,7 +298,7 @@ impl<D: Database> Trie<D> {
                         let mut nodes = empty_nodes!();
                         nodes[rest_at] = rest;
                         nodes[insert_at] = Self::insert_by_value(
-                            database, cache, nibble.split_at(common.len()).1.into(),
+                            database, cache, nibble.split_at(common.len() + 1).1.into(),
                             MerkleValue::Empty, value);
                         MerkleNode::Branch(nodes, None)
                     };
@@ -585,6 +585,7 @@ mod tests {
         let mut database: HashMap<H256, Vec<u8>> = HashMap::new();
         let mut trie: Trie<HashMap<H256, Vec<u8>>> = Trie::build(database, &map);
 
+        assert_eq!(trie.root(), H256::from_str("0xcb65032e2f76c48b82b5c24b3db8f670ce73982869d38cd39a624f23d62a9e89").unwrap());
         assert_eq!(trie.get("key2bb".as_bytes()), Some("aval3".as_bytes().into()));
         assert_eq!(trie.get("key2bbb".as_bytes()), None);
         let prev_hash = trie.root();
