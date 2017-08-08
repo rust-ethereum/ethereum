@@ -562,16 +562,6 @@ mod tests {
     use bigint::H256;
     use hexutil::read_hex;
 
-    impl Database for HashMap<H256, Vec<u8>> {
-        fn get<'a>(&'a self, hash: H256) -> Option<Vec<u8>> {
-            self.get(&hash).map(|v| v.clone())
-        }
-
-        fn set<'a>(&'a mut self, hash: H256, value: Vec<u8>) {
-            self.insert(hash, value);
-        }
-    }
-
     #[test]
     fn trie_middle_leaf() {
         let mut map = HashMap::new();
