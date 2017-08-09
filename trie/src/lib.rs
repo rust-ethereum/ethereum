@@ -1,6 +1,7 @@
 extern crate bigint;
 extern crate rlp;
 extern crate sha3;
+extern crate blockchain;
 #[cfg(test)] extern crate hexutil;
 
 pub mod merkle;
@@ -16,6 +17,7 @@ use merkle::nibble::{self, NibbleVec, NibbleSlice, Nibble};
 use std::ops::{Deref, DerefMut};
 use std::borrow::Borrow;
 use std::clone::Clone;
+use blockchain::Hashable;
 
 use self::cache::Cache;
 use self::database::{Database, Change, ChangeSet};
@@ -40,6 +42,12 @@ fn empty_trie_hash() -> H256 {
 pub struct Trie<D: Database> {
     database: D,
     root: H256,
+}
+
+impl<D: Database> Hashable<H256> for Tire<D> {
+    fn hash(&self) -> H256 {
+        self.root()
+    }
 }
 
 impl<D: Database> Trie<D> {
