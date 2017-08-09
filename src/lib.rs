@@ -18,7 +18,7 @@ pub struct EthereumDefinition<C, T> {
 }
 
 impl<C: blockchain::Consensus<Block=Block, Extra=Receipt>,
-     T: blockchain::TransitionRule<Transaction=Transaction, Extra=Receipt, WorldState=MemoryTrie>>
+     T: blockchain::TransitionRule<Block=Block, Transaction=Transaction, Extra=Receipt, WorldState=MemoryTrie>>
     blockchain::Definition
     for EthereumDefinition<C, T>
 {
