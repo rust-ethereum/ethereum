@@ -1,12 +1,106 @@
-use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
-use bigint::{Address, Gas, H256, U256, B256};
-use super::{Header, Transaction};
+use rlp::{self, Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
+use bigint::{Address, Gas, H256, U256, B256, H64, H2048};
+use blockchain::Block as BlockchainBlock;
+use trie::MemoryTrie;
+use bloom::LogsBloom;
+use sha3::{Keccak256, Digest};
+use std::collections::HashMap;
+use super::{Header, Transaction, Receipt};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Block {
     pub header: Header,
     pub transactions: Vec<Transaction>,
     pub ommers: Vec<Header>,
+}
+
+impl BlockchainBlock for Block {
+    type Transaction = Transaction;
+    type Extra = Receipt;
+    type Hash = H256;
+
+    fn next(
+        &self,
+        transactions: &[Transaction],
+        receipts: &[Receipt],
+        new_world_state_hash: H256
+    ) -> Self {
+        let parent_hash = H256::from(Keccak256::digest(&rlp::encode(self).to_vec()).as_slice());
+        let ommers_hash = MemoryTrie::empty(HashMap::new()).root();
+        let beneficiary = Address::default();
+        let state_root = new_world_state_hash;
+        let number = self.header.number + U256::one();
+        let mut transaction_trie = MemoryTrie::empty(HashMap::new());
+        let mut receipt_trie = MemoryTrie::empty(HashMap::new());
+        let mut logs_bloom = LogsBloom::new();
+        debug_assert!(transactions.len() == receipts.len());
+
+        for i in 0..transactions.len() {
+            transaction_trie.insert(rlp::encode(&i).to_vec(),
+                                    rlp::encode(&transactions[i]).to_vec());
+            receipt_trie.insert(rlp::encode(&i).to_vec(),
+                                rlp::encode(&receipts[i]).to_vec());
+            logs_bloom = logs_bloom | receipts[i].logs_bloom.clone();
+        }
+
+        let header = Header {
+            parent_hash,
+            ommers_hash,
+            beneficiary,
+            state_root,
+            number,
+
+            transactions_root: transaction_trie.root(),
+            receipts_root: receipt_trie.root(),
+            logs_bloom: logs_bloom,
+
+            difficulty: U256::zero(),
+            gas_limit: Gas::zero(),
+            gas_used: Gas::zero(),
+            timestamp: 0,
+            extra_data: B256::default(),
+            mix_hash: H256::default(),
+            nonce: H64::default(),
+        };
+
+        Block {
+            header,
+            transactions: transactions.into(),
+            ommers: Vec::new(),
+        }
+    }
+
+    fn is_next(
+        &self,
+        other: &Self,
+        transactions: &[Transaction],
+        receipts: &[Receipt],
+        new_world_state_hash: H256
+    ) -> bool {
+        let parent_hash = H256::from(Keccak256::digest(&rlp::encode(self).to_vec()).as_slice());
+        let state_root = new_world_state_hash;
+        let number = self.header.number + U256::one();
+        let mut transaction_trie = MemoryTrie::empty(HashMap::new());
+        let mut receipt_trie = MemoryTrie::empty(HashMap::new());
+        let mut logs_bloom = LogsBloom::new();
+        debug_assert!(transactions.len() == receipts.len());
+
+        for i in 0..transactions.len() {
+            transaction_trie.insert(rlp::encode(&i).to_vec(),
+                                    rlp::encode(&transactions[i]).to_vec());
+            receipt_trie.insert(rlp::encode(&i).to_vec(),
+                                rlp::encode(&receipts[i]).to_vec());
+            logs_bloom = logs_bloom | receipts[i].logs_bloom.clone();
+        }
+
+        true &&
+            other.header.parent_hash == parent_hash &&
+            other.header.state_root == state_root &&
+            other.header.number == number &&
+            other.header.transactions_root == transaction_trie.root() &&
+            other.header.receipts_root == receipt_trie.root() &&
+            other.header.logs_bloom == logs_bloom
+    }
 }
 
 impl Encodable for Block {

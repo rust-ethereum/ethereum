@@ -1,6 +1,6 @@
 [package]
 name = "etcommon-trie"
-version = "0.2.0"
+version = "0.2.4"
 license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Lightweight Ethereum world state storage."
@@ -12,6 +12,7 @@ name = "trie"
 [dependencies]
 etcommon-bigint = "0.2"
 etcommon-rlp = "0.2"
+blockchain = "0.1"
 sha3 = "0.6"
 
 [dev-dependencies]

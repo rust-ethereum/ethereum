@@ -6,6 +6,7 @@ extern crate rlp;
 extern crate hexutil;
 extern crate sha3;
 
+use std::ops::BitOr;
 use bigint::H2048;
 use sha3::{Digest, Keccak256};
 use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
@@ -41,6 +42,14 @@ impl Decodable for LogsBloom {
 impl Default for LogsBloom {
     fn default() -> LogsBloom {
         LogsBloom(H2048::zero())
+    }
+}
+
+impl BitOr for LogsBloom {
+    type Output = LogsBloom;
+
+    fn bitor(self, other: LogsBloom) -> LogsBloom {
+        LogsBloom(self.0 | other.0)
     }
 }
 

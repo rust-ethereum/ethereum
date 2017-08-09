@@ -13,6 +13,13 @@ etcommon-bigint = "0.2"
 etcommon-block = "0.2"
 etcommon-trie = "0.2"
 etcommon-bloom = "0.2"
+blockchain = "0.1"
+
+[dev-dependencies]
+sputnikvm = "0.5"
+secp256k1-plus = "0.5"
+rand = "0.3.12"
+sha3 = "0.6"
 
 [workspace]
 members = [

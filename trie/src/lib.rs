@@ -1,6 +1,7 @@
 extern crate bigint;
 extern crate rlp;
 extern crate sha3;
+extern crate blockchain;
 #[cfg(test)] extern crate hexutil;
 
 pub mod merkle;
@@ -16,6 +17,7 @@ use merkle::nibble::{self, NibbleVec, NibbleSlice, Nibble};
 use std::ops::{Deref, DerefMut};
 use std::borrow::Borrow;
 use std::clone::Clone;
+use blockchain::Hashable;
 
 use self::cache::Cache;
 use self::database::{Database, Change, ChangeSet};
@@ -33,18 +35,31 @@ macro_rules! empty_nodes {
     )
 }
 
-fn empty_trie_hash() -> H256 {
+pub fn empty_trie_hash() -> H256 {
     H256::from("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
 }
 
+pub type MemoryTrie = Trie<HashMap<H256, Vec<u8>>>;
+
+#[derive(Clone, Debug)]
 pub struct Trie<D: Database> {
     database: D,
     root: H256,
 }
 
+impl<D: Database> Hashable<H256> for Trie<D> {
+    fn hash(&self) -> H256 {
+        self.root()
+    }
+}
+
 impl<D: Database> Trie<D> {
     pub fn root(&self) -> H256 {
         self.root
+    }
+
+    pub fn set_root(&mut self, root: H256) {
+        self.root = root;
     }
 
     pub fn is_empty(&self) -> bool {
