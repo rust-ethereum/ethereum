@@ -35,7 +35,7 @@ macro_rules! empty_nodes {
     )
 }
 
-fn empty_trie_hash() -> H256 {
+pub fn empty_trie_hash() -> H256 {
     H256::from("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
 }
 
@@ -56,6 +56,10 @@ impl<D: Database> Hashable<H256> for Trie<D> {
 impl<D: Database> Trie<D> {
     pub fn root(&self) -> H256 {
         self.root
+    }
+
+    pub fn set_root(&mut self, root: H256) {
+        self.root = root;
     }
 
     pub fn is_empty(&self) -> bool {
