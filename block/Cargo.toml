@@ -1,6 +1,6 @@
 [package]
 name = "etcommon-block"
-version = "0.2.0"
+version = "0.2.1"
 license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Block and transaction types for Ethereum."
