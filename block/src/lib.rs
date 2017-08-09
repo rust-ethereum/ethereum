@@ -4,6 +4,7 @@ extern crate bloom;
 extern crate secp256k1;
 extern crate sha3;
 #[cfg(test)] extern crate hexutil;
+#[cfg(test)] extern crate rand;
 
 mod header;
 mod transaction;
