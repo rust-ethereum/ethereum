@@ -16,7 +16,7 @@ mod receipt;
 mod log;
 mod address;
 
-pub use transaction::{TransactionSignature, TransactionAction, Transaction};
+pub use transaction::{UnsignedTransaction, TransactionSignature, TransactionAction, Transaction};
 pub use header::Header;
 pub use block::Block;
 pub use account::Account;
