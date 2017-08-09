@@ -44,7 +44,7 @@ pub struct Trie<D: Database> {
     root: H256,
 }
 
-impl<D: Database> Hashable<H256> for Tire<D> {
+impl<D: Database> Hashable<H256> for Trie<D> {
     fn hash(&self) -> H256 {
         self.root()
     }
