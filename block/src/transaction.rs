@@ -225,6 +225,6 @@ mod tests {
         let signed = unsigned.sign(&secret_key);
 
         assert_eq!(signed.network_id(), Some(61));
-        assert_eq!(signed.address(), address);
+        assert_eq!(signed.caller(), address);
     }
 }
