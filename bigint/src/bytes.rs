@@ -4,6 +4,12 @@ use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 #[derive(Eq, PartialEq, Debug, Copy, Clone, Hash)]
 pub struct B256(usize, [u8; 32]);
 
+impl Default for B256 {
+    fn default() -> B256 {
+        B256(0, [0u8; 32])
+    }
+}
+
 impl Encodable for B256 {
     fn rlp_append(&self, s: &mut RlpStream) {
         s.encoder().encode_value(&self.1[0..self.0])
