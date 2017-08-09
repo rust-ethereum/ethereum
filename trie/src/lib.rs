@@ -41,6 +41,7 @@ fn empty_trie_hash() -> H256 {
 
 pub type MemoryTrie = Trie<HashMap<H256, Vec<u8>>>;
 
+#[derive(Clone, Debug)]
 pub struct Trie<D: Database> {
     database: D,
     root: H256,
