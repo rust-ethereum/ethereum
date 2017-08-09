@@ -13,6 +13,7 @@ etcommon-bigint = "0.2"
 etcommon-block = "0.2"
 etcommon-trie = "0.2"
 etcommon-bloom = "0.2"
+blockchain = "0.1"
 
 [workspace]
 members = [
