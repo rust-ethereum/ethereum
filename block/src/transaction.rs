@@ -146,7 +146,7 @@ pub struct Transaction {
 }
 
 impl Transaction {
-    pub fn address(&self) -> Result<Address, Error> {
+    pub fn caller(&self) -> Result<Address, Error> {
         let hash = H256::from(Keccak256::digest(&rlp::encode(&UnsignedTransaction::from(self.clone())).to_vec()).as_slice());
         let sig = self.signature.clone().into_recoverable_signature()?;
         let public_key = SECP256K1.recover(&Message::from_slice(&hash).unwrap(), &sig)?;
