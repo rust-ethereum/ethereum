@@ -1,6 +1,44 @@
 use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 use bigint::{Address, Gas, H256, U256, B256, H64};
 use bloom::LogsBloom;
+use std::cmp::Ordering;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TotalHeader(Header, U256);
+
+impl TotalHeader {
+    pub fn from_genesis(header: Header) -> TotalHeader {
+        let diff = header.difficulty;
+        TotalHeader(header, diff)
+    }
+
+    pub fn from_parent(header: Header, parent: &TotalHeader) -> TotalHeader {
+        let diff = header.difficulty + parent.1;
+        TotalHeader(header, diff)
+    }
+
+    pub fn total_difficulty(&self) -> U256 {
+        self.1
+    }
+}
+
+impl Into<Header> for TotalHeader {
+    fn into(self) -> Header {
+        self.0
+    }
+}
+
+impl Ord for TotalHeader {
+    fn cmp(&self, other: &TotalHeader) -> Ordering {
+        self.1.cmp(&other.1)
+    }
+}
+
+impl PartialOrd for TotalHeader {
+    fn partial_cmp(&self, other: &TotalHeader) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Header {
