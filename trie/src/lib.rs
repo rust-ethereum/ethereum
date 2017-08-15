@@ -18,7 +18,7 @@ use std::borrow::Borrow;
 use std::clone::Clone;
 
 use self::cache::Cache;
-use self::database::{Database, Change, ChangeSet};
+use self::database::{DatabaseGuard, Change, ChangeSet};
 
 macro_rules! empty_nodes {
     () => (
@@ -40,12 +40,12 @@ pub fn empty_trie_hash() -> H256 {
 pub type MemoryTrie = Trie<HashMap<H256, Vec<u8>>>;
 
 #[derive(Clone, Debug)]
-pub struct Trie<D: Database> {
+pub struct Trie<D: DatabaseGuard> {
     database: D,
     root: H256,
 }
 
-impl<D: Database> Trie<D> {
+impl<D: DatabaseGuard> Trie<D> {
     pub fn root(&self) -> H256 {
         self.root
     }
@@ -403,7 +403,7 @@ impl<D: Database> Trie<D> {
     fn collapse<'a, 'b: 'a>(
         database: &mut Change<'a, D>, cache: &'a Cache, node: MerkleNode<'a>
     ) -> MerkleNode<'a> {
-        fn find_subnode<'a: 'b, 'b, D: Database>(
+        fn find_subnode<'a: 'b, 'b, D: DatabaseGuard>(
             database: &mut Change<'a, D>, cache: &'a Cache, value: MerkleValue<'b>
         ) -> MerkleNode<'b> {
             match value {
