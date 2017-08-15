@@ -1,10 +1,12 @@
-use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
+use rlp::{self, Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 use bigint::{Address, Gas, H256, U256, B256, H64};
 use bloom::LogsBloom;
 use std::cmp::Ordering;
+use blockchain::chain::HeaderHash;
+use sha3::{Keccak256, Digest};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TotalHeader(Header, U256);
+pub struct TotalHeader(pub Header, U256);
 
 impl TotalHeader {
     pub fn from_genesis(header: Header) -> TotalHeader {
@@ -19,6 +21,16 @@ impl TotalHeader {
 
     pub fn total_difficulty(&self) -> U256 {
         self.1
+    }
+}
+
+impl HeaderHash<H256> for TotalHeader {
+    fn parent_hash(&self) -> H256 {
+        self.0.parent_hash()
+    }
+
+    fn header_hash(&self) -> H256 {
+        self.0.header_hash()
     }
 }
 
@@ -57,6 +69,16 @@ pub struct Header {
     pub extra_data: B256,
     pub mix_hash: H256,
     pub nonce: H64,
+}
+
+impl HeaderHash<H256> for Header {
+    fn parent_hash(&self) -> H256 {
+        self.parent_hash
+    }
+
+    fn header_hash(&self) -> H256 {
+        H256::from(Keccak256::digest(&rlp::encode(self).to_vec()).as_slice())
+    }
 }
 
 impl Header {

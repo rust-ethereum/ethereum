@@ -1,13 +1,17 @@
+mod memory;
+
+pub use self::memory::{MemoryDatabase, MemoryDatabaseGuard};
+
 use bigint::H256;
 use std::collections::HashMap;
 use std::cell::RefCell;
 
-pub trait Database {
+pub trait DatabaseGuard {
     fn get(&self, hash: H256) -> Option<Vec<u8>>;
     fn set(&mut self, hash: H256, value: Vec<u8>);
 }
 
-impl Database for HashMap<H256, Vec<u8>> {
+impl DatabaseGuard for HashMap<H256, Vec<u8>> {
     fn get<'a>(&'a self, hash: H256) -> Option<Vec<u8>> {
         self.get(&hash).map(|v| v.clone())
     }
@@ -25,7 +29,7 @@ pub struct Change<'a, D: 'a> {
     freed: Vec<H256>,
 }
 
-impl<'a, D: Database> Change<'a, D> {
+impl<'a, D: DatabaseGuard> Change<'a, D> {
     pub fn new(database: &'a D) -> Self {
         Self {
             database,
@@ -66,7 +70,7 @@ impl<'a, D: Database> Change<'a, D> {
     }
 }
 
-impl<'a, D: Database> From<Change<'a, D>> for ChangeSet {
+impl<'a, D: DatabaseGuard> From<Change<'a, D>> for ChangeSet {
     fn from(val: Change<'a, D>) -> Self {
         ChangeSet {
             cache: val.cache,
@@ -84,7 +88,7 @@ pub struct ChangeSet {
 }
 
 impl ChangeSet {
-    pub fn drain<D: Database>(self, database: &mut D, nofree: bool) {
+    pub fn drain<D: DatabaseGuard>(self, database: &mut D, nofree: bool) {
         if !nofree { unimplemented!() }
 
         for h in self.inserted {

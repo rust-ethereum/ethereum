@@ -1,7 +1,6 @@
 extern crate bigint;
 extern crate rlp;
 extern crate sha3;
-extern crate blockchain;
 #[cfg(test)] extern crate hexutil;
 
 pub mod merkle;
@@ -17,10 +16,11 @@ use merkle::nibble::{self, NibbleVec, NibbleSlice, Nibble};
 use std::ops::{Deref, DerefMut};
 use std::borrow::Borrow;
 use std::clone::Clone;
-use blockchain::Hashable;
 
 use self::cache::Cache;
-use self::database::{Database, Change, ChangeSet};
+use self::database::{Change, ChangeSet};
+
+pub use self::database::{DatabaseGuard, MemoryDatabase, MemoryDatabaseGuard};
 
 macro_rules! empty_nodes {
     () => (
@@ -35,42 +35,50 @@ macro_rules! empty_nodes {
     )
 }
 
-pub fn empty_trie_hash() -> H256 {
-    H256::from("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
+macro_rules! empty_trie_hash {
+    () => {
+        {
+            use std::str::FromStr;
+
+            H256::from_str("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421").unwrap()
+        }
+    }
 }
 
 pub type MemoryTrie = Trie<HashMap<H256, Vec<u8>>>;
 
 #[derive(Clone, Debug)]
-pub struct Trie<D: Database> {
+pub struct Trie<D: DatabaseGuard> {
     database: D,
     root: H256,
 }
 
-impl<D: Database> Hashable<H256> for Trie<D> {
-    fn hash(&self) -> H256 {
-        self.root()
+impl<D: DatabaseGuard> Trie<D> {
+    pub fn empty(database: D) -> Self {
+        Self {
+            database,
+            root: empty_trie_hash!()
+        }
     }
-}
 
-impl<D: Database> Trie<D> {
+    pub fn existing(database: D, root: H256) -> Self {
+        if root == empty_trie_hash!() {
+            return Self::empty(database);
+        }
+
+        assert!(database.get(root).is_some());
+        Self {
+            database,
+            root
+        }
+    }
+
     pub fn root(&self) -> H256 {
         self.root
     }
 
-    pub fn set_root(&mut self, root: H256) {
-        self.root = root;
-    }
-
     pub fn is_empty(&self) -> bool {
-        self.root() == empty_trie_hash()
-    }
-
-    pub fn empty(database: D) -> Self {
-        Self {
-            database,
-            root: empty_trie_hash()
-        }
+        self.root() == empty_trie_hash!()
     }
 
     fn copy_nodes<'a, 'b>(old_nodes: &'a [MerkleValue<'b>]) -> [MerkleValue<'b>; 16] {
@@ -411,7 +419,7 @@ impl<D: Database> Trie<D> {
     fn collapse<'a, 'b: 'a>(
         database: &mut Change<'a, D>, cache: &'a Cache, node: MerkleNode<'a>
     ) -> MerkleNode<'a> {
-        fn find_subnode<'a: 'b, 'b, D: Database>(
+        fn find_subnode<'a: 'b, 'b, D: DatabaseGuard>(
             database: &mut Change<'a, D>, cache: &'a Cache, value: MerkleValue<'b>
         ) -> MerkleNode<'b> {
             match value {
@@ -563,14 +571,14 @@ impl<D: Database> Trie<D> {
             self.database.set(hash, root_rlp);
             self.root = hash;
         } else {
-            self.root = empty_trie_hash();
+            self.root = empty_trie_hash!();
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Database, Trie};
+    use super::{DatabaseGuard, Trie};
     use std::collections::HashMap;
     use std::str::FromStr;
     use std::cell::UnsafeCell;
