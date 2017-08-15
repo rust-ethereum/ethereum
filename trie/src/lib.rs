@@ -572,7 +572,7 @@ impl<D: DatabaseGuard> Trie<D> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Database, Trie};
+    use super::{DatabaseGuard, Trie};
     use std::collections::HashMap;
     use std::str::FromStr;
     use std::cell::UnsafeCell;
