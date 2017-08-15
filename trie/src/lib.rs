@@ -18,7 +18,7 @@ use std::borrow::Borrow;
 use std::clone::Clone;
 
 use self::cache::Cache;
-use self::database::{DatabaseGuard, Change, ChangeSet};
+use self::database::{DatabaseGuard, Change, ChangeSet, MemoryDatabase, MemoryDatabaseGuard};
 
 macro_rules! empty_nodes {
     () => (
@@ -33,8 +33,14 @@ macro_rules! empty_nodes {
     )
 }
 
-pub fn empty_trie_hash() -> H256 {
-    H256::from("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
+macro_rules! empty_trie_hash {
+    () => {
+        {
+            use std::str::FromStr;
+
+            H256::from_str("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421").unwrap()
+        }
+    }
 }
 
 pub type MemoryTrie = Trie<HashMap<H256, Vec<u8>>>;
@@ -46,23 +52,27 @@ pub struct Trie<D: DatabaseGuard> {
 }
 
 impl<D: DatabaseGuard> Trie<D> {
+    pub fn empty(database: D) -> Self {
+        Self {
+            database,
+            root: empty_trie_hash!()
+        }
+    }
+
+    pub fn existing(database: D, root: H256) -> Self {
+        assert!(database.get(root).is_some());
+        Self {
+            database,
+            root
+        }
+    }
+
     pub fn root(&self) -> H256 {
         self.root
     }
 
-    pub fn set_root(&mut self, root: H256) {
-        self.root = root;
-    }
-
     pub fn is_empty(&self) -> bool {
-        self.root() == empty_trie_hash()
-    }
-
-    pub fn empty(database: D) -> Self {
-        Self {
-            database,
-            root: empty_trie_hash()
-        }
+        self.root() == empty_trie_hash!()
     }
 
     fn copy_nodes<'a, 'b>(old_nodes: &'a [MerkleValue<'b>]) -> [MerkleValue<'b>; 16] {
@@ -555,7 +565,7 @@ impl<D: DatabaseGuard> Trie<D> {
             self.database.set(hash, root_rlp);
             self.root = hash;
         } else {
-            self.root = empty_trie_hash();
+            self.root = empty_trie_hash!();
         }
     }
 }

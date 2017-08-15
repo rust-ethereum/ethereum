@@ -1,3 +1,7 @@
+mod memory;
+
+pub use self::memory::{MemoryDatabase, MemoryDatabaseGuard};
+
 use bigint::H256;
 use std::collections::HashMap;
 use std::cell::RefCell;
