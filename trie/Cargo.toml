@@ -12,7 +12,6 @@ name = "trie"
 [dependencies]
 etcommon-bigint = "0.2"
 etcommon-rlp = "0.2"
-blockchain = "0.1"
 sha3 = "0.6"
 
 [dev-dependencies]
