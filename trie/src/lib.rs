@@ -18,7 +18,9 @@ use std::borrow::Borrow;
 use std::clone::Clone;
 
 use self::cache::Cache;
-use self::database::{DatabaseGuard, Change, ChangeSet, MemoryDatabase, MemoryDatabaseGuard};
+use self::database::{Change, ChangeSet};
+
+pub use self::database::{DatabaseGuard, MemoryDatabase, MemoryDatabaseGuard};
 
 macro_rules! empty_nodes {
     () => (
