@@ -62,6 +62,10 @@ impl<D: DatabaseGuard> Trie<D> {
     }
 
     pub fn existing(database: D, root: H256) -> Self {
+        if root == empty_trie_hash!() {
+            return Self::empty(database);
+        }
+
         assert!(database.get(root).is_some());
         Self {
             database,
