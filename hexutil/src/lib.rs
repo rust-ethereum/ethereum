@@ -1,3 +1,4 @@
+use std::fmt::Write;
 
 #[derive(Debug)]
 /// Errors exhibited from `read_hex`.
@@ -55,6 +56,16 @@ pub fn read_hex(s: &str) -> Result<Vec<u8>, ParseHexError> {
     }
 
     return Ok(res);
+}
+
+/// Given a bytearray, get a Ethereum-compatible string hex.
+pub fn to_hex(a: &[u8]) -> String {
+    let mut s = String::new();
+    write!(s, "0x").unwrap();
+    for v in a {
+        write!(s, "{:02x}", *v).unwrap();
+    }
+    s
 }
 
 #[cfg(test)]
