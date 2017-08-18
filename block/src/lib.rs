@@ -4,7 +4,6 @@ extern crate bloom;
 extern crate secp256k1;
 extern crate sha3;
 extern crate blockchain;
-extern crate trie;
 #[cfg(test)] extern crate hexutil;
 #[cfg(test)] extern crate rand;
 
