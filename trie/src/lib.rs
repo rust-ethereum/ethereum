@@ -81,6 +81,25 @@ impl<D: DatabaseGuard> Trie<D> {
         self.root() == empty_trie_hash!()
     }
 
+    pub fn get<K: rlp::Encodable, V: rlp::Decodable>(&self, key: &K) -> Option<V> {
+        let key = rlp::encode(key).to_vec();
+
+        self.get_raw(&key).map(|v| rlp::decode(v.as_slice()))
+    }
+
+    pub fn insert<K: rlp::Encodable, V: rlp::Encodable>(&mut self, key: K, value: V) {
+        let key = rlp::encode(&key).to_vec();
+        let value = rlp::encode(&value).to_vec();
+
+        self.insert_raw(key, value);
+    }
+
+    pub fn remove<K: rlp::Encodable>(&mut self, key: &K) {
+        let key = rlp::encode(key).to_vec();
+
+        self.remove_raw(&key)
+    }
+
     fn copy_nodes<'a, 'b>(old_nodes: &'a [MerkleValue<'b>]) -> [MerkleValue<'b>; 16] {
         debug_assert!(old_nodes.len() == 16);
         let mut nodes = empty_nodes!();
@@ -232,7 +251,7 @@ impl<D: DatabaseGuard> Trie<D> {
         }
     }
 
-    pub fn get<'a, 'b>(&'a self, key: &'b [u8]) -> Option<Vec<u8>> {
+    pub fn get_raw<'a, 'b>(&'a self, key: &'b [u8]) -> Option<Vec<u8>> {
         if self.is_empty() {
             return None;
         }
@@ -349,7 +368,7 @@ impl<D: DatabaseGuard> Trie<D> {
         }
     }
 
-    pub fn insert(&mut self, key: Vec<u8>, value: Vec<u8>) {
+    pub fn insert_raw(&mut self, key: Vec<u8>, value: Vec<u8>) {
         let key: &[u8] = key.as_ref();
         let value: &[u8] = value.as_ref();
 
@@ -547,7 +566,7 @@ impl<D: DatabaseGuard> Trie<D> {
         }
     }
 
-    pub fn remove<'a, 'b: 'a>(&'a mut self, key: &'b [u8]) {
+    pub fn remove_raw<'a, 'b: 'a>(&'a mut self, key: &'b [u8]) {
         if self.is_empty() {
             return;
         }
@@ -599,13 +618,13 @@ mod tests {
         let mut trie: Trie<HashMap<H256, Vec<u8>>> = Trie::build(database, &map);
 
         assert_eq!(trie.root(), H256::from_str("0xcb65032e2f76c48b82b5c24b3db8f670ce73982869d38cd39a624f23d62a9e89").unwrap());
-        assert_eq!(trie.get("key2bb".as_bytes()), Some("aval3".as_bytes().into()));
-        assert_eq!(trie.get("key2bbb".as_bytes()), None);
+        assert_eq!(trie.get_raw("key2bb".as_bytes()), Some("aval3".as_bytes().into()));
+        assert_eq!(trie.get_raw("key2bbb".as_bytes()), None);
         let prev_hash = trie.root();
-        trie.insert("key2bbb".as_bytes().into(), "aval4".as_bytes().into());
-        assert_eq!(trie.get("key2bbb".as_bytes()), Some("aval4".as_bytes().into()));
-        trie.remove("key2bbb".as_bytes());
-        assert_eq!(trie.get("key2bbb".as_bytes()), None);
+        trie.insert_raw("key2bbb".as_bytes().into(), "aval4".as_bytes().into());
+        assert_eq!(trie.get_raw("key2bbb".as_bytes()), Some("aval4".as_bytes().into()));
+        trie.remove_raw("key2bbb".as_bytes());
+        assert_eq!(trie.get_raw("key2bbb".as_bytes()), None);
         assert_eq!(prev_hash, trie.root());
     }
 
@@ -614,18 +633,18 @@ mod tests {
         let mut database: HashMap<H256, Vec<u8>> = HashMap::new();
         let mut trie = Trie::empty(database);
 
-        trie.insert("key1aa".as_bytes().into(),
-                    "0123456789012345678901234567890123456789xxx".as_bytes().into());
-        trie.insert("key1".as_bytes().into(),
-                    "0123456789012345678901234567890123456789Very_Long".as_bytes().into());
-        trie.insert("key2bb".as_bytes().into(),
-                    "aval3".as_bytes().into());
-        trie.insert("key2".as_bytes().into(),
-                    "short".as_bytes().into());
-        trie.insert("key3cc".as_bytes().into(),
-                    "aval3".as_bytes().into());
-        trie.insert("key3".as_bytes().into(),
-                    "1234567890123456789012345678901".as_bytes().into());
+        trie.insert_raw("key1aa".as_bytes().into(),
+                        "0123456789012345678901234567890123456789xxx".as_bytes().into());
+        trie.insert_raw("key1".as_bytes().into(),
+                        "0123456789012345678901234567890123456789Very_Long".as_bytes().into());
+        trie.insert_raw("key2bb".as_bytes().into(),
+                        "aval3".as_bytes().into());
+        trie.insert_raw("key2".as_bytes().into(),
+                        "short".as_bytes().into());
+        trie.insert_raw("key3cc".as_bytes().into(),
+                        "aval3".as_bytes().into());
+        trie.insert_raw("key3".as_bytes().into(),
+                        "1234567890123456789012345678901".as_bytes().into());
         assert_eq!(trie.root(), H256::from_str("0xcb65032e2f76c48b82b5c24b3db8f670ce73982869d38cd39a624f23d62a9e89").unwrap());
     }
 
@@ -634,7 +653,7 @@ mod tests {
         let mut database: HashMap<H256, Vec<u8>> = HashMap::new();
         let mut trie = Trie::empty(database);
 
-        trie.insert("A".as_bytes().into(),
+        trie.insert_raw("A".as_bytes().into(),
                     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".as_bytes().into());
 
         assert_eq!(trie.root(), H256::from_str("0xd23786fb4a010da3ce639d66d5e904a11dbc02746d1ce25029e53290cabf28ab").unwrap());
@@ -645,10 +664,10 @@ mod tests {
         let mut database: HashMap<H256, Vec<u8>> = HashMap::new();
         let mut trie = Trie::empty(database);
 
-        trie.insert("test".as_bytes().into(),
-                    "test".as_bytes().into());
-        trie.insert("te".as_bytes().into(),
-                    "testy".as_bytes().into());
+        trie.insert_raw("test".as_bytes().into(),
+                        "test".as_bytes().into());
+        trie.insert_raw("te".as_bytes().into(),
+                        "testy".as_bytes().into());
 
         assert_eq!(trie.root(), H256::from_str("0x8452568af70d8d140f58d941338542f645fcca50094b20f3c3d8c3df49337928").unwrap());
     }
@@ -663,8 +682,8 @@ mod tests {
         let k2 = read_hex("0xa390953f116afb00f89fbedb2f8e77297e4e7e1749e2ef0e32e17808e4ad").unwrap();
         let v2 = vec![248, 77, 128, 137, 108, 107, 147, 91, 139, 189, 64, 0, 0, 160, 86, 232, 31, 23, 27, 204, 85, 166, 255, 131, 69, 230, 146, 192, 248, 110, 91, 72, 224, 27, 153, 108, 173, 192, 1, 98, 47, 181, 227, 99, 180, 33, 160, 197, 210, 70, 1, 134, 247, 35, 60, 146, 126, 125, 178, 220, 199, 3, 192, 229, 0, 182, 83, 202, 130, 39, 59, 123, 250, 216, 4, 93, 133, 164, 112];
 
-        trie.insert(k1, v1);
-        trie.insert(k2, v2);
+        trie.insert_raw(k1, v1);
+        trie.insert_raw(k2, v2);
 
         assert_eq!(trie.root(), H256::from_str("bcb5ffb5c6c3e43ef07550fa30af86d66b4015ee3f64aaf70cd0bf8fcc60a9c6").unwrap());
     }
@@ -676,8 +695,8 @@ mod tests {
         let mut database: HashMap<H256, Vec<u8>> = HashMap::new();
         let mut trie: Trie<HashMap<H256, Vec<u8>>> = Trie::build(database, &map);
 
-        trie.insert("foo".as_bytes().into(), "bar".as_bytes().into());
-        trie.insert("food".as_bytes().into(), "bass".as_bytes().into());
+        trie.insert_raw("foo".as_bytes().into(), "bar".as_bytes().into());
+        trie.insert_raw("food".as_bytes().into(), "bass".as_bytes().into());
 
         assert_eq!(trie.root(), H256::from_str("0x17beaa1648bafa633cda809c90c04af50fc8aed3cb40d16efbddee6fdf63c4c3").unwrap());
     }
@@ -689,11 +708,11 @@ mod tests {
         let mut database: HashMap<H256, Vec<u8>> = HashMap::new();
         let mut trie: Trie<HashMap<H256, Vec<u8>>> = Trie::build(database, &map);
 
-        trie.insert("fooa".as_bytes().into(), "bar".as_bytes().into());
-        trie.insert("food".as_bytes().into(), "bass".as_bytes().into());
+        trie.insert_raw("fooa".as_bytes().into(), "bar".as_bytes().into());
+        trie.insert_raw("food".as_bytes().into(), "bass".as_bytes().into());
         let prev_hash = trie.root();
-        trie.insert("fooc".as_bytes().into(), "basss".as_bytes().into());
-        trie.remove("fooc".as_bytes());
+        trie.insert_raw("fooc".as_bytes().into(), "basss".as_bytes().into());
+        trie.remove_raw("fooc".as_bytes());
         assert_eq!(trie.root(), prev_hash);
     }
 
