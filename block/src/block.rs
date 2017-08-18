@@ -1,6 +1,5 @@
 use rlp::{self, Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 use bigint::{Address, Gas, H256, U256, B256, H64, H2048};
-use trie::MemoryTrie;
 use bloom::LogsBloom;
 use sha3::{Keccak256, Digest};
 use std::collections::HashMap;
