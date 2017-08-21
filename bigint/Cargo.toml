@@ -1,6 +1,6 @@
 [package]
 name = "etcommon-bigint"
-version = "0.2.1"
+version = "0.2.2"
 license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Big integer (256-bit and 512-bit) implementation for SputnikVM and other Ethereum Classic clients."
