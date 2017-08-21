@@ -10,8 +10,8 @@ repository = "https://github.com/ethereumproject/etcommon-rs"
 name = "bloom"
 
 [dependencies]
-etcommon-rlp = "0.2"
-etcommon-bigint = "0.2"
+etcommon-rlp = { version = "0.2", path = "../rlp" }
+etcommon-bigint = { version = "0.2", path = "../bigint" }
 sha3 = "0.6"
 
 [dev-dependencies]

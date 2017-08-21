@@ -162,6 +162,16 @@ pub struct PartialHeader {
     pub extra_data: B256,
 }
 
+impl HeaderHash<H256> for PartialHeader {
+    fn parent_hash(&self) -> H256 {
+        self.parent_hash
+    }
+
+    fn header_hash(&self) -> H256 {
+        H256::from(Keccak256::digest(&rlp::encode(self).to_vec()).as_slice())
+    }
+}
+
 impl PartialHeader {
     pub fn from_full(header: Header) -> Self {
         Self {

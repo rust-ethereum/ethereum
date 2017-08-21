@@ -1,6 +1,6 @@
 [package]
 name = "etcommon-block"
-version = "0.2.5"
+version = "0.2.7"
 license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Block and transaction types for Ethereum."
@@ -12,9 +12,9 @@ name = "block"
 [dependencies]
 sha3 = "0.6"
 secp256k1-plus = "0.5"
-etcommon-bigint = "0.2"
-etcommon-rlp = "0.2"
-etcommon-bloom = "0.2"
+etcommon-bigint = { version = "0.2", path = "../bigint" }
+etcommon-rlp = { version = "0.2", path = "../rlp" }
+etcommon-bloom = { version = "0.2", path = "../bloom" }
 blockchain = "0.1"
 
 [dev-dependencies]

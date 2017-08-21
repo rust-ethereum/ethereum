@@ -21,6 +21,7 @@ use rand::os::OsRng;
 use super::U256;
 use libc::{c_void, memcmp};
 use hexutil::{read_hex, ParseHexError, clean_0x};
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 macro_rules! impl_hash {
 	($from: ident, $size: expr) => {
@@ -439,6 +440,12 @@ impl<'a> From<&'a H160> for H256 {
     }
 }
 
+impl Into<u64> for H64 {
+    fn into(self) -> u64 {
+        self.0.as_ref().read_u64::<BigEndian>().unwrap()
+    }
+}
+
 impl_hash!(H32, 4);
 impl_hash!(H64, 8);
 impl_hash!(H128, 16);
@@ -563,5 +570,13 @@ mod tests {
         assert_eq!(r_ref, u);
         let r: U256 = From::from(h);
         assert_eq!(r, u);
+    }
+
+    #[test]
+    fn from_and_to_u64() {
+        let v: u64 = 10298314;
+        let h: H64 = H64::from(v);
+        let v2: u64 = h.into();
+        assert_eq!(v, v2);
     }
 }
