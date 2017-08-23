@@ -1,7 +1,7 @@
 use secp256k1::{Message, Error, RecoverableSignature, RecoveryId, SECP256K1};
 use secp256k1::key::{PublicKey, SecretKey};
 use rlp::{self, Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
-use bigint::{Address, Gas, H256, U256, B256};
+use bigint::{Address, Gas, H256, U256, B256, M256};
 use sha3::{Digest, Keccak256};
 use address::FromKey;
 
@@ -39,6 +39,21 @@ impl TransactionSignature {
 pub enum TransactionAction {
     Call(Address),
     Create,
+}
+
+impl TransactionAction {
+    pub fn address(&self, caller: Address, nonce: U256) -> Address {
+        match self {
+            &TransactionAction::Call(address) => address,
+            &TransactionAction::Create => {
+                let mut rlp = RlpStream::new_list(2);
+                rlp.append(&caller);
+                rlp.append(&nonce);
+
+                Address::from(M256::from(Keccak256::digest(rlp.out().as_slice()).as_slice()))
+            },
+        }
+    }
 }
 
 impl Encodable for TransactionAction {
@@ -160,6 +175,10 @@ impl Transaction {
         } else {
             None
         }
+    }
+
+    pub fn address(&self) -> Result<Address, Error> {
+        Ok(self.action.address(self.caller()?, self.nonce))
     }
 }
 
