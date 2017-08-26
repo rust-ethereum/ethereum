@@ -3,10 +3,6 @@ extern crate rlp;
 extern crate sha3;
 #[cfg(test)] extern crate hexutil;
 
-pub mod merkle;
-mod cache;
-mod database;
-
 use bigint::H256;
 use rlp::Rlp;
 use sha3::{Digest, Keccak256};
@@ -44,6 +40,10 @@ macro_rules! empty_trie_hash {
         }
     }
 }
+
+pub mod merkle;
+mod cache;
+mod database;
 
 pub type MemoryTrie = Trie<HashMap<H256, Vec<u8>>>;
 
