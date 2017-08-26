@@ -16,7 +16,7 @@ use std::clone::Clone;
 use self::cache::Cache;
 use self::database::{Change, ChangeSet};
 
-pub use self::database::{DatabaseGuard, MemoryDatabase, MemoryDatabaseGuard};
+pub use self::database::{Database, DatabaseGuard, MemoryDatabase, MemoryDatabaseGuard};
 
 macro_rules! empty_nodes {
     () => (
