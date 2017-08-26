@@ -1,5 +1,5 @@
 use ::Trie;
-use super::{Database, DatabaseGuard};
+use super::DatabaseGuard;
 use bigint::H256;
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -11,13 +11,19 @@ impl MemoryDatabase {
     pub fn new() -> Self {
         MemoryDatabase(Mutex::new(HashMap::new()))
     }
+
+    pub fn create_trie<'a>(&'a self, root: H256) -> Trie<MemoryDatabaseGuard<'a>> {
+        Trie::existing(MemoryDatabaseGuard(&self.0), root)
+    }
+
+    pub fn create_empty<'a>(&'a self) -> Trie<MemoryDatabaseGuard<'a>> {
+        self.create_trie(empty_trie_hash!())
+    }
 }
 
-impl<'a> Database<'a> for MemoryDatabase {
-    type Guard = MemoryDatabaseGuard<'a>;
-
-    fn create_trie(&'a self, root: H256) -> Trie<Self::Guard> {
-        Trie::existing(MemoryDatabaseGuard(&self.0), root)
+impl Default for MemoryDatabase {
+    fn default() -> MemoryDatabase {
+        Self::new()
     }
 }
 

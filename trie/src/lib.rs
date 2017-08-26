@@ -16,7 +16,7 @@ use std::clone::Clone;
 use self::cache::Cache;
 use self::database::{Change, ChangeSet};
 
-pub use self::database::{Database, DatabaseGuard, MemoryDatabase, MemoryDatabaseGuard};
+pub use self::database::{DatabaseGuard, MemoryDatabase, MemoryDatabaseGuard};
 
 macro_rules! empty_nodes {
     () => (
@@ -646,6 +646,34 @@ mod tests {
         trie.insert_raw("key3".as_bytes().into(),
                         "1234567890123456789012345678901".as_bytes().into());
         assert_eq!(trie.root(), H256::from_str("0xcb65032e2f76c48b82b5c24b3db8f670ce73982869d38cd39a624f23d62a9e89").unwrap());
+    }
+
+    #[test]
+    fn insert_animals() {
+        let mut database: HashMap<H256, Vec<u8>> = HashMap::new();
+        let mut trie = Trie::empty(database);
+
+        trie.insert_raw("doe".as_bytes().into(),
+                        "reindeer".as_bytes().into());
+        trie.insert_raw("dog".as_bytes().into(),
+                        "puppy".as_bytes().into());
+        trie.insert_raw("dogglesworth".as_bytes().into(),
+                        "cat".as_bytes().into());
+        assert_eq!(trie.root(), H256::from_str("0x8aad789dff2f538bca5d8ea56e8abe10f4c7ba3a5dea95fea4cd6e7c3a1168d3").unwrap());
+    }
+
+        #[test]
+    fn insert_animals2() {
+        let mut database: HashMap<H256, Vec<u8>> = HashMap::new();
+        let mut trie = Trie::empty(database);
+
+        trie.insert::<Vec<u8>, Vec<u8>>("doe".as_bytes().into(),
+                                        "reindeer".as_bytes().into());
+        trie.insert::<Vec<u8>, Vec<u8>>("dog".as_bytes().into(),
+                                        "puppy".as_bytes().into());
+        trie.insert::<Vec<u8>, Vec<u8>>("dogglesworth".as_bytes().into(),
+                                        "cat".as_bytes().into());
+        assert_eq!(trie.root(), H256::from_str("0x8aad789dff2f538bca5d8ea56e8abe10f4c7ba3a5dea95fea4cd6e7c3a1168d3").unwrap());
     }
 
     #[test]
