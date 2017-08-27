@@ -5,12 +5,13 @@ use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 pub struct B256(usize, [u8; 32]);
 
 impl B256 {
-    pub fn new(size: usize, value: [u8; 32]) -> Self {
-        assert!(size <= 32);
-        for i in size..32 {
-            assert!(value[i] == 0);
+    pub fn new(value: &[u8]) -> Self {
+        assert!(value.len() <= 32);
+        let mut ret = [0u8; 32];
+        for i in 0..value.len() {
+            ret[i] = value[i];
         }
-        B256(size, value)
+        B256(value.len(), ret)
     }
 }
 
