@@ -8,6 +8,18 @@ use bigint::H256;
 use std::collections::HashMap;
 use std::cell::RefCell;
 
+pub trait Database<'a> {
+    type Guard: DatabaseGuard + 'a;
+
+    fn create_trie(&'a self, root: H256) -> Trie<Self::Guard>;
+    fn create_empty(&'a self) -> Trie<Self::Guard> {
+        self.create_trie(empty_trie_hash!())
+    }
+}
+
+pub trait DatabaseOwned: for<'a> Database<'a> {}
+impl<T> DatabaseOwned for T where T: for<'a> Database<'a> {}
+
 pub trait DatabaseGuard {
     fn get(&self, hash: H256) -> Option<Vec<u8>>;
     fn set(&mut self, hash: H256, value: Vec<u8>);
