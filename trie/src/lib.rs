@@ -45,7 +45,40 @@ pub mod merkle;
 mod cache;
 mod database;
 
+pub type MemorySecureTrie = SecureTrie<HashMap<H256, Vec<u8>>>;
 pub type MemoryTrie = Trie<HashMap<H256, Vec<u8>>>;
+
+#[derive(Clone, Debug)]
+pub struct SecureTrie<D: DatabaseGuard>(Trie<D>);
+
+impl<D: DatabaseGuard> SecureTrie<D> {
+    pub fn empty(database: D) -> Self {
+        SecureTrie(Trie::empty(database))
+    }
+
+    pub fn existing(database: D, root: H256) -> Self {
+        SecureTrie(Trie::existing(database, root))
+    }
+
+    pub fn root(&self) -> H256 { self.0.root() }
+    pub fn is_empty(&self) -> bool { self.0.is_empty() }
+
+    fn secure_key<K: AsRef<[u8]>>(key: &K) -> Vec<u8> {
+        Keccak256::digest(key.as_ref()).as_slice().into()
+    }
+
+    pub fn get<K: AsRef<[u8]>, V: rlp::Decodable>(&self, key: &K) -> Option<V> {
+        self.0.get_raw(&Self::secure_key(key)).map(|v| rlp::decode(v.as_slice()))
+    }
+
+    pub fn insert<K: AsRef<[u8]>, V: rlp::Encodable>(&mut self, key: K, value: V) {
+        self.0.insert_raw(Self::secure_key(&key), rlp::encode(&value).to_vec())
+    }
+
+    pub fn remove<K: AsRef<[u8]>>(&mut self, key: &K) {
+        self.0.remove_raw(&Self::secure_key(key))
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct Trie<D: DatabaseGuard> {
