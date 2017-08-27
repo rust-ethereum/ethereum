@@ -770,20 +770,6 @@ mod tests {
         assert_eq!(trie.root(), H256::from_str("0x8aad789dff2f538bca5d8ea56e8abe10f4c7ba3a5dea95fea4cd6e7c3a1168d3").unwrap());
     }
 
-        #[test]
-    fn insert_animals2() {
-        let mut database: HashMap<H256, Vec<u8>> = HashMap::new();
-        let mut trie = Trie::empty(database);
-
-        trie.insert::<Vec<u8>, Vec<u8>>("doe".as_bytes().into(),
-                                        "reindeer".as_bytes().into());
-        trie.insert::<Vec<u8>, Vec<u8>>("dog".as_bytes().into(),
-                                        "puppy".as_bytes().into());
-        trie.insert::<Vec<u8>, Vec<u8>>("dogglesworth".as_bytes().into(),
-                                        "cat".as_bytes().into());
-        assert_eq!(trie.root(), H256::from_str("0x8aad789dff2f538bca5d8ea56e8abe10f4c7ba3a5dea95fea4cd6e7c3a1168d3").unwrap());
-    }
-
     #[test]
     fn insert_single_item() {
         let mut database: HashMap<H256, Vec<u8>> = HashMap::new();
