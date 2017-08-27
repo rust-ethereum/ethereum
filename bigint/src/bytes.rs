@@ -4,6 +4,16 @@ use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 #[derive(Eq, PartialEq, Debug, Copy, Clone, Hash)]
 pub struct B256(usize, [u8; 32]);
 
+impl B256 {
+    pub fn new(size: usize, value: [u8; 32]) -> Self {
+        assert!(size <= 32);
+        for i in size..32 {
+            assert!(value[i] == 0);
+        }
+        B256(size, value)
+    }
+}
+
 impl Default for B256 {
     fn default() -> B256 {
         B256(0, [0u8; 32])
