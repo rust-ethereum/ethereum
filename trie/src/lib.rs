@@ -11,6 +11,7 @@ use merkle::{MerkleValue, MerkleNode};
 use merkle::nibble::{self, NibbleVec, NibbleSlice, Nibble};
 use std::ops::{Deref, DerefMut};
 use std::borrow::Borrow;
+use std::marker::PhantomData;
 use std::clone::Clone;
 
 use self::cache::Cache;
@@ -47,11 +48,85 @@ mod database;
 
 pub type MemorySecureTrie = SecureTrie<HashMap<H256, Vec<u8>>>;
 pub type MemoryTrie = Trie<HashMap<H256, Vec<u8>>>;
+pub type FixedMemoryTrie<K, V> = FixedTrie<HashMap<H256, Vec<u8>>, K, V>;
+pub type FixedMemorySecureTrie<K, V> = FixedSecureTrie<HashMap<H256, Vec<u8>>, K, V>;
+
+#[derive(Clone, Debug)]
+pub struct FixedTrie<D: DatabaseGuard, K: rlp::Encodable, V: rlp::Encodable + rlp::Decodable>(
+    Trie<D>, PhantomData<(K, V)>
+);
+
+impl<D: DatabaseGuard, K: rlp::Encodable, V: rlp::Encodable + rlp::Decodable> FixedTrie<D, K, V> {
+    pub fn new(trie: Trie<D>) -> Self {
+        FixedTrie(trie, PhantomData)
+    }
+
+    pub fn empty(database: D) -> Self {
+        FixedTrie(Trie::empty(database), PhantomData)
+    }
+
+    pub fn existing(database: D, root: H256) -> Self {
+        FixedTrie(Trie::existing(database, root), PhantomData)
+    }
+
+    pub fn root(&self) -> H256 { self.0.root() }
+    pub fn is_empty(&self) -> bool { self.0.is_empty() }
+
+    pub fn get(&self, key: &K) -> Option<V> {
+        self.0.get(key)
+    }
+
+    pub fn insert(&mut self, key: K, value: V) {
+        self.0.insert(key, value)
+    }
+
+    pub fn remove(&mut self, key: &K) {
+        self.0.remove(key)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct FixedSecureTrie<D: DatabaseGuard, K: AsRef<[u8]>, V: rlp::Encodable + rlp::Decodable>(
+    SecureTrie<D>, PhantomData<(K, V)>
+);
+
+impl<D: DatabaseGuard, K: AsRef<[u8]>, V: rlp::Encodable + rlp::Decodable> FixedSecureTrie<D, K, V> {
+    pub fn new(trie: SecureTrie<D>) -> Self {
+        FixedSecureTrie(trie, PhantomData)
+    }
+
+    pub fn empty(database: D) -> Self {
+        FixedSecureTrie(SecureTrie::empty(database), PhantomData)
+    }
+
+    pub fn existing(database: D, root: H256) -> Self {
+        FixedSecureTrie(SecureTrie::existing(database, root), PhantomData)
+    }
+
+    pub fn root(&self) -> H256 { self.0.root() }
+    pub fn is_empty(&self) -> bool { self.0.is_empty() }
+
+    pub fn get(&self, key: &K) -> Option<V> {
+        self.0.get(key)
+    }
+
+    pub fn insert(&mut self, key: K, value: V) {
+        self.0.insert(key, value)
+    }
+
+    pub fn remove(&mut self, key: &K) {
+        self.0.remove(key)
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct SecureTrie<D: DatabaseGuard>(Trie<D>);
 
 impl<D: DatabaseGuard> SecureTrie<D> {
+    pub fn new(trie: Trie<D>) -> Self {
+        SecureTrie(trie)
+    }
+
     pub fn empty(database: D) -> Self {
         SecureTrie(Trie::empty(database))
     }
