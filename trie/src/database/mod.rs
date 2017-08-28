@@ -1,10 +1,43 @@
 mod memory;
 
+use super::{SecureTrie, FixedTrie, FixedSecureTrie, Trie};
+
 pub use self::memory::{MemoryDatabase, MemoryDatabaseGuard};
 
 use bigint::H256;
+use rlp;
 use std::collections::HashMap;
 use std::cell::RefCell;
+
+pub trait Database<'a> {
+    type Guard: DatabaseGuard + 'a;
+
+    fn create_trie(&'a self, root: H256) -> Trie<Self::Guard>;
+    fn create_empty(&'a self) -> Trie<Self::Guard> {
+        self.create_trie(empty_trie_hash!())
+    }
+    fn create_secure_trie(&'a self, root: H256) -> SecureTrie<Self::Guard> {
+        SecureTrie::new(self.create_trie(root))
+    }
+    fn create_secure_empty(&'a self) -> SecureTrie<Self::Guard> {
+        SecureTrie::new(self.create_empty())
+    }
+    fn create_fixed_trie<K: rlp::Encodable, V: rlp::Encodable + rlp::Decodable>(&'a self, root: H256) -> FixedTrie<Self::Guard, K, V> {
+        FixedTrie::new(self.create_trie(root))
+    }
+    fn create_fixed_empty<K: rlp::Encodable, V: rlp::Encodable + rlp::Decodable>(&'a self) -> FixedTrie<Self::Guard, K, V> {
+        FixedTrie::new(self.create_empty())
+    }
+    fn create_fixed_secure_trie<K: AsRef<[u8]>, V: rlp::Encodable + rlp::Decodable>(&'a self, root: H256) -> FixedSecureTrie<Self::Guard, K, V> {
+        FixedSecureTrie::new(self.create_secure_trie(root))
+    }
+    fn create_fixed_secure_empty<K: AsRef<[u8]>, V: rlp::Encodable + rlp::Decodable>(&'a self) -> FixedSecureTrie<Self::Guard, K, V> {
+        FixedSecureTrie::new(self.create_secure_empty())
+    }
+}
+
+pub trait DatabaseOwned: for<'a> Database<'a> {}
+impl<T> DatabaseOwned for T where T: for<'a> Database<'a> {}
 
 pub trait DatabaseGuard {
     fn get(&self, hash: H256) -> Option<Vec<u8>>;

@@ -3,10 +3,6 @@ extern crate rlp;
 extern crate sha3;
 #[cfg(test)] extern crate hexutil;
 
-pub mod merkle;
-mod cache;
-mod database;
-
 use bigint::H256;
 use rlp::Rlp;
 use sha3::{Digest, Keccak256};
@@ -15,12 +11,13 @@ use merkle::{MerkleValue, MerkleNode};
 use merkle::nibble::{self, NibbleVec, NibbleSlice, Nibble};
 use std::ops::{Deref, DerefMut};
 use std::borrow::Borrow;
+use std::marker::PhantomData;
 use std::clone::Clone;
 
 use self::cache::Cache;
 use self::database::{Change, ChangeSet};
 
-pub use self::database::{DatabaseGuard, MemoryDatabase, MemoryDatabaseGuard};
+pub use self::database::{Database, DatabaseOwned, DatabaseGuard, MemoryDatabase, MemoryDatabaseGuard};
 
 macro_rules! empty_nodes {
     () => (
@@ -45,7 +42,118 @@ macro_rules! empty_trie_hash {
     }
 }
 
+pub mod merkle;
+mod cache;
+mod database;
+
+pub type MemorySecureTrie = SecureTrie<HashMap<H256, Vec<u8>>>;
 pub type MemoryTrie = Trie<HashMap<H256, Vec<u8>>>;
+pub type FixedMemoryTrie<K, V> = FixedTrie<HashMap<H256, Vec<u8>>, K, V>;
+pub type FixedMemorySecureTrie<K, V> = FixedSecureTrie<HashMap<H256, Vec<u8>>, K, V>;
+
+#[derive(Clone, Debug)]
+pub struct FixedTrie<D: DatabaseGuard, K: rlp::Encodable, V: rlp::Encodable + rlp::Decodable>(
+    Trie<D>, PhantomData<(K, V)>
+);
+
+impl<D: DatabaseGuard, K: rlp::Encodable, V: rlp::Encodable + rlp::Decodable> FixedTrie<D, K, V> {
+    pub fn new(trie: Trie<D>) -> Self {
+        FixedTrie(trie, PhantomData)
+    }
+
+    pub fn empty(database: D) -> Self {
+        FixedTrie(Trie::empty(database), PhantomData)
+    }
+
+    pub fn existing(database: D, root: H256) -> Self {
+        FixedTrie(Trie::existing(database, root), PhantomData)
+    }
+
+    pub fn root(&self) -> H256 { self.0.root() }
+    pub fn is_empty(&self) -> bool { self.0.is_empty() }
+
+    pub fn get(&self, key: &K) -> Option<V> {
+        self.0.get(key)
+    }
+
+    pub fn insert(&mut self, key: K, value: V) {
+        self.0.insert(key, value)
+    }
+
+    pub fn remove(&mut self, key: &K) {
+        self.0.remove(key)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct FixedSecureTrie<D: DatabaseGuard, K: AsRef<[u8]>, V: rlp::Encodable + rlp::Decodable>(
+    SecureTrie<D>, PhantomData<(K, V)>
+);
+
+impl<D: DatabaseGuard, K: AsRef<[u8]>, V: rlp::Encodable + rlp::Decodable> FixedSecureTrie<D, K, V> {
+    pub fn new(trie: SecureTrie<D>) -> Self {
+        FixedSecureTrie(trie, PhantomData)
+    }
+
+    pub fn empty(database: D) -> Self {
+        FixedSecureTrie(SecureTrie::empty(database), PhantomData)
+    }
+
+    pub fn existing(database: D, root: H256) -> Self {
+        FixedSecureTrie(SecureTrie::existing(database, root), PhantomData)
+    }
+
+    pub fn root(&self) -> H256 { self.0.root() }
+    pub fn is_empty(&self) -> bool { self.0.is_empty() }
+
+    pub fn get(&self, key: &K) -> Option<V> {
+        self.0.get(key)
+    }
+
+    pub fn insert(&mut self, key: K, value: V) {
+        self.0.insert(key, value)
+    }
+
+    pub fn remove(&mut self, key: &K) {
+        self.0.remove(key)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SecureTrie<D: DatabaseGuard>(Trie<D>);
+
+impl<D: DatabaseGuard> SecureTrie<D> {
+    pub fn new(trie: Trie<D>) -> Self {
+        SecureTrie(trie)
+    }
+
+    pub fn empty(database: D) -> Self {
+        SecureTrie(Trie::empty(database))
+    }
+
+    pub fn existing(database: D, root: H256) -> Self {
+        SecureTrie(Trie::existing(database, root))
+    }
+
+    pub fn root(&self) -> H256 { self.0.root() }
+    pub fn is_empty(&self) -> bool { self.0.is_empty() }
+
+    fn secure_key<K: AsRef<[u8]>>(key: &K) -> Vec<u8> {
+        Keccak256::digest(key.as_ref()).as_slice().into()
+    }
+
+    pub fn get<K: AsRef<[u8]>, V: rlp::Decodable>(&self, key: &K) -> Option<V> {
+        self.0.get_raw(&Self::secure_key(key)).map(|v| rlp::decode(v.as_slice()))
+    }
+
+    pub fn insert<K: AsRef<[u8]>, V: rlp::Encodable>(&mut self, key: K, value: V) {
+        self.0.insert_raw(Self::secure_key(&key), rlp::encode(&value).to_vec())
+    }
+
+    pub fn remove<K: AsRef<[u8]>>(&mut self, key: &K) {
+        self.0.remove_raw(&Self::secure_key(key))
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct Trie<D: DatabaseGuard> {
@@ -646,6 +754,20 @@ mod tests {
         trie.insert_raw("key3".as_bytes().into(),
                         "1234567890123456789012345678901".as_bytes().into());
         assert_eq!(trie.root(), H256::from_str("0xcb65032e2f76c48b82b5c24b3db8f670ce73982869d38cd39a624f23d62a9e89").unwrap());
+    }
+
+    #[test]
+    fn insert_animals() {
+        let mut database: HashMap<H256, Vec<u8>> = HashMap::new();
+        let mut trie = Trie::empty(database);
+
+        trie.insert_raw("doe".as_bytes().into(),
+                        "reindeer".as_bytes().into());
+        trie.insert_raw("dog".as_bytes().into(),
+                        "puppy".as_bytes().into());
+        trie.insert_raw("dogglesworth".as_bytes().into(),
+                        "cat".as_bytes().into());
+        assert_eq!(trie.root(), H256::from_str("0x8aad789dff2f538bca5d8ea56e8abe10f4c7ba3a5dea95fea4cd6e7c3a1168d3").unwrap());
     }
 
     #[test]
