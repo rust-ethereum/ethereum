@@ -1,6 +1,6 @@
 [package]
 name = "etcommon-bigint"
-version = "0.2.4"
+version = "0.2.5"
 license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Big integer (256-bit and 512-bit) implementation for SputnikVM and other Ethereum Classic clients."
@@ -10,7 +10,6 @@ repository = "https://github.com/ethereumproject/etcommon-rs"
 name = "bigint"
 
 [dependencies]
-heapsize = "0.4"
 byteorder = "1.0"
 rand = "0.3.12"
 libc = "0.2"
