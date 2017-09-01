@@ -5,6 +5,7 @@ extern crate hexutil;
 extern crate rand;
 extern crate libc;
 extern crate byteorder;
+#[macro_use] extern crate heapsize;
 
 mod m256;
 mod mi256;

@@ -1477,4 +1477,6 @@ impl From<U256> for u32 {
     }
 }
 
+known_heap_size!(0, U128, U256);
+
 #[cfg(test)] mod tests;
