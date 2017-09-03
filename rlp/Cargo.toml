@@ -10,7 +10,7 @@ authors = ["Parity Technologies <admin@parity.io>"]
 name = "rlp"
 
 [dependencies]
-elastic-array = "0.9.0"
+elastic-array-plus = "0.9.0"
 lazy_static = "0.2"
 rustc-serialize = "0.3"
 byteorder = "1.0"
