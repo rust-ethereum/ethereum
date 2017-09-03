@@ -16,8 +16,8 @@ impl MemoryDatabase {
 impl<'a> Database<'a> for MemoryDatabase {
     type Guard = MemoryDatabaseGuard<'a>;
 
-    fn create_trie(&'a self, root: H256) -> Trie<Self::Guard> {
-        Trie::existing(MemoryDatabaseGuard(&self.0), root)
+    fn create_guard(&'a self) -> Self::Guard {
+        MemoryDatabaseGuard(&self.0)
     }
 }
 

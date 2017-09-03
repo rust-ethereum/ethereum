@@ -12,7 +12,10 @@ use std::cell::RefCell;
 pub trait Database<'a> {
     type Guard: DatabaseGuard + 'a;
 
-    fn create_trie(&'a self, root: H256) -> Trie<Self::Guard>;
+    fn create_guard(&'a self) -> Self::Guard;
+    fn create_trie(&'a self, root: H256) -> Trie<Self::Guard> {
+        Trie::existing(self.create_guard(), root)
+    }
     fn create_empty(&'a self) -> Trie<Self::Guard> {
         self.create_trie(empty_trie_hash!())
     }

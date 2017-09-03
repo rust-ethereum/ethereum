@@ -457,6 +457,7 @@ impl_hash!(H520, 65);
 impl_hash!(H1024, 128);
 impl_hash!(H2048, 256);
 
+#[cfg(feature="heapsizeof")]
 known_heap_size!(0, H32, H64, H128, H160, H256, H264, H512, H520, H1024, H2048);
 // Specialized HashMap and HashSet
 
