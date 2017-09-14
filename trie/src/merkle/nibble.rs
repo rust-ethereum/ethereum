@@ -118,7 +118,8 @@ pub fn encode(vec: NibbleSlice, typ: NibbleType, s: &mut RlpStream) {
                 ret.push(v << 4);
             } else {
                 let end = ret.len() - 1;
-                ret[end] |= vec[i].into();
+                let nibble: u8 = vec[i].into();
+                ret[end] |= nibble;
             }
         }
     } else {
@@ -127,7 +128,8 @@ pub fn encode(vec: NibbleSlice, typ: NibbleType, s: &mut RlpStream) {
         for i in 0..vec.len() {
             if i & 1 == 0 {
                 let end = ret.len() - 1;
-                ret[end] |= vec[i].into();
+                let nibble: u8 = vec[i].into();
+                ret[end] |= nibble;
             } else {
                 let v: u8 = vec[i].into();
                 ret.push(v << 4);
