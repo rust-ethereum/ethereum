@@ -3,7 +3,7 @@ use bigint::{Address, Gas, H256, U256, B256, H64, H2048};
 use bloom::LogsBloom;
 use sha3::{Keccak256, Digest};
 use std::collections::HashMap;
-use super::{Header, Transaction, Receipt};
+use super::{Header, Transaction, Receipt, SignaturePatch};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Block {
@@ -38,7 +38,7 @@ mod tests {
     use bigint::{U256, H256, Address, Gas};
     use bloom::LogsBloom;
     use block::Block;
-    use transaction::TransactionAction;
+    use transaction::{TransactionAction, GlobalSignaturePatch};
     use std::str::FromStr;
 
     #[test]
