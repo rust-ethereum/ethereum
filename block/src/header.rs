@@ -155,7 +155,7 @@ mod tests {
     use hexutil::read_hex;
     use bigint::{U256, H256, Address, Gas};
     use bloom::LogsBloom;
-    use header::{Header, PartialHeader};
+    use header::Header;
     use std::str::FromStr;
 
     #[test]
