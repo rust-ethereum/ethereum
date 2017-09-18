@@ -171,7 +171,7 @@ impl UnsignedTransaction {
         H256::from(Keccak256::digest(&stream.drain()).as_slice())
     }
 
-    pub fn sign<P: SignaturePatch>(self, key: &SecretKey) -> Transaction<P> {
+    pub fn sign<P: SignaturePatch>(self, key: &SecretKey) -> Transaction {
         let hash = self.signing_hash(P::chain_id());
         // hash is always MESSAGE_SIZE bytes.
         let msg = Message::from_slice(&hash).unwrap();
@@ -194,17 +194,16 @@ impl UnsignedTransaction {
             value: self.value,
             input: self.input,
             signature: sig,
-            marker: PhantomData,
         }
     }
 
-    pub fn sign_global(self, key: &SecretKey) -> Transaction<GlobalSignaturePatch> {
-        self.sign(key)
+    pub fn sign_global(self, key: &SecretKey) -> Transaction {
+        self.sign::<GlobalSignaturePatch>(key)
     }
 }
 
-impl<P: SignaturePatch> From<Transaction<P>> for UnsignedTransaction {
-    fn from(val: Transaction<P>) -> UnsignedTransaction {
+impl From<Transaction> for UnsignedTransaction {
+    fn from(val: Transaction) -> UnsignedTransaction {
         UnsignedTransaction {
             nonce: val.nonce,
             gas_price: val.gas_price,
@@ -217,7 +216,7 @@ impl<P: SignaturePatch> From<Transaction<P>> for UnsignedTransaction {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Transaction<P: SignaturePatch> {
+pub struct Transaction {
     pub nonce: U256,
     pub gas_price: Gas,
     pub gas_limit: Gas,
@@ -225,10 +224,9 @@ pub struct Transaction<P: SignaturePatch> {
     pub value: U256,
     pub signature: TransactionSignature,
     pub input: Vec<u8>, // The input data, either data or init, depending on TransactionAction.
-    pub marker: PhantomData<P>
 }
 
-impl<P: SignaturePatch> Transaction<P> {
+impl Transaction {
     pub fn caller(&self) -> Result<Address, Error> {
         let unsigned = UnsignedTransaction::from((*self).clone());
         let hash = unsigned.signing_hash(self.signature.chain_id());
@@ -242,7 +240,7 @@ impl<P: SignaturePatch> Transaction<P> {
         Ok(self.action.address(self.caller()?, self.nonce))
     }
 
-    pub fn is_basic_valid<Q: ValidationPatch>(&self) -> bool {
+    pub fn is_basic_valid<P: SignaturePatch, Q: ValidationPatch>(&self) -> bool {
         if !self.signature.is_valid() {
             return false;
         }
@@ -261,22 +259,9 @@ impl<P: SignaturePatch> Transaction<P> {
 
         return true;
     }
-
-    pub fn from_global(val: Transaction<GlobalSignaturePatch>) -> Transaction<P> {
-        Transaction {
-            nonce: val.nonce,
-            gas_price: val.gas_price,
-            gas_limit: val.gas_limit,
-            action: val.action,
-            value: val.value,
-            signature: val.signature,
-            input: val.input,
-            marker: PhantomData,
-        }
-    }
 }
 
-impl<P: SignaturePatch> Encodable for Transaction<P> {
+impl Encodable for Transaction {
     fn rlp_append(&self, s: &mut RlpStream) {
         s.begin_list(9);
         s.append(&self.nonce);
@@ -291,7 +276,7 @@ impl<P: SignaturePatch> Encodable for Transaction<P> {
     }
 }
 
-impl<P: SignaturePatch> Decodable for Transaction<P> {
+impl Decodable for Transaction {
     fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
         Ok(Self {
             nonce: rlp.val_at(0)?,
@@ -305,7 +290,6 @@ impl<P: SignaturePatch> Decodable for Transaction<P> {
                 r: rlp.val_at(7)?,
                 s: rlp.val_at(8)?,
             },
-            marker: PhantomData,
         })
     }
 }
@@ -339,7 +323,7 @@ mod tests {
         let signed = unsigned.sign::<ClassicSignaturePatch>(&secret_key);
 
         assert_eq!(signed.signature.chain_id(), Some(61));
-        assert!(signed.is_basic_valid::<HomesteadValidationPatch>());
+        assert!(signed.is_basic_valid::<ClassicSignaturePatch, HomesteadValidationPatch>());
         assert_eq!(signed.caller(), address);
     }
 }
