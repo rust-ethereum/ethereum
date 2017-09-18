@@ -22,3 +22,9 @@ pub use account::Account;
 pub use receipt::Receipt;
 pub use log::Log;
 pub use address::FromKey;
+
+use bigint::H256;
+
+pub trait RlpHash {
+    fn rlp_hash(&self) -> H256;
+}

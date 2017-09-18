@@ -6,6 +6,7 @@ use sha3::{Digest, Keccak256};
 use address::FromKey;
 use std::marker::PhantomData;
 use std::str::FromStr;
+use super::RlpHash;
 
 /// Refer to EIP155 related to chain ID.
 pub trait SignaturePatch {
@@ -287,6 +288,12 @@ impl Decodable for Transaction {
                 s: rlp.val_at(8)?,
             },
         })
+    }
+}
+
+impl RlpHash for Transaction {
+    fn rlp_hash(&self) -> H256 {
+        H256::from(Keccak256::digest(&rlp::encode(self)).as_slice())
     }
 }
 
