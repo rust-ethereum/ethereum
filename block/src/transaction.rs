@@ -8,38 +8,34 @@ use std::marker::PhantomData;
 use std::str::FromStr;
 
 /// Refer to EIP155 related to chain ID.
-pub trait SignaturePatch: Clone + Eq + Copy {
+pub trait SignaturePatch {
     fn chain_id() -> Option<u64>;
 }
 
 /// Frontier signature patch without EIP155.
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct GlobalSignaturePatch;
 impl SignaturePatch for GlobalSignaturePatch {
     fn chain_id() -> Option<u64> { None }
 }
 
 /// EIP155 Ethereum Classic chain.
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct ClassicSignaturePatch;
 impl SignaturePatch for ClassicSignaturePatch {
     fn chain_id() -> Option<u64> { Some(61) }
 }
 
 /// Refer to Homestead transaction validation.
-pub trait ValidationPatch: Clone + Eq + Copy {
+pub trait ValidationPatch {
     fn require_low_s() -> bool;
 }
 
 /// Frontier validation patch.
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct FrontierValidationPatch;
 impl ValidationPatch for FrontierValidationPatch {
     fn require_low_s() -> bool { false }
 }
 
 /// Homestead validation patch.
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub struct HomesteadValidationPatch;
 impl ValidationPatch for HomesteadValidationPatch {
     fn require_low_s() -> bool { true }
