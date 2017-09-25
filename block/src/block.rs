@@ -1,9 +1,32 @@
 use rlp::{self, Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 use bigint::{Address, Gas, H256, U256, B256, H64, H2048};
 use bloom::LogsBloom;
+use trie::FixedMemoryTrie;
 use sha3::{Keccak256, Digest};
 use std::collections::HashMap;
 use super::{Header, Transaction, Receipt, SignaturePatch};
+
+pub fn transactions_root(transactions: &[Transaction]) -> H256 {
+    let mut trie = FixedMemoryTrie::empty(HashMap::new());
+    for (i, transaction) in transactions.iter().enumerate() {
+        trie.insert(U256::from(i), transaction.clone());
+    }
+    trie.root()
+}
+
+pub fn receipts_root(receipts: &[Receipt]) -> H256 {
+    let mut trie = FixedMemoryTrie::empty(HashMap::new());
+    for (i, receipt) in receipts.iter().enumerate() {
+        trie.insert(U256::from(i), receipt.clone());
+    }
+    trie.root()
+}
+
+pub fn ommers_hash(ommers: &[Header]) -> H256 {
+    let encoded = rlp::encode_list(ommers).to_vec();
+    let hash = H256::from(Keccak256::digest(&encoded).as_slice());
+    hash
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Block {
