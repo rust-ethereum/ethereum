@@ -778,6 +778,17 @@ mod tests {
                         "puppy".as_bytes().into());
         trie.insert_raw("dogglesworth".as_bytes().into(),
                         "cat".as_bytes().into());
+
+        let mut all_key_values: HashMap<Vec<u8>, Vec<u8>> = HashMap::new();
+        all_key_values.insert("doe".as_bytes().into(), "reindeer".as_bytes().into());
+        all_key_values.insert("dog".as_bytes().into(), "puppy".as_bytes().into());
+        all_key_values.insert("dogglesworth".as_bytes().into(), "cat".as_bytes().into());
+
+        for (key, value) in trie.iter() {
+            assert_eq!(all_key_values.get(&key), Some(&value));
+            all_key_values.remove(&key);
+        }
+
         assert_eq!(trie.root(), H256::from_str("0x8aad789dff2f538bca5d8ea56e8abe10f4c7ba3a5dea95fea4cd6e7c3a1168d3").unwrap());
     }
 
