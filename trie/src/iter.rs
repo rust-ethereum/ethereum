@@ -11,6 +11,7 @@ pub struct MerkleIterator<'a, D: DatabaseGuard + 'a> {
     value: Vec<u8>,
     index: usize,
     child: Option<Box<MerkleIterator<'a, D>>>,
+    is_empty: bool,
 }
 
 impl<'a, D: DatabaseGuard + 'a> MerkleIterator<'a, D> {
@@ -18,6 +19,15 @@ impl<'a, D: DatabaseGuard + 'a> MerkleIterator<'a, D> {
         Self {
             database, value,
             index: 0, child: None, prefix: NibbleVec::new(),
+            is_empty: false,
+        }
+    }
+
+    pub fn empty(database: &'a D) -> Self {
+        Self {
+            database,
+            value: Vec::new(), index: 0, child: None, prefix: NibbleVec::new(),
+            is_empty: true,
         }
     }
 }
@@ -36,7 +46,8 @@ fn prepare_value_as_child<'a, D: DatabaseGuard + 'a>(
                 MerkleIterator {
                     database: database,
                     prefix: nibble,
-                    value, index: 0, child: None
+                    value, index: 0, child: None,
+                    is_empty: false,
                 }
             ))
         },
@@ -46,7 +57,8 @@ fn prepare_value_as_child<'a, D: DatabaseGuard + 'a>(
                 MerkleIterator {
                     database: database,
                     prefix: nibble,
-                    value, index: 0, child: None
+                    value, index: 0, child: None,
+                    is_empty: false,
                 }
             ))
         }
@@ -57,6 +69,10 @@ impl<'a, D: DatabaseGuard + 'a> Iterator for MerkleIterator<'a, D> {
     type Item = (Vec<u8>, Vec<u8>);
 
     fn next(&mut self) -> Option<(Vec<u8>, Vec<u8>)> {
+        if self.is_empty {
+            return None;
+        }
+
         let node = MerkleNode::decode(&Rlp::new(&self.value));
 
         match node {

@@ -18,6 +18,7 @@ use self::cache::Cache;
 use self::database::{Change, ChangeSet};
 
 pub use self::database::{Database, DatabaseOwned, DatabaseGuard, MemoryDatabase, MemoryDatabaseGuard};
+pub use self::iter::MerkleIterator;
 
 macro_rules! empty_nodes {
     () => (
@@ -179,6 +180,15 @@ impl<D: DatabaseGuard> Trie<D> {
         Self {
             database,
             root
+        }
+    }
+
+    pub fn iter(&self) -> MerkleIterator<D> {
+        if self.root == empty_trie_hash!() {
+            MerkleIterator::empty(&self.database)
+        } else {
+            let value = self.database.get(self.root).unwrap();
+            MerkleIterator::new(&self.database, value)
         }
     }
 
