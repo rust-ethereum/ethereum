@@ -25,10 +25,10 @@ pub trait Database<'a> {
     fn create_secure_empty(&'a self) -> SecureTrie<Self::Guard> {
         SecureTrie::new(self.create_empty())
     }
-    fn create_fixed_trie<K: rlp::Encodable, V: rlp::Encodable + rlp::Decodable>(&'a self, root: H256) -> FixedTrie<Self::Guard, K, V> {
+    fn create_fixed_trie<K: rlp::Encodable + rlp::Decodable, V: rlp::Encodable + rlp::Decodable>(&'a self, root: H256) -> FixedTrie<Self::Guard, K, V> {
         FixedTrie::new(self.create_trie(root))
     }
-    fn create_fixed_empty<K: rlp::Encodable, V: rlp::Encodable + rlp::Decodable>(&'a self) -> FixedTrie<Self::Guard, K, V> {
+    fn create_fixed_empty<K: rlp::Encodable + rlp::Decodable, V: rlp::Encodable + rlp::Decodable>(&'a self) -> FixedTrie<Self::Guard, K, V> {
         FixedTrie::new(self.create_empty())
     }
     fn create_fixed_secure_trie<K: AsRef<[u8]>, V: rlp::Encodable + rlp::Decodable>(&'a self, root: H256) -> FixedSecureTrie<Self::Guard, K, V> {
