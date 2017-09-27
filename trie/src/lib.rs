@@ -45,6 +45,7 @@ macro_rules! empty_trie_hash {
 pub mod merkle;
 mod cache;
 mod database;
+mod iter;
 
 pub type MemorySecureTrie = SecureTrie<HashMap<H256, Vec<u8>>>;
 pub type MemoryTrie = Trie<HashMap<H256, Vec<u8>>>;
