@@ -85,6 +85,21 @@ pub fn from_key(key: &[u8]) -> NibbleVec {
     vec
 }
 
+pub fn into_key(nibble: NibbleSlice) -> Vec<u8> {
+    let mut ret = Vec::new();
+
+    for i in 0..nibble.len() {
+        if i & 1 == 0 { // even
+            let value: u8 = nibble[i].into();
+            ret.push(value << 4);
+        } else {
+            ret[i / 2] |= nibble[i].into();
+        }
+    }
+
+    ret
+}
+
 pub fn decode(rlp: &Rlp) -> (NibbleVec, NibbleType) {
     let mut vec = NibbleVec::new();
 
@@ -173,4 +188,16 @@ pub fn common_all<'a, T: Iterator<Item=NibbleSlice<'a>>>(mut iter: T) -> NibbleS
     }
 
     common_cur
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn from_into_key() {
+        let key = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 244, 233, 188];
+
+        assert_eq!(key, into_key(&from_key(&key)));
+    }
 }
