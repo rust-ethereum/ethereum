@@ -4,6 +4,34 @@ use merkle::nibble::{into_key, NibbleVec};
 use rlp::{self, Rlp};
 
 use std::ops::Deref;
+use std::marker::PhantomData;
+
+pub struct FixedMerkleIterator<'a, D: DatabaseGuard + 'a, K, V> {
+    iter: MerkleIterator<'a, D>,
+    _marker: PhantomData<(K, V)>
+}
+
+impl<'a, D: DatabaseGuard + 'a, K: rlp::Decodable, V: rlp::Decodable> FixedMerkleIterator<'a, D, K, V> {
+    pub fn new(iter: MerkleIterator<'a, D>) -> Self {
+        FixedMerkleIterator {
+            iter, _marker: PhantomData
+        }
+    }
+}
+
+impl<'a, D: DatabaseGuard + 'a, K: rlp::Decodable, V: rlp::Decodable> Iterator for FixedMerkleIterator<'a, D, K, V> {
+    type Item = (K, V);
+
+    fn next(&mut self) -> Option<(K, V)> {
+        if let Some((raw_key, raw_value)) = self.iter.next() {
+            let key = rlp::decode(&raw_key);
+            let value = rlp::decode(&raw_value);
+            Some((key, value))
+        } else {
+            None
+        }
+    }
+}
 
 pub struct MerkleIterator<'a, D: DatabaseGuard + 'a> {
     database: &'a D,

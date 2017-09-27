@@ -18,7 +18,7 @@ use self::cache::Cache;
 use self::database::{Change, ChangeSet};
 
 pub use self::database::{Database, DatabaseOwned, DatabaseGuard, MemoryDatabase, MemoryDatabaseGuard};
-pub use self::iter::MerkleIterator;
+pub use self::iter::{FixedMerkleIterator, MerkleIterator};
 
 macro_rules! empty_nodes {
     () => (
@@ -54,11 +54,11 @@ pub type FixedMemoryTrie<K, V> = FixedTrie<HashMap<H256, Vec<u8>>, K, V>;
 pub type FixedMemorySecureTrie<K, V> = FixedSecureTrie<HashMap<H256, Vec<u8>>, K, V>;
 
 #[derive(Clone, Debug)]
-pub struct FixedTrie<D: DatabaseGuard, K: rlp::Encodable, V: rlp::Encodable + rlp::Decodable>(
+pub struct FixedTrie<D: DatabaseGuard, K: rlp::Encodable + rlp::Decodable, V: rlp::Encodable + rlp::Decodable>(
     Trie<D>, PhantomData<(K, V)>
 );
 
-impl<D: DatabaseGuard, K: rlp::Encodable, V: rlp::Encodable + rlp::Decodable> FixedTrie<D, K, V> {
+impl<D: DatabaseGuard, K: rlp::Encodable + rlp::Decodable, V: rlp::Encodable + rlp::Decodable> FixedTrie<D, K, V> {
     pub fn new(trie: Trie<D>) -> Self {
         FixedTrie(trie, PhantomData)
     }
@@ -84,6 +84,10 @@ impl<D: DatabaseGuard, K: rlp::Encodable, V: rlp::Encodable + rlp::Decodable> Fi
 
     pub fn remove(&mut self, key: &K) {
         self.0.remove(key)
+    }
+
+    pub fn iter(&self) -> FixedMerkleIterator<D, K, V> {
+        FixedMerkleIterator::new(self.0.iter())
     }
 }
 
