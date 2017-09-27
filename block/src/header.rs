@@ -4,6 +4,7 @@ use bloom::LogsBloom;
 use std::cmp::Ordering;
 use blockchain::chain::HeaderHash;
 use sha3::{Keccak256, Digest};
+use super::RlpHash;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TotalHeader(pub Header, U256);
@@ -146,6 +147,12 @@ impl Decodable for Header {
             mix_hash: rlp.val_at(13)?,
             nonce: rlp.val_at(14)?,
         })
+    }
+}
+
+impl RlpHash for Header {
+    fn rlp_hash(&self) -> H256 {
+        H256::from(Keccak256::digest(&rlp::encode(self)).as_slice())
     }
 }
 

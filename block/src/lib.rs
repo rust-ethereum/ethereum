@@ -4,6 +4,7 @@ extern crate bloom;
 extern crate secp256k1;
 extern crate sha3;
 extern crate blockchain;
+extern crate trie;
 #[cfg(test)] extern crate hexutil;
 #[cfg(test)] extern crate rand;
 
@@ -17,8 +18,14 @@ mod address;
 
 pub use transaction::*;
 pub use header::{TotalHeader, Header};
-pub use block::Block;
+pub use block::{Block, transactions_root, receipts_root, ommers_hash};
 pub use account::Account;
 pub use receipt::Receipt;
 pub use log::Log;
 pub use address::FromKey;
+
+use bigint::H256;
+
+pub trait RlpHash {
+    fn rlp_hash(&self) -> H256;
+}
