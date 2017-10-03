@@ -1,6 +1,6 @@
 [package]
 name = "etcommon-trie"
-version = "0.3.7"
+version = "0.3.8"
 license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Lightweight Ethereum world state storage."
