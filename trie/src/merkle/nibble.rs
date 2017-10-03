@@ -93,7 +93,8 @@ pub fn into_key(nibble: NibbleSlice) -> Vec<u8> {
             let value: u8 = nibble[i].into();
             ret.push(value << 4);
         } else {
-            ret[i / 2] |= nibble[i].into();
+            let value: u8 = nibble[i].into();
+            ret[i / 2] |= value;
         }
     }
 
@@ -133,8 +134,8 @@ pub fn encode(vec: NibbleSlice, typ: NibbleType, s: &mut RlpStream) {
                 ret.push(v << 4);
             } else {
                 let end = ret.len() - 1;
-                let nibble: u8 = vec[i].into();
-                ret[end] |= nibble;
+                let v: u8 = vec[i].into();
+                ret[end] |= v;
             }
         }
     } else {
@@ -143,8 +144,8 @@ pub fn encode(vec: NibbleSlice, typ: NibbleType, s: &mut RlpStream) {
         for i in 0..vec.len() {
             if i & 1 == 0 {
                 let end = ret.len() - 1;
-                let nibble: u8 = vec[i].into();
-                ret[end] |= nibble;
+                let v: u8 = vec[i].into();
+                ret[end] |= v;
             } else {
                 let v: u8 = vec[i].into();
                 ret.push(v << 4);
