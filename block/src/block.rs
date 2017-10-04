@@ -35,6 +35,20 @@ pub struct Block {
     pub ommers: Vec<Header>,
 }
 
+impl Block {
+    pub fn is_basic_valid(&self) -> bool {
+        if transactions_root(&self.transactions) != self.header.transactions_root {
+            return false;
+        }
+
+        if ommers_hash(&self.ommers) != self.header.ommers_hash {
+            return false;
+        }
+
+        return true;
+    }
+}
+
 impl Encodable for Block {
     fn rlp_append(&self, s: &mut RlpStream) {
         s.begin_list(3);
