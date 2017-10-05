@@ -26,7 +26,7 @@ impl TotalHeader {
 }
 
 impl HeaderHash<H256> for TotalHeader {
-    fn parent_hash(&self) -> H256 {
+    fn parent_hash(&self) -> Option<H256> {
         self.0.parent_hash()
     }
 
@@ -73,8 +73,12 @@ pub struct Header {
 }
 
 impl HeaderHash<H256> for Header {
-    fn parent_hash(&self) -> H256 {
-        self.parent_hash
+    fn parent_hash(&self) -> Option<H256> {
+        if self.number == U256::zero() {
+            None
+        } else {
+            Some(self.parent_hash)
+        }
     }
 
     fn header_hash(&self) -> H256 {
