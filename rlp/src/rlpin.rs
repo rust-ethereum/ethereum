@@ -6,7 +6,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::fmt;
+#[cfg(not(feature = "std"))]
+use alloc::{String, Vec};
+
+#[cfg(feature = "std")] use std::fmt;
+#[cfg(not(feature = "std"))] use core::fmt;
 use {UntrustedRlp, PayloadInfo, Prototype, Decodable};
 
 impl<'a> From<UntrustedRlp<'a>> for Rlp<'a> {

@@ -5,6 +5,11 @@ license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Hex helper functions."
 repository = "https://github.com/ethereumproject/etcommon-rs"
+keywords = ["no_std"]
 
 [lib]
 name = "hexutil"
+
+[features]
+default = ["std"]
+std = []

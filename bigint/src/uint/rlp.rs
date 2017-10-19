@@ -8,7 +8,8 @@
 // except according to those terms.
 
 use super::{U256, U128};
-use std::{cmp, mem, str};
+#[cfg(feature = "std")] use std::{cmp, mem, str};
+#[cfg(not(feature = "std"))] use core::{cmp, mem, str};
 use rlp::{RlpStream, Encodable, Decodable, DecoderError, UntrustedRlp};
 
 macro_rules! impl_encodable_for_uint {

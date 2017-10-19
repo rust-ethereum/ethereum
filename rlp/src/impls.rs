@@ -6,7 +6,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::{cmp, mem, str};
+#[cfg(not(feature = "std"))]
+use alloc::{String, Vec};
+
+#[cfg(feature = "std")] use std::{cmp, mem, str};
+#[cfg(not(feature = "std"))] use core::{cmp, mem, str};
 use byteorder::{ByteOrder, BigEndian};
 use traits::{Encodable, Decodable};
 use stream::RlpStream;
@@ -220,6 +224,9 @@ impl Encodable for String {
 
 impl Decodable for String {
 	fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
+        #[cfg(not(feature = "std"))]
+        use alloc::borrow::ToOwned;
+
 		rlp.decoder().decode_value(|bytes| {
 			match str::from_utf8(bytes) {
 				Ok(s) => Ok(s.to_owned()),

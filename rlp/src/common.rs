@@ -10,11 +10,13 @@
 
 use compression::InvalidRlpSwapper;
 
+#[cfg(feature = "std")]
 lazy_static! {
 	/// Swapper for snapshot compression.
 	pub static ref SNAPSHOT_RLP_SWAPPER: InvalidRlpSwapper<'static> = InvalidRlpSwapper::new(EMPTY_RLPS, INVALID_RLPS);
 }
 
+#[cfg(feature = "std")]
 lazy_static! {
 	/// Swapper with common long RLPs, up to 127 can be added.
 	pub static ref BLOCKS_RLP_SWAPPER: InvalidRlpSwapper<'static> = InvalidRlpSwapper::new(COMMON_RLPS, INVALID_RLPS);

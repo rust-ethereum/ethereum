@@ -4,10 +4,16 @@
 use super::{M256, U256};
 use hexutil::ParseHexError;
 use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
-use std::ops::{Add, Sub, Not, Mul, Div, Shr, Shl, BitAnd, BitOr, BitXor, Rem};
-use std::cmp::Ordering;
-use std::str::FromStr;
-use std::fmt;
+
+#[cfg(feature = "std")] use std::ops::{Add, Sub, Not, Mul, Div, Shr, Shl, BitAnd, BitOr, BitXor, Rem};
+#[cfg(feature = "std")] use std::cmp::Ordering;
+#[cfg(feature = "std")] use std::str::FromStr;
+#[cfg(feature = "std")] use std::fmt;
+
+#[cfg(not(feature = "std"))] use core::ops::{Add, Sub, Not, Mul, Div, Shr, Shl, BitAnd, BitOr, BitXor, Rem};
+#[cfg(not(feature = "std"))] use core::cmp::Ordering;
+#[cfg(not(feature = "std"))] use core::str::FromStr;
+#[cfg(not(feature = "std"))] use core::fmt;
 
 #[derive(Eq, PartialEq, Debug, Copy, Clone, Hash)]
 pub struct Gas(U256);

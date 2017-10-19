@@ -1,8 +1,12 @@
 //! Signed modulo 256-bit integer
 
-use std::convert::{From, Into};
-use std::ops::{Div, Rem};
-use std::cmp::Ordering;
+#[cfg(feature = "std")] use std::convert::{From, Into};
+#[cfg(feature = "std")] use std::ops::{Div, Rem};
+#[cfg(feature = "std")] use std::cmp::Ordering;
+
+#[cfg(not(feature = "std"))] use core::convert::{From, Into};
+#[cfg(not(feature = "std"))] use core::ops::{Div, Rem};
+#[cfg(not(feature = "std"))] use core::cmp::Ordering;
 
 use super::{Sign, M256, U256};
 

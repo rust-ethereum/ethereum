@@ -6,7 +6,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::borrow::Borrow;
+#[cfg(not(feature = "std"))]
+use alloc::{String, Vec};
+
+#[cfg(feature = "std")] use std::borrow::Borrow;
+#[cfg(not(feature = "std"))] use core::borrow::Borrow;
 use byteorder::{ByteOrder, BigEndian};
 use elastic_array::{ElasticArray16, ElasticArray1024};
 use traits::Encodable;
