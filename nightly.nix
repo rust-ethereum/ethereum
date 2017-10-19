@@ -13,12 +13,12 @@ let pkgs = (
       (import (builtins.toPath "${rustOverlay}/rust-overlay.nix"))
       (self: super: {
         rust = {
-          rustc = super.rustChannels.stable.rust;
-          cargo = super.rustChannels.stable.cargo;
+          rustc = super.rustChannels.nightly.rust;
+          cargo = super.rustChannels.nightly.cargo;
         };
         rustPlatform = super.recurseIntoAttrs (super.makeRustPlatform {
-          rustc = super.rustChannels.stable.rust;
-          cargo = super.rustChannels.stable.cargo;
+          rustc = super.rustChannels.nightly.rust;
+          cargo = super.rustChannels.nightly.cargo;
         });
       })
     ];
