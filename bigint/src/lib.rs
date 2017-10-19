@@ -1,8 +1,17 @@
 #![cfg_attr(asm_available, feature(asm))]
 
+#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "std"), feature(alloc))]
+
+#[cfg(not(feature = "std"))]
+#[macro_use]
+extern crate alloc;
+
 extern crate rlp;
 extern crate hexutil;
+#[cfg(feature = "std")]
 extern crate rand;
+#[cfg(feature = "std")]
 extern crate libc;
 extern crate byteorder;
 

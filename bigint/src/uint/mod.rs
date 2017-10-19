@@ -29,10 +29,19 @@
 //! implementations for even more speed, hidden behind the `x64_arithmetic`
 //! feature flag.
 
-use std::{fmt, cmp};
-use std::str::{FromStr};
-use std::ops::{Shr, Shl, BitAnd, BitOr, BitXor, Not, Div, Rem, Mul, Add, Sub, Index};
-use std::cmp::Ordering;
+#[cfg(feature = "std")] use std::{fmt, cmp};
+#[cfg(feature = "std")] use std::str::{FromStr};
+#[cfg(feature = "std")] use std::ops::{Shr, Shl, BitAnd, BitOr, BitXor, Not, Div, Rem, Mul, Add, Sub, Index};
+#[cfg(feature = "std")] use std::cmp::Ordering;
+
+#[cfg(not(feature = "std"))] use core::{fmt, cmp};
+#[cfg(not(feature = "std"))] use core::str::{FromStr};
+#[cfg(not(feature = "std"))] use core::ops::{Shr, Shl, BitAnd, BitOr, BitXor, Not, Div, Rem, Mul, Add, Sub, Index};
+#[cfg(not(feature = "std"))] use core::cmp::Ordering;
+
+#[cfg(not(feature = "std"))]
+use alloc::{String, Vec};
+
 use byteorder::{ByteOrder, BigEndian, LittleEndian};
 use hexutil::{ParseHexError, read_hex, clean_0x};
 
@@ -563,7 +572,12 @@ macro_rules! construct_uint {
 			/// Panics if the number is larger than usize::max_value().
             #[inline]
             pub fn as_usize(&self) -> usize {
+                #[cfg(feature = "std")]
                 use std::mem::size_of;
+
+                #[cfg(not(feature = "std"))]
+                use core::mem::size_of;
+
                 if size_of::<usize>() > size_of::<u64>() && size_of::<usize>() < size_of::<u32>() {
                     panic!("Unsupported platform")
                 }

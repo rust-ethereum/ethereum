@@ -10,18 +10,30 @@
 
 mod rlp;
 
-use std::{ops, fmt, cmp};
-use std::cmp::{min, Ordering};
-use std::ops::{Deref, DerefMut, BitXor, BitAnd, BitOr, IndexMut, Index};
-use std::hash::{Hash, Hasher, BuildHasherDefault};
-use std::collections::{HashMap, HashSet};
-use std::str::FromStr;
-use rand::Rng;
-use rand::os::OsRng;
+#[cfg(not(feature = "std"))]
+use alloc::{String, Vec};
+
+#[cfg(feature = "std")] use std::{ops, fmt, cmp};
+#[cfg(feature = "std")] use std::cmp::{min, Ordering};
+#[cfg(feature = "std")] use std::ops::{Deref, DerefMut, BitXor, BitAnd, BitOr, IndexMut, Index};
+#[cfg(feature = "std")] use std::hash::{Hash, Hasher, BuildHasherDefault};
+#[cfg(feature = "std")] use std::collections::{HashMap as Map, HashSet as Set};
+#[cfg(feature = "std")] use std::str::FromStr;
+#[cfg(feature = "std")] use rand::Rng;
+#[cfg(feature = "std")] use rand::os::OsRng;
+#[cfg(feature = "std")] use libc::{c_void, memcmp};
+
+#[cfg(not(feature = "std"))] use core::{ops, fmt, cmp};
+#[cfg(not(feature = "std"))] use core::cmp::{min, Ordering};
+#[cfg(not(feature = "std"))] use core::ops::{Deref, DerefMut, BitXor, BitAnd, BitOr, IndexMut, Index};
+#[cfg(not(feature = "std"))] use core::hash::{Hash, Hasher, BuildHasherDefault};
+#[cfg(not(feature = "std"))] use alloc::{BTreeMap as Map, BTreeSet as Set};
+#[cfg(not(feature = "std"))] use core::str::FromStr;
+#[cfg(not(feature = "std"))] use alloc::borrow::ToOwned;
+
 use super::U256;
-use libc::{c_void, memcmp};
 use hexutil::{read_hex, ParseHexError, clean_0x};
-use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{ByteOrder, BigEndian};
 
 macro_rules! impl_hash {
 	($from: ident, $size: expr) => {
@@ -76,6 +88,7 @@ macro_rules! impl_hash {
 				$from([0; $size])
 			}
 
+            #[cfg(feature = "std")]
 			/// Create a new, cryptographically random, instance.
 			pub fn random() -> $from {
 				let mut hash = $from::new();
@@ -83,6 +96,7 @@ macro_rules! impl_hash {
 				hash
 			}
 
+            #[cfg(feature = "std")]
 			/// Assign self have a cryptographically random value.
 			pub fn randomize(&mut self) {
 				let mut rng = OsRng::new().unwrap();
@@ -206,18 +220,34 @@ macro_rules! impl_hash {
 
 		impl Eq for $from {}
 
+        #[cfg(feature = "std")]
 		impl PartialEq for $from {
 			fn eq(&self, other: &Self) -> bool {
 				unsafe { memcmp(self.0.as_ptr() as *const c_void, other.0.as_ptr() as *const c_void, $size) == 0 }
 			}
 		}
 
+        #[cfg(not(feature = "std"))]
+		impl PartialEq for $from {
+			fn eq(&self, other: &Self) -> bool {
+				self.0.as_ref().eq(other.0.as_ref())
+			}
+		}
+
+        #[cfg(feature = "std")]
 		impl Ord for $from {
 			fn cmp(&self, other: &Self) -> Ordering {
 				let r = unsafe { memcmp(self.0.as_ptr() as *const c_void, other.0.as_ptr() as *const c_void, $size) };
 				if r < 0 { return Ordering::Less }
 				if r > 0 { return Ordering::Greater }
 				return Ordering::Equal;
+			}
+		}
+
+        #[cfg(not(feature = "std"))]
+      	impl Ord for $from {
+			fn cmp(&self, other: &Self) -> Ordering {
+                self.0.cmp(&other.0)
 			}
 		}
 
@@ -442,7 +472,7 @@ impl<'a> From<&'a H160> for H256 {
 
 impl Into<u64> for H64 {
     fn into(self) -> u64 {
-        self.0.as_ref().read_u64::<BigEndian>().unwrap()
+        BigEndian::read_u64(self.0.as_ref())
     }
 }
 
@@ -481,7 +511,13 @@ impl Default for PlainHasher {
 impl Hasher for PlainHasher {
     #[inline]
     fn finish(&self) -> u64 {
-        unsafe { ::std::mem::transmute(self.prefix) }
+        #[cfg(feature = "std")]
+        use std::mem;
+
+        #[cfg(not(feature = "std"))]
+        use core::mem;
+
+        unsafe { mem::transmute(self.prefix) }
     }
 
     #[inline]
@@ -496,10 +532,12 @@ impl Hasher for PlainHasher {
     }
 }
 
+#[cfg(feature = "std")]
 /// Specialized version of `HashMap` with H256 keys and fast hashing function.
-pub type H256FastMap<T> = HashMap<H256, T, BuildHasherDefault<PlainHasher>>;
+pub type H256FastMap<T> = Map<H256, T, BuildHasherDefault<PlainHasher>>;
+#[cfg(feature = "std")]
 /// Specialized version of `HashSet` with H256 keys and fast hashing function.
-pub type H256FastSet = HashSet<H256, BuildHasherDefault<PlainHasher>>;
+pub type H256FastSet = Set<H256, BuildHasherDefault<PlainHasher>>;
 
 #[cfg(test)]
 mod tests {
