@@ -1,4 +1,18 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "std"), feature(alloc))]
+
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+
+#[cfg(feature = "std")]
 use std::fmt::Write;
+
+#[cfg(not(feature = "std"))]
+use core::fmt::Write;
+#[cfg(not(feature = "std"))]
+use alloc::{String, Vec};
+#[cfg(not(feature = "std"))]
+use alloc::string::ToString;
 
 #[derive(Debug)]
 /// Errors exhibited from `read_hex`.

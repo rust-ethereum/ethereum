@@ -8,3 +8,7 @@ repository = "https://github.com/ethereumproject/etcommon-rs"
 
 [lib]
 name = "hexutil"
+
+[features]
+default = ["std"]
+std = []
