@@ -11,3 +11,4 @@ script:
   - if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then cd rlp && cargo build --no-default-features && cd ..; fi
   - if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then cd hexutil && cargo build --no-default-features && cd ..; fi
   - if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then cd bigint && cargo build --no-default-features && cd ..; fi
+  - if [ "$TRAVIS_RUST_VERSION" == "nightly" ]; then cd block-core && cargo build --no-default-features && cd ..; fi
