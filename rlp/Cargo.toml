@@ -4,7 +4,8 @@ description = "Recursive-length prefix encoding, decoding, and compression"
 repository = "https://github.com/ethereumproject/etcommon-rs"
 license = "MIT/Apache-2.0"
 version = "0.2.2"
-authors = ["Parity Technologies <admin@parity.io>"]
+authors = ["Parity Technologies <admin@parity.io>", "Wei Tang <hi@that.world>"]
+keywords = ["no_std"]
 
 [lib]
 name = "rlp"
