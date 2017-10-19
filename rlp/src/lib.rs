@@ -6,6 +6,9 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "std"), feature(alloc))]
+
 //! Recursive Length Prefix serialization crate.
 //!
 //! Allows encoding, decoding, and view onto rlp-slice
@@ -42,6 +45,10 @@ extern crate byteorder;
 extern crate elastic_array;
 extern crate hexutil;
 
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+
+#[cfg(feature = "std")]
 #[macro_use]
 extern crate lazy_static;
 
@@ -54,7 +61,12 @@ mod compression;
 mod common;
 mod impls;
 
-use std::borrow::Borrow;
+#[cfg(not(feature = "std"))]
+use alloc::{String, Vec};
+
+#[cfg(feature = "std")] use std::borrow::Borrow;
+#[cfg(not(feature = "std"))] use core::borrow::Borrow;
+
 use elastic_array::ElasticArray1024;
 
 pub use error::DecoderError;

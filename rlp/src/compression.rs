@@ -6,15 +6,17 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::collections::HashMap;
+#[cfg(feature = "std")] use std::collections::{HashMap as Map};
+#[cfg(not(feature = "std"))] use alloc::{BTreeMap as Map};
 use elastic_array::ElasticArray1024;
+#[cfg(feature = "std")]
 use common::{BLOCKS_RLP_SWAPPER, SNAPSHOT_RLP_SWAPPER};
 use {UntrustedRlp, Compressible, encode, RlpStream};
 
 /// Stores RLPs used for compression
 pub struct InvalidRlpSwapper<'a> {
-	invalid_to_valid: HashMap<&'a [u8], &'a [u8]>,
-	valid_to_invalid: HashMap<&'a [u8], &'a [u8]>,
+	invalid_to_valid: Map<&'a [u8], &'a [u8]>,
+	valid_to_invalid: Map<&'a [u8], &'a [u8]>,
 }
 
 impl<'a> InvalidRlpSwapper<'a> {
@@ -23,8 +25,8 @@ impl<'a> InvalidRlpSwapper<'a> {
 		if rlps_to_swap.len() > 0x7e {
 			panic!("Invalid usage, only 127 RLPs can be swappable.");
 		}
-		let mut invalid_to_valid = HashMap::new();
-		let mut valid_to_invalid = HashMap::new();
+		let mut invalid_to_valid = Map::new();
+		let mut valid_to_invalid = Map::new();
 		for (&rlp, &invalid) in rlps_to_swap.iter().zip(invalid_rlps.iter()) {
 			invalid_to_valid.insert(invalid, rlp);
 			valid_to_invalid.insert(rlp, invalid);
@@ -140,6 +142,7 @@ fn deep_decompress(rlp: &UntrustedRlp, swapper: &InvalidRlpSwapper) -> Option<El
   	}
 }
 
+#[cfg(feature = "std")]
 impl<'a> Compressible for UntrustedRlp<'a> {
 	type DataType = RlpType;
 

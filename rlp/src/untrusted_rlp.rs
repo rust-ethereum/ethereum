@@ -6,8 +6,13 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::cell::Cell;
-use std::fmt;
+#[cfg(not(feature = "std"))]
+use alloc::{String, Vec};
+
+#[cfg(feature = "std")] use std::cell::Cell;
+#[cfg(feature = "std")] use std::fmt;
+#[cfg(not(feature = "std"))] use core::cell::Cell;
+#[cfg(not(feature = "std"))] use core::fmt;
 use impls::decode_usize;
 use hexutil::to_hex;
 use {Decodable, DecoderError};
