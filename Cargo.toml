@@ -4,6 +4,7 @@ members = [
   "./bigint",
   "./hexutil",
   "./block",
+  "./block-core",
   "./trie",
   "./bloom",
 ]
