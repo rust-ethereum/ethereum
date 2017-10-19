@@ -40,7 +40,7 @@
 
 extern crate byteorder;
 extern crate elastic_array;
-extern crate rustc_serialize;
+extern crate hexutil;
 
 #[macro_use]
 extern crate lazy_static;
