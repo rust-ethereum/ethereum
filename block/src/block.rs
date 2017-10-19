@@ -75,7 +75,8 @@ mod tests {
     use bigint::{U256, H256, Address, Gas};
     use bloom::LogsBloom;
     use block::Block;
-    use transaction::{TransactionAction, GlobalSignaturePatch};
+    use TransactionAction;
+    use transaction::GlobalSignaturePatch;
     use std::str::FromStr;
 
     #[test]
