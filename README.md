@@ -16,6 +16,7 @@ Below are all crates provided by the etcommon project.
 | etcommon-bloom | Log bloom for Ethereum | [![crates.io](https://img.shields.io/crates/v/etcommon-bloom.svg)](https://crates.io/crates/etcommon-bloom) | [![Documentation](https://docs.rs/etcommon-bloom/badge.svg)](https://docs.rs/etcommon-bloom) |
 | etcommon-trie | Merkle Trie specialized for Ethereum | [![crates.io](https://img.shields.io/crates/v/etcommon-trie.svg)](https://crates.io/crates/etcommon-trie) | [![Documentation](https://docs.rs/etcommon-trie/badge.svg)](https://docs.rs/etcommon-trie) |
 | etcommon-block | Block, transaction and account structs for Ethereum | [![crates.io](https://img.shields.io/crates/v/etcommon-block.svg)](https://crates.io/crates/etcommon-block) | [![Documentation](https://docs.rs/etcommon-block/badge.svg)](https://docs.rs/etcommon-block) |
+| etcommon-block-core | Core block, transaction and account structs for Ethereum | [![crates.io](https://img.shields.io/crates/v/etcommon-block-core.svg)](https://crates.io/crates/etcommon-block-core) | [![Documentation](https://docs.rs/etcommon-block-core/badge.svg)](https://docs.rs/etcommon-block-core) |
 
 ## Rolling Release
 
