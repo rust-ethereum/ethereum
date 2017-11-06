@@ -1,6 +1,6 @@
 use super::{H64, H128, H160, H256, H512, H520, H2048};
-#[cfg(feature = "std")] use std::{cmp, mem, str};
-#[cfg(not(feature = "std"))] use core::{cmp, mem, str};
+#[cfg(feature = "std")] use std::cmp;
+#[cfg(not(feature = "std"))] use core::cmp;
 use rlp::{RlpStream, Encodable, Decodable, DecoderError, UntrustedRlp};
 
 macro_rules! impl_encodable_for_hash {

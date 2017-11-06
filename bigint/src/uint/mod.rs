@@ -29,21 +29,22 @@
 //! implementations for even more speed, hidden behind the `x64_arithmetic`
 //! feature flag.
 
-#[cfg(feature = "std")] use std::{fmt, cmp};
-#[cfg(feature = "std")] use std::str::{FromStr};
-#[cfg(feature = "std")] use std::ops::{Shr, Shl, BitAnd, BitOr, BitXor, Not, Div, Rem, Mul, Add, Sub, Index};
+#[cfg(feature = "std")] use std::fmt;
+#[cfg(feature = "std")] use std::str::FromStr;
+#[cfg(feature = "std")] use std::ops::{Shr, Shl, BitAnd, BitOr, BitXor, Not, Div, Rem, Mul, Add, Sub};
 #[cfg(feature = "std")] use std::cmp::Ordering;
 
-#[cfg(not(feature = "std"))] use core::{fmt, cmp};
-#[cfg(not(feature = "std"))] use core::str::{FromStr};
-#[cfg(not(feature = "std"))] use core::ops::{Shr, Shl, BitAnd, BitOr, BitXor, Not, Div, Rem, Mul, Add, Sub, Index};
+#[cfg(not(feature = "std"))] use core::fmt;
+#[cfg(not(feature = "std"))] use core::str::FromStr;
+#[cfg(not(feature = "std"))] use core::ops::{Shr, Shl, BitAnd, BitOr, BitXor, Not, Div, Rem, Mul, Add, Sub};
 #[cfg(not(feature = "std"))] use core::cmp::Ordering;
 
-#[cfg(not(feature = "std"))]
-use alloc::{String, Vec};
+#[cfg(all(not(feature = "std"), feature = "string"))]
+use alloc::String;
 
 use byteorder::{ByteOrder, BigEndian, LittleEndian};
-use hexutil::{ParseHexError, read_hex, clean_0x};
+#[cfg(feature = "string")]
+use hexutil::{ParseHexError, read_hex};
 
 #[cfg(feature = "rlp")]
 mod rlp;
@@ -890,6 +891,7 @@ macro_rules! construct_uint {
 			}
 		}
 
+        #[cfg(feature = "string")]
 		impl FromStr for $name {
 			type Err = ParseHexError;
 
@@ -1116,16 +1118,15 @@ macro_rules! construct_uint {
 					return write!(f, "0");
 				}
 
-				let mut s = String::new();
 				let mut current = *self;
 				let ten = $name::from(10);
 
 				while !current.is_zero() {
-					s = format!("{}{}", (current % ten).low_u32(), s);
+					write!(f, "{}", (current % ten).low_u32())?;
 					current = current / ten;
 				}
 
-				write!(f, "{}", s)
+                Ok(())
 			}
 		}
 
@@ -1163,6 +1164,7 @@ macro_rules! construct_uint {
 		    }
 		}
 
+        #[cfg(feature = "string")]
 		impl From<&'static str> for $name {
 			fn from(s: &'static str) -> Self {
 				s.parse().unwrap()

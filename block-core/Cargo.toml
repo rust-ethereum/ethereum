@@ -12,7 +12,7 @@ name = "block_core"
 
 [dependencies]
 sha3 = "0.6"
-etcommon-bigint = { version = "0.2", path = "../bigint", default-features = false, features = ["rlp"] }
+etcommon-bigint = { version = "0.2", path = "../bigint", default-features = false, features = ["rlp", "string"] }
 etcommon-rlp = { version = "0.2", path = "../rlp", default-features = false }
 
 [dev-dependencies]

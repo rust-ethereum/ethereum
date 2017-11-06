@@ -12,6 +12,7 @@
 #[cfg(not(feature = "std"))] use core::cmp::Ordering;
 #[cfg(not(feature = "std"))] use core::fmt;
 
+#[cfg(feature = "string")]
 use hexutil::ParseHexError;
 #[cfg(feature = "rlp")]
 use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
@@ -80,6 +81,7 @@ impl M256 {
 
 impl Default for M256 { fn default() -> M256 { M256::zero() } }
 
+#[cfg(feature = "string")]
 impl FromStr for M256 {
     type Err = ParseHexError;
 
