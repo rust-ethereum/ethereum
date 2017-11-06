@@ -12,7 +12,9 @@
 #[cfg(not(feature = "std"))] use core::cmp::Ordering;
 #[cfg(not(feature = "std"))] use core::fmt;
 
+#[cfg(feature = "string")]
 use hexutil::ParseHexError;
+#[cfg(feature = "rlp")]
 use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 use super::{U512, U256, H256, H160};
 
@@ -79,6 +81,7 @@ impl M256 {
 
 impl Default for M256 { fn default() -> M256 { M256::zero() } }
 
+#[cfg(feature = "string")]
 impl FromStr for M256 {
     type Err = ParseHexError;
 
@@ -87,12 +90,14 @@ impl FromStr for M256 {
     }
 }
 
+#[cfg(feature = "rlp")]
 impl Encodable for M256 {
     fn rlp_append(&self, s: &mut RlpStream) {
         self.0.rlp_append(s);
     }
 }
 
+#[cfg(feature = "rlp")]
 impl Decodable for M256 {
     fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
         Ok(M256(U256::decode(rlp)?))

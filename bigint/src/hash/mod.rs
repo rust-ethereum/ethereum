@@ -8,10 +8,11 @@
 
 //! General hash types, a fixed-size raw-data type used as the output of hash functions.
 
+#[cfg(feature = "rlp")]
 mod rlp;
 
-#[cfg(not(feature = "std"))]
-use alloc::{String, Vec};
+#[cfg(all(not(feature = "std"), feature = "string"))]
+use alloc::String;
 
 #[cfg(feature = "std")] use std::{ops, fmt, cmp};
 #[cfg(feature = "std")] use std::cmp::{min, Ordering};
@@ -26,12 +27,12 @@ use alloc::{String, Vec};
 #[cfg(not(feature = "std"))] use core::{ops, fmt, cmp};
 #[cfg(not(feature = "std"))] use core::cmp::{min, Ordering};
 #[cfg(not(feature = "std"))] use core::ops::{Deref, DerefMut, BitXor, BitAnd, BitOr, IndexMut, Index};
-#[cfg(not(feature = "std"))] use core::hash::{Hash, Hasher, BuildHasherDefault};
-#[cfg(not(feature = "std"))] use alloc::{BTreeMap as Map, BTreeSet as Set};
+#[cfg(not(feature = "std"))] use core::hash::{Hash, Hasher};
 #[cfg(not(feature = "std"))] use core::str::FromStr;
-#[cfg(not(feature = "std"))] use alloc::borrow::ToOwned;
+#[cfg(all(not(feature = "std"), feature = "string"))] use alloc::borrow::ToOwned;
 
 use super::U256;
+#[cfg(feature = "string")]
 use hexutil::{read_hex, ParseHexError, clean_0x};
 use byteorder::{ByteOrder, BigEndian};
 
@@ -149,6 +150,7 @@ macro_rules! impl_hash {
 			}
 		}
 
+        #[cfg(feature = "string")]
 		impl FromStr for $from {
 			type Err = ParseHexError;
 
@@ -367,6 +369,7 @@ macro_rules! impl_hash {
 			}
 		}
 
+        #[cfg(feature = "string")]
 		impl $from {
 			/// Get a hex representation.
 			pub fn hex(&self) -> String {
@@ -391,6 +394,7 @@ macro_rules! impl_hash {
 			}
 		}
 
+        #[cfg(feature = "string")]
 		impl From<&'static str> for $from {
 			fn from(s: &'static str) -> $from {
 				let s = clean_0x(s);

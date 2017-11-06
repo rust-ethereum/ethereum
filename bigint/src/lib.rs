@@ -1,13 +1,20 @@
+#![deny(unused_import_braces,
+        unused_comparisons, unused_must_use,
+        unused_variables, non_shorthand_field_patterns,
+        unreachable_code)]
+
 #![cfg_attr(asm_available, feature(asm))]
 
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(not(feature = "std"), feature(alloc))]
+#![cfg_attr(all(not(feature = "std"), feature = "string"), feature(alloc))]
 
-#[cfg(not(feature = "std"))]
+#[cfg(all(not(feature = "std"), feature = "string"))]
 #[macro_use]
 extern crate alloc;
 
+#[cfg(feature = "rlp")]
 extern crate rlp;
+#[cfg(feature = "string")]
 extern crate hexutil;
 #[cfg(feature = "std")]
 extern crate rand;

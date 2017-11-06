@@ -2,15 +2,17 @@
 //! impossible to obtain this number during a block formation.
 
 use super::{M256, U256};
+#[cfg(feature = "string")]
 use hexutil::ParseHexError;
+#[cfg(feature = "rlp")]
 use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 
-#[cfg(feature = "std")] use std::ops::{Add, Sub, Not, Mul, Div, Shr, Shl, BitAnd, BitOr, BitXor, Rem};
+#[cfg(feature = "std")] use std::ops::{Add, Sub, Mul, Div, Rem};
 #[cfg(feature = "std")] use std::cmp::Ordering;
 #[cfg(feature = "std")] use std::str::FromStr;
 #[cfg(feature = "std")] use std::fmt;
 
-#[cfg(not(feature = "std"))] use core::ops::{Add, Sub, Not, Mul, Div, Shr, Shl, BitAnd, BitOr, BitXor, Rem};
+#[cfg(not(feature = "std"))] use core::ops::{Add, Sub, Mul, Div, Rem};
 #[cfg(not(feature = "std"))] use core::cmp::Ordering;
 #[cfg(not(feature = "std"))] use core::str::FromStr;
 #[cfg(not(feature = "std"))] use core::fmt;
@@ -59,6 +61,7 @@ impl Gas {
 
 impl Default for Gas { fn default() -> Gas { Gas::zero() } }
 
+#[cfg(feature = "string")]
 impl FromStr for Gas {
     type Err = ParseHexError;
 
@@ -67,12 +70,14 @@ impl FromStr for Gas {
     }
 }
 
+#[cfg(feature = "rlp")]
 impl Encodable for Gas {
     fn rlp_append(&self, s: &mut RlpStream) {
         self.0.rlp_append(s);
     }
 }
 
+#[cfg(feature = "rlp")]
 impl Decodable for Gas {
     fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
         Ok(Gas(U256::decode(rlp)?))
