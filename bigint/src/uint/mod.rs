@@ -1118,13 +1118,20 @@ macro_rules! construct_uint {
 					return write!(f, "0");
 				}
 
+                let mut s = [0u8; $n_words * 20];
+                let mut i = $n_words * 20;
 				let mut current = *self;
 				let ten = $name::from(10);
 
 				while !current.is_zero() {
-					write!(f, "{}", (current % ten).low_u32())?;
+                    i = i - 1;
+                    s[i] = (current % ten).low_u32() as u8;
 					current = current / ten;
 				}
+
+                for i in i..($n_words * 20) {
+                    write!(f, "{}", s[i])?;
+                }
 
                 Ok(())
 			}
