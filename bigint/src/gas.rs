@@ -3,6 +3,7 @@
 
 use super::{M256, U256};
 use hexutil::ParseHexError;
+#[cfg(feature = "rlp")]
 use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 
 #[cfg(feature = "std")] use std::ops::{Add, Sub, Not, Mul, Div, Shr, Shl, BitAnd, BitOr, BitXor, Rem};
@@ -67,12 +68,14 @@ impl FromStr for Gas {
     }
 }
 
+#[cfg(feature = "rlp")]
 impl Encodable for Gas {
     fn rlp_append(&self, s: &mut RlpStream) {
         self.0.rlp_append(s);
     }
 }
 
+#[cfg(feature = "rlp")]
 impl Decodable for Gas {
     fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
         Ok(Gas(U256::decode(rlp)?))

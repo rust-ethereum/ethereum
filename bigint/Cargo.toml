@@ -15,12 +15,13 @@ heapsize = { version = "0.4", optional = true }
 byteorder = { version = "1.0", default-features = false }
 rand = { version = "0.3.12", optional = true }
 libc = { version = "0.2", optional = true }
-etcommon-rlp = { version = "0.2", path = "../rlp", default-features = false }
+etcommon-rlp = { version = "0.2", path = "../rlp", default-features = false, optional = true }
 etcommon-hexutil = { version = "0.2", path = "../hexutil", default-features = false }
 
 [features]
-default = ["std"]
+default = ["std", "rlp"]
 heapsizeof = ["heapsize"]
-x64asm_arithmetic=[]
-rust_arithmetic=[]
-std = [ "byteorder/std", "rand", "libc", "etcommon-rlp/std", "etcommon-hexutil/std" ]
+x64asm_arithmetic = []
+rust_arithmetic = []
+rlp = ["etcommon-rlp"]
+std = ["byteorder/std", "rand", "libc", "etcommon-rlp/std", "etcommon-hexutil/std"]

@@ -13,6 +13,7 @@
 #[cfg(not(feature = "std"))] use core::fmt;
 
 use hexutil::ParseHexError;
+#[cfg(feature = "rlp")]
 use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 use super::{U512, U256, H256, H160};
 
@@ -87,12 +88,14 @@ impl FromStr for M256 {
     }
 }
 
+#[cfg(feature = "rlp")]
 impl Encodable for M256 {
     fn rlp_append(&self, s: &mut RlpStream) {
         self.0.rlp_append(s);
     }
 }
 
+#[cfg(feature = "rlp")]
 impl Decodable for M256 {
     fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
         Ok(M256(U256::decode(rlp)?))

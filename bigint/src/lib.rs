@@ -7,6 +7,7 @@
 #[macro_use]
 extern crate alloc;
 
+#[cfg(feature = "rlp")]
 extern crate rlp;
 extern crate hexutil;
 #[cfg(feature = "std")]

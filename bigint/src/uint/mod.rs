@@ -45,6 +45,7 @@ use alloc::{String, Vec};
 use byteorder::{ByteOrder, BigEndian, LittleEndian};
 use hexutil::{ParseHexError, read_hex, clean_0x};
 
+#[cfg(feature = "rlp")]
 mod rlp;
 
 /// Conversion from decimal string error

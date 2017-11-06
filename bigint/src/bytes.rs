@@ -1,3 +1,4 @@
+#[cfg(feature = "rlp")]
 use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 
 /// Maximum 256-bit byte-array that does not require heap allocation.
@@ -21,12 +22,14 @@ impl Default for B256 {
     }
 }
 
+#[cfg(feature = "rlp")]
 impl Encodable for B256 {
     fn rlp_append(&self, s: &mut RlpStream) {
         s.encoder().encode_value(&self.1[0..self.0])
     }
 }
 
+#[cfg(feature = "rlp")]
 impl Decodable for B256 {
     fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
         rlp.decoder().decode_value(|bytes| {

@@ -8,6 +8,7 @@
 
 //! General hash types, a fixed-size raw-data type used as the output of hash functions.
 
+#[cfg(feature = "rlp")]
 mod rlp;
 
 #[cfg(not(feature = "std"))]
