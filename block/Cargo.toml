@@ -1,6 +1,6 @@
 [package]
 name = "etcommon-block"
-version = "0.3.3"
+version = "0.3.4"
 license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Block and transaction types for Ethereum."
@@ -11,7 +11,6 @@ name = "block"
 
 [dependencies]
 sha3 = "0.6"
-secp256k1-plus = "0.5"
 etcommon-block-core = { version = "0.1", path = "../block-core" }
 etcommon-bigint = { version = "0.2", path = "../bigint" }
 etcommon-rlp = { version = "0.2", path = "../rlp" }
@@ -19,6 +18,14 @@ etcommon-bloom = { version = "0.2", path = "../bloom" }
 etcommon-trie = { version = "0.3", path = "../trie" }
 blockchain = "0.2"
 
+secp256k1-plus = { version = "0.5", optional = true }
+libsecp256k1 = { version = "0.1", optional = true }
+
 [dev-dependencies]
 rand = "0.3.12"
 etcommon-hexutil = "0.2"
+
+[features]
+default = ["c-secp256k1"]
+c-secp256k1 = ["secp256k1-plus"]
+rust-secp256k1 = ["libsecp256k1"]
