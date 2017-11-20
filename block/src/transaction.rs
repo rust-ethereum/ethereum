@@ -1,5 +1,10 @@
+#[cfg(feature = "c-secp256k1")]
 use secp256k1::{Message, Error, RecoverableSignature, RecoveryId, SECP256K1};
+#[cfg(feature = "c-secp256k1")]
 use secp256k1::key::{PublicKey, SecretKey};
+#[cfg(feature = "rust-secp256k1")]
+use secp256k1::{self, Message, Error, Signature, RecoveryId, SecretKey, PublicKey};
+
 use rlp::{self, Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 use bigint::{Address, Gas, H256, U256, B256, M256};
 use sha3::{Digest, Keccak256};
@@ -81,12 +86,22 @@ impl TransactionSignature {
         }
     }
 
+    #[cfg(feature = "c-secp256k1")]
     pub fn to_recoverable_signature(&self) -> Result<RecoverableSignature, Error> {
         let mut sig = [0u8; 64];
         sig[0..32].copy_from_slice(&self.r);
         sig[32..64].copy_from_slice(&self.s);
 
         RecoverableSignature::from_compact(&SECP256K1, &sig, RecoveryId::from_i32(self.standard_v() as i32)?)
+    }
+
+    #[cfg(feature = "rust-secp256k1")]
+    pub fn to_recoverable_signature(&self) -> Result<(Signature, RecoveryId), Error> {
+        let mut sig = [0u8; 64];
+        sig[0..32].copy_from_slice(&self.r);
+        sig[32..64].copy_from_slice(&self.s);
+
+        Ok((Signature::parse(&sig), RecoveryId::parse(self.standard_v() as u8)?))
     }
 }
 
@@ -125,14 +140,39 @@ impl UnsignedTransaction {
     pub fn sign<P: SignaturePatch>(self, key: &SecretKey) -> Transaction {
         let hash = self.signing_hash(P::chain_id());
         // hash is always MESSAGE_SIZE bytes.
-        let msg = Message::from_slice(&hash).unwrap();
+        let msg = {
+            #[cfg(feature = "c-secp256k1")]
+            { Message::from_slice(&hash).unwrap() }
+            #[cfg(feature = "rust-secp256k1")]
+            { let mut a = [0u8; 32];
+              for i in 0..32 {
+                  a[i] = hash[i];
+              }
+              Message::parse(&a)
+            }
+        };
 
         // SecretKey and Message are always valid.
-        let s = SECP256K1.sign_recoverable(&msg, key).unwrap();
-        let (rid, sig) = s.serialize_compact(&SECP256K1);
+        let s = {
+            #[cfg(feature = "c-secp256k1")]
+            { SECP256K1.sign_recoverable(&msg, key).unwrap() }
+            #[cfg(feature = "rust-secp256k1")]
+            { secp256k1::sign(&msg, key).unwrap() }
+        };
+        let (rid, sig) = {
+            #[cfg(feature = "c-secp256k1")]
+            { s.serialize_compact(&SECP256K1) }
+            #[cfg(feature = "rust-secp256k1")]
+            { (s.1, s.0.serialize()) }
+        };
 
         let sig = TransactionSignature {
-            v: (rid.to_i32() + if let Some(n) = P::chain_id() { (35 + n * 2) as i32 } else { 27 }) as u64,
+            v: ({
+                #[cfg(feature = "c-secp256k1")]
+                { rid.to_i32() }
+                #[cfg(feature = "rust-secp256k1")]
+                { let v: i32 = rid.into(); v }
+            } + if let Some(n) = P::chain_id() { (35 + n * 2) as i32 } else { 27 }) as u64,
             r: H256::from(&sig[0..32]),
             s: H256::from(&sig[32..64]),
         };
@@ -182,7 +222,17 @@ impl Transaction {
         let unsigned = UnsignedTransaction::from((*self).clone());
         let hash = unsigned.signing_hash(self.signature.chain_id());
         let sig = self.signature.to_recoverable_signature()?;
-        let public_key = SECP256K1.recover(&Message::from_slice(&hash).unwrap(), &sig)?;
+        let public_key = {
+            #[cfg(feature = "c-secp256k1")]
+            { SECP256K1.recover(&Message::from_slice(&hash).unwrap(), &sig)? }
+            #[cfg(feature = "rust-secp256k1")]
+            { let mut a = [0u8; 32];
+              for i in 0..32 {
+                  a[i] = hash[i];
+              }
+              secp256k1::recover(&Message::parse(&a), &sig.0, &sig.1)?
+            }
+        };
 
         Ok(Address::from_public_key(&public_key))
     }
