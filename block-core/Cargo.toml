@@ -17,7 +17,7 @@ ethereum-rlp = { version = "0.2", path = "../rlp", default-features = false }
 
 [dev-dependencies]
 rand = "0.3.12"
-ethereum-hexutil = "0.2"
+ethereum-hexutil = { version = "0.2", path = "../hexutil" }
 
 [features]
 default = ["std"]

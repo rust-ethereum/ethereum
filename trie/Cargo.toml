@@ -16,4 +16,4 @@ ethereum-rlp = { version = "0.2", path = "../rlp" }
 sha3 = "0.6"
 
 [dev-dependencies]
-ethereum-hexutil = "0.2"
+ethereum-hexutil = { version = "0.2", path = "../hexutil" }
