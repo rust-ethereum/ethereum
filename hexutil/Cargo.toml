@@ -1,11 +1,11 @@
 [package]
-name = "etcommon-hexutil"
+name = "ethereum-hexutil"
 version = "0.2.3"
 license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Hex helper functions."
-repository = "https://github.com/ethereumproject/etcommon-rs"
-keywords = ["no_std"]
+repository = "https://source.that.world/source/ethereum-rs"
+keywords = ["no_std", "ethereum"]
 
 [lib]
 name = "hexutil"

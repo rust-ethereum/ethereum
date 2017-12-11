@@ -1,11 +1,11 @@
 [package]
-name = "etcommon-bigint"
+name = "ethereum-bigint"
 version = "0.2.9"
 license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Big integer (256-bit and 512-bit) implementation for SputnikVM and other Ethereum Classic clients."
-repository = "https://github.com/ethereumproject/etcommon-rs"
-keywords = ["no_std"]
+repository = "https://source.that.world/source/ethereum-rs"
+keywords = ["no_std", "ethereum"]
 
 [lib]
 name = "bigint"
@@ -15,14 +15,14 @@ heapsize = { version = "0.4", optional = true }
 byteorder = { version = "1.0", default-features = false }
 rand = { version = "0.3.12", optional = true }
 libc = { version = "0.2", optional = true }
-etcommon-rlp = { version = "0.2", path = "../rlp", default-features = false, optional = true }
-etcommon-hexutil = { version = "0.2", path = "../hexutil", default-features = false, optional = true }
+ethereum-rlp = { version = "0.2", path = "../rlp", default-features = false, optional = true }
+ethereum-hexutil = { version = "0.2", path = "../hexutil", default-features = false, optional = true }
 
 [features]
 default = ["std", "rlp", "string"]
 heapsizeof = ["heapsize"]
 x64asm_arithmetic = []
 rust_arithmetic = []
-rlp = ["etcommon-rlp"]
-string = ["etcommon-hexutil"]
-std = ["byteorder/std", "rand", "libc", "etcommon-rlp/std", "etcommon-hexutil/std"]
+rlp = ["ethereum-rlp"]
+string = ["ethereum-hexutil"]
+std = ["byteorder/std", "rand", "libc", "ethereum-rlp/std", "ethereum-hexutil/std"]

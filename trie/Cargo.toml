@@ -1,18 +1,19 @@
 [package]
-name = "etcommon-trie"
+name = "ethereum-trie"
 version = "0.3.8"
 license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Lightweight Ethereum world state storage."
-repository = "https://github.com/ethereumproject/etcommon-rs"
+repository = "https://source.that.world/source/ethereum-rs"
+keywords = ["ethereum"]
 
 [lib]
 name = "trie"
 
 [dependencies]
-etcommon-bigint = { version = "0.2", path = "../bigint" }
-etcommon-rlp = { version = "0.2", path = "../rlp" }
+ethereum-bigint = { version = "0.2", path = "../bigint" }
+ethereum-rlp = { version = "0.2", path = "../rlp" }
 sha3 = "0.6"
 
 [dev-dependencies]
-etcommon-hexutil = "0.2"
+ethereum-hexutil = "0.2"

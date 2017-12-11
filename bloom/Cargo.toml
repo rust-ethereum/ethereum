@@ -1,18 +1,19 @@
 [package]
-name = "etcommon-bloom"
+name = "ethereum-bloom"
 version = "0.2.1"
 license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Log bloom implementation for Ethereum."
-repository = "https://github.com/ethereumproject/etcommon-rs"
+repository = "https://source.that.world/source/ethereum-rs"
+keywords = ["ethereum"]
 
 [lib]
 name = "bloom"
 
 [dependencies]
-etcommon-rlp = { version = "0.2", path = "../rlp" }
-etcommon-bigint = { version = "0.2", path = "../bigint" }
+ethereum-rlp = { version = "0.2", path = "../rlp" }
+ethereum-bigint = { version = "0.2", path = "../bigint" }
 sha3 = "0.6"
 
 [dev-dependencies]
-etcommon-hexutil = "0.2"
+ethereum-hexutil = "0.2"
