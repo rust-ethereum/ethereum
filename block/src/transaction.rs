@@ -303,8 +303,7 @@ impl RlpHash for Transaction {
 
 #[cfg(test)]
 mod tests {
-    use secp256k1::{Message, Error, RecoverableSignature, RecoveryId, SECP256K1};
-    use secp256k1::key::{PublicKey, SecretKey};
+    use secp256k1::{SecretKey, PublicKey, Message, Signature, RecoveryId};
     use rlp::{self, Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
     use bigint::{Address, Gas, H256, U256, B256};
     use sha3::{Digest, Keccak256};
@@ -316,7 +315,7 @@ mod tests {
     #[test]
     pub fn should_recover_address() {
         let mut rng = OsRng::new().unwrap();
-        let secret_key = SecretKey::new(&SECP256K1, &mut rng);
+        let secret_key = SecretKey::random(&mut rng);
         let address = Address::from_secret_key(&secret_key);
 
         let unsigned = UnsignedTransaction {
