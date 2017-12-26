@@ -1,6 +1,6 @@
 [package]
 name = "ethereum-block"
-version = "0.3.4"
+version = "0.3.5"
 license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Block and transaction types for Ethereum."
