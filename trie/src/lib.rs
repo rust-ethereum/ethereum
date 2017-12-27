@@ -161,6 +161,49 @@ impl<D: DatabaseGuard> SecureTrie<D> {
     }
 }
 
+pub struct Change {
+    pub adds: Vec<(H256, Vec<u8>)>,
+    pub removes: Vec<H256>,
+}
+
+impl Change {
+    pub fn add_raw(&mut self, key: H256, value: Vec<u8>) {
+        self.adds.push((key, value));
+    }
+
+    pub fn add_node<'a, 'b, 'c>(&'a mut self, node: &'c MerkleNode<'b>) {
+        let subnode = rlp::encode(&node).to_vec();
+        let hash = H256::from(Keccak256::digest(&subnode).as_slice());
+        self.adds.push((hash, subnode));
+    }
+
+    pub fn add_value<'a, 'b, 'c>(&'a mut self, node: &'c MerkleNode<'b>) -> MerkleValue<'b> {
+        if node.inlinable() {
+            MerkleValue::Full(Box::new(node))
+        } else {
+            let subnode = rlp::encode(&node).to_vec();
+            let hash = H256::from(Keccak256::digest(&subnode).as_slice());
+            self.adds.push((hash, subnode));
+            MerkleValue::Hash(hash)
+        }
+    }
+
+    pub fn remove_raw(&mut self, key: H256) {
+        self.removes.push(key)
+    }
+
+    pub fn remove_node<'a, 'b, 'c>(&'a mut self, node: &'c MerkleNode<'b>) -> bool {
+        if node.inlinable() {
+            false
+        } else {
+            let subnode = rlp::encode(&node).to_vec();
+            let hash = H256::from(Keccak256::digest(&subnode).as_slice());
+            self.removes.push(hash);
+            true
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Trie<D: DatabaseGuard> {
     database: D,
