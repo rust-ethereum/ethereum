@@ -73,3 +73,12 @@ pub fn insert_by_node<'a, D: DatabaseHandle>(
 
     (new, change)
 }
+
+pub fn insert_by_empty<'a, D: DatabaseHandle>(
+    nibble: NibbleVec, value: &'a [u8], database: &'a D
+) -> (MerkleNode<'a>, Change) {
+    let mut change = Change::default();
+
+    let new = MerkleNode::Leaf(nibble, value);
+    (new, change)
+}
