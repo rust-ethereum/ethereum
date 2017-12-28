@@ -175,6 +175,16 @@ pub fn common<'a, 'b>(a: NibbleSlice<'a>, b: NibbleSlice<'b>) -> NibbleSlice<'a>
     &a[0..common_len]
 }
 
+pub fn common_with_sub<'a, 'b>(
+    a: NibbleSlice<'a>, b: NibbleSlice<'b>
+) -> (NibbleSlice<'a>, NibbleVec, NibbleVec) {
+    let common = common(a, b);
+    let asub = a[common.len()..].into();
+    let bsub = b[common.len()..].into();
+
+    (common, asub, bsub)
+}
+
 pub fn common_all<'a, T: Iterator<Item=NibbleSlice<'a>>>(mut iter: T) -> NibbleSlice<'a> {
     let first = match iter.next() {
         Some(val) => val,
