@@ -1,31 +1,3 @@
-pub fn insert_by_value<'a, D: DatabaseHandle>(
-    merkle: MerkleValue<'a>, nibble: NibbleVec, value: &'a [u8], database: &'a D
-) -> (MerkleValue<'a>, Change) {
-    let mut change = Change::default();
-
-    let new = match merkle {
-        MerkleValue::Empty => {
-            unimplemented!();
-        },
-        MerkleValue::Full(ref sub_node) => {
-            let (new_node, subchange) = Self::insert_by_node(
-                sub_node, nibble, value, database);
-            change.merge(&subchange);
-            change.add_value(new_node)
-        },
-        MerkleValue::Hash(h) => {
-            let sub_node = database.get(h);
-            change.remove_node(sub_node);
-            let (new_node, subchange) = Self::insert_by_node(
-                sub_node, nibble, value, database);
-            change.merge(&subchange);
-            change.add_value(new_node)
-        },
-    };
-
-    (new, change)
-}
-
 fn two_leaf_branch<'a>(
     anibble: NibbleVec, avalue: &'a [u8], bnibble: NibbleVec, bvalue: &'a [u8]
 ) -> (MerkleNode<'a>, Change) {
@@ -55,6 +27,35 @@ fn two_leaf_branch<'a>(
     }
 
     (MerkleNode::Branch(nodes, additional), change)
+}
+
+pub fn insert_by_value<'a, D: DatabaseHandle>(
+    merkle: MerkleValue<'a>, nibble: NibbleVec, value: &'a [u8], database: &'a D
+) -> (MerkleValue<'a>, Change) {
+    let mut change = Change::default();
+
+    let new = match merkle {
+        MerkleValue::Empty => {
+            let new_node = MerkleNode::Leaf(nibble, value);
+            change.add_value(new_node)
+        },
+        MerkleValue::Full(ref sub_node) => {
+            let (new_node, subchange) = Self::insert_by_node(
+                sub_node, nibble, value, database);
+            change.merge(&subchange);
+            change.add_value(new_node)
+        },
+        MerkleValue::Hash(h) => {
+            let sub_node = database.get(h);
+            change.remove_node(sub_node);
+            let (new_node, subchange) = Self::insert_by_node(
+                sub_node, nibble, value, database);
+            change.merge(&subchange);
+            change.add_value(new_node)
+        },
+    };
+
+    (new, change)
 }
 
 pub fn insert_by_node<'a, D: DatabaseHandle>(
