@@ -21,16 +21,12 @@ fn value_and_leaf_branch<'a>(
         additional = Some(bvalue);
     } else {
         let bi: usize = bnibble[0].into();
-        let bsub = bnibble[1..].into();
-
         debug_assert!(ai != bi);
 
-        if bsub.len() > 0 {
-            let ext_value = change.add_value(MerkleNode::Extension(bsub, bvalue));
-            nodes[bi] = ext_value;
-        } else {
-            nodes[bi] = bvalue;
-        }
+        let bsub = bnibble[1..].into();
+        let bvalue = change.add_value(MerkleNode::Leaf(bsub, bvalue));
+
+        nodes[bi] = bvalue;
     }
 
     (MerkleNode::Branch(nodes, additional), change)
