@@ -70,8 +70,7 @@ pub fn insert_by_value<'a, D: DatabaseHandle>(
 
     let new = match merkle {
         MerkleValue::Empty => {
-            let new_node = MerkleNode::Leaf(nibble, value);
-            change.add_value(new_node)
+            change.add_value(MerkleNode::Leaf(nibble, value))
         },
         MerkleValue::Full(ref sub_node) => {
             let (new_node, subchange) = Self::insert_by_node(
