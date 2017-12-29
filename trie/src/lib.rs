@@ -92,11 +92,11 @@ impl Change {
     }
 
     pub fn merge(&mut self, other: &Change) {
-        for v in other.adds {
+        for v in &other.adds {
             self.adds.push(v.clone());
         }
 
-        for v in other.removes {
+        for v in &other.removes {
             self.removes.push(v.clone());
         }
     }
