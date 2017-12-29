@@ -74,5 +74,7 @@ mod tests {
         for (key, value) in &map {
             mtrie.insert(key, value);
         }
+
+        assert_eq!(trie.database, mtrie.database);
     }
 }
