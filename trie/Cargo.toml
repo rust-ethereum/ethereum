@@ -11,9 +11,10 @@ keywords = ["ethereum"]
 name = "trie"
 
 [dependencies]
-ethereum-bigint = { version = "0.2", path = "../bigint" }
-ethereum-rlp = { version = "0.2", path = "../rlp" }
+ethereum-bigint = "0.2"
+ethereum-rlp = "0.2"
 sha3 = "0.6"
 
 [dev-dependencies]
-ethereum-hexutil = { version = "0.2", path = "../hexutil" }
+ethereum-hexutil = "0.2"
+ethereum-trie-test = "0.3"
