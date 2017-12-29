@@ -22,3 +22,22 @@ impl Default for SingletonMemoryTrieMut {
         }
     }
 }
+
+impl SingletonMemoryTrieMut {
+    pub fn insert(&mut self, key: &[u8], value: &[u8]) {
+        let (new_root, change) = {
+            let trie = Trie::existing(&self.database, self.root);
+            trie.insert(key, value)
+        };
+
+        for add in change.adds {
+            self.database.insert(add.0, add.1);
+        }
+
+        for remove in change.removes {
+            self.database.remove(&remove);
+        }
+
+        self.root = new_root;
+    }
+}
