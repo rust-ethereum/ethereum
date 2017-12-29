@@ -36,6 +36,8 @@ macro_rules! empty_trie_hash {
 pub mod merkle;
 mod ops;
 
+use ops::insert;
+
 pub trait DatabaseHandle {
     fn get<'a>(&'a self, key: H256) -> &'a [u8];
 }
@@ -125,6 +127,25 @@ impl<D: DatabaseHandle> Trie<D> {
             database,
             root
         }
+    }
+
+    pub fn insert(&self, key: &[u8], value: &[u8]) -> (H256, Change) {
+        let mut change = Change::default();
+        let nibble = nibble::from_key(key);
+
+        let (new, subchange) = if self.root == empty_trie_hash!() {
+            insert::insert_by_empty(nibble, value, &self.database)
+
+        } else {
+            let old = MerkleNode::decode(&Rlp::new(self.database.get(self.root)));
+            change.remove_raw(self.root);
+            insert::insert_by_node(old, nibble, value, &self.database)
+        };
+        change.merge(&subchange);
+        change.add_node(&new);
+
+        let hash = H256::from(Keccak256::digest(&rlp::encode(&new).to_vec()).as_slice());
+        (hash, change)
     }
 }
 
