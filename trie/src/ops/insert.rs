@@ -116,8 +116,8 @@ pub fn insert_by_node<'a, D: DatabaseHandle>(
             if nibble.starts_with(node_nibble) {
                 let (subvalue, subchange) = insert_by_value(
                     node_value.clone(),
-                    nibble.split_at(node_nibble.len()).1.into(),
-                    value);
+                    nibble[node_nibble.len()..].into(),
+                    value, database);
                 change.merge(&subchange);
 
                 MerkleNode::Extension(node_nibble.clone(), subvalue)
@@ -136,7 +136,21 @@ pub fn insert_by_node<'a, D: DatabaseHandle>(
             }
         },
         MerkleNode::Branch(ref node_nodes, ref node_additional) => {
-            unimplemented!();
+            let mut nodes = copy_nodes(node_nodes);
+            if nibble.len() == 0 {
+                MerkleNode::Branch(nodes, Some(value))
+            } else {
+                let ni: usize = nibble[0].into();
+                let prev = nodes[nibble_index].clone();
+                let (new, subchange) = insert_by_value(
+                    prev,
+                    nibble[1..].into(),
+                    value, database);
+                change.merge(&subchange);
+
+                nodes[ni] = new;
+                MerkleNode::Branch(nodes, node_additional)
+            }
         },
     };
 
