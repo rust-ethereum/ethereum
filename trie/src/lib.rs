@@ -9,10 +9,6 @@ use sha3::{Digest, Keccak256};
 use std::collections::HashMap;
 use merkle::{MerkleValue, MerkleNode};
 use merkle::nibble::{self, NibbleVec, NibbleSlice, Nibble};
-use std::ops::{Deref, DerefMut};
-use std::borrow::Borrow;
-use std::marker::PhantomData;
-use std::clone::Clone;
 
 macro_rules! empty_nodes {
     () => (
@@ -54,16 +50,16 @@ impl Change {
     }
 
     pub fn add_node<'a, 'b, 'c>(&'a mut self, node: &'c MerkleNode<'b>) {
-        let subnode = rlp::encode(&node).to_vec();
+        let subnode = rlp::encode(node).to_vec();
         let hash = H256::from(Keccak256::digest(&subnode).as_slice());
         self.adds.push((hash, subnode));
     }
 
     pub fn add_value<'a, 'b, 'c>(&'a mut self, node: &'c MerkleNode<'b>) -> MerkleValue<'b> {
         if node.inlinable() {
-            MerkleValue::Full(Box::new(node))
+            MerkleValue::Full(Box::new(node.clone()))
         } else {
-            let subnode = rlp::encode(&node).to_vec();
+            let subnode = rlp::encode(node).to_vec();
             let hash = H256::from(Keccak256::digest(&subnode).as_slice());
             self.adds.push((hash, subnode));
             MerkleValue::Hash(hash)
@@ -78,7 +74,7 @@ impl Change {
         if node.inlinable() {
             false
         } else {
-            let subnode = rlp::encode(&node).to_vec();
+            let subnode = rlp::encode(node).to_vec();
             let hash = H256::from(Keccak256::digest(&subnode).as_slice());
             self.removes.push(hash);
             true
@@ -92,7 +88,7 @@ pub struct Trie<D: DatabaseHandle> {
     root: H256,
 }
 
-impl<D: DatabaseGuard> Trie<D> {
+impl<D: DatabaseHandle> Trie<D> {
     pub fn empty(database: D) -> Self {
         Self {
             database,
@@ -105,7 +101,6 @@ impl<D: DatabaseGuard> Trie<D> {
             return Self::empty(database);
         }
 
-        assert!(database.get(root).is_some());
         Self {
             database,
             root
