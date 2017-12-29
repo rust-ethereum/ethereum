@@ -163,7 +163,7 @@ impl<D: DatabaseGuard> SecureTrie<D> {
 
 #[derive(Clone, Debug)]
 pub struct Trie<D: DatabaseGuard> {
-    database: D,
+    pub database: D,
     root: H256,
 }
 
