@@ -35,8 +35,11 @@ macro_rules! empty_trie_hash {
 
 pub mod merkle;
 mod ops;
+mod memory;
 
 use ops::insert;
+
+pub use memory::SingletonMemoryTrieMut;
 
 pub trait DatabaseHandle {
     fn get<'a>(&'a self, key: H256) -> &'a [u8];
