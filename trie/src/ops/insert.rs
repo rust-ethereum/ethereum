@@ -1,3 +1,7 @@
+use merkle::{MerkleValue, MerkleNode};
+use merkle::nibble::{self, NibbleVec, NibbleSlice, Nibble};
+use {Change, DatabaseHandle};
+
 fn value_and_leaf_branch<'a>(
     anibble: NibbleVec, avalue: MerkleValue<'a>, bnibble: NibbleVec, bvalue: &'a [u8]
 ) -> (MerkleNode<'a>, Change) {
@@ -73,7 +77,7 @@ pub fn insert_by_value<'a, D: DatabaseHandle>(
             change.add_value(MerkleNode::Leaf(nibble, value))
         },
         MerkleValue::Full(ref sub_node) => {
-            let (new_node, subchange) = Self::insert_by_node(
+            let (new_node, subchange) = insert_by_node(
                 sub_node, nibble, value, database);
             change.merge(&subchange);
             change.add_value(new_node)
@@ -81,7 +85,7 @@ pub fn insert_by_value<'a, D: DatabaseHandle>(
         MerkleValue::Hash(h) => {
             let sub_node = database.get(h);
             change.remove_node(sub_node);
-            let (new_node, subchange) = Self::insert_by_node(
+            let (new_node, subchange) = insert_by_node(
                 sub_node, nibble, value, database);
             change.merge(&subchange);
             change.add_value(new_node)
@@ -136,12 +140,12 @@ pub fn insert_by_node<'a, D: DatabaseHandle>(
             }
         },
         MerkleNode::Branch(ref node_nodes, ref node_additional) => {
-            let mut nodes = copy_nodes(node_nodes);
+            let mut nodes = node_nodes.clone();
             if nibble.len() == 0 {
                 MerkleNode::Branch(nodes, Some(value))
             } else {
                 let ni: usize = nibble[0].into();
-                let prev = nodes[nibble_index].clone();
+                let prev = nodes[ni].clone();
                 let (new, subchange) = insert_by_value(
                     prev,
                     nibble[1..].into(),

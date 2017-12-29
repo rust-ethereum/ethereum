@@ -34,6 +34,7 @@ macro_rules! empty_trie_hash {
 }
 
 pub mod merkle;
+mod ops;
 
 pub trait DatabaseHandle {
     fn get<'a>(&'a self, key: H256) -> &'a [u8];
@@ -42,6 +43,15 @@ pub trait DatabaseHandle {
 pub struct Change {
     pub adds: Vec<(H256, Vec<u8>)>,
     pub removes: Vec<H256>,
+}
+
+impl Default for Change {
+    fn default() -> Self {
+        Change {
+            adds: Vec::new(),
+            removes: Vec::new(),
+        }
+    }
 }
 
 impl Change {
@@ -78,6 +88,16 @@ impl Change {
             let hash = H256::from(Keccak256::digest(&subnode).as_slice());
             self.removes.push(hash);
             true
+        }
+    }
+
+    pub fn merge(&mut self, other: &Change) {
+        for v in other.adds {
+            self.adds.push(v.clone());
+        }
+
+        for v in other.removes {
+            self.removes.push(v.clone());
         }
     }
 }
