@@ -125,7 +125,7 @@ fn collapse_branch<'a, D: DatabaseHandle>(
 
 pub fn delete_by_value<'a, D: DatabaseHandle>(
     merkle: MerkleValue<'a>, nibble: NibbleVec, database: &'a D
-) -> (MerkleValue<'a>, Change) {
+) -> (Option<MerkleValue<'a>>, Change) {
     let mut change = Change::default();
 
     let new = match merkle {
