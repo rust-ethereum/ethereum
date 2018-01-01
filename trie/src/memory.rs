@@ -1,5 +1,5 @@
 use bigint::H256;
-use {DatabaseHandle, Trie};
+use {DatabaseHandle, Trie, Change};
 
 use std::collections::HashMap;
 
@@ -24,12 +24,7 @@ impl Default for SingletonMemoryTrieMut {
 }
 
 impl SingletonMemoryTrieMut {
-    pub fn insert(&mut self, key: &[u8], value: &[u8]) {
-        let (new_root, change) = {
-            let trie = Trie::existing(&self.database, self.root);
-            trie.insert(key, value)
-        };
-
+    fn apply_change(&mut self, change: Change) {
         for add in change.adds {
             self.database.insert(add.0, add.1);
         }
@@ -37,7 +32,25 @@ impl SingletonMemoryTrieMut {
         for remove in change.removes {
             self.database.remove(&remove);
         }
+    }
 
+    pub fn insert(&mut self, key: &[u8], value: &[u8]) {
+        let (new_root, change) = {
+            let trie = Trie::existing(&self.database, self.root);
+            trie.insert(key, value)
+        };
+
+        self.apply_change(change);
+        self.root = new_root;
+    }
+
+    pub fn delete(&mut self, key: &[u8]) {
+        let (new_root, change) = {
+            let trie = Trie::existing(&self.database, self.root);
+            trie.delete(key)
+        };
+
+        self.apply_change(change);
         self.root = new_root;
     }
 }

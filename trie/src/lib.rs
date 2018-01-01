@@ -139,8 +139,7 @@ impl<D: DatabaseHandle> Trie<D> {
         let nibble = nibble::from_key(key);
 
         let (new, subchange) = if self.root == empty_trie_hash!() {
-            insert::insert_by_empty(nibble, value, &self.database)
-
+            insert::insert_by_empty(nibble, value)
         } else {
             let old = MerkleNode::decode(&Rlp::new(self.database.get(self.root)));
             change.remove_raw(self.root);
