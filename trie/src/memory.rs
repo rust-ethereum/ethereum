@@ -58,6 +58,8 @@ impl SingletonMemoryTrieMut {
 #[cfg(test)]
 mod tests {
     use super::SingletonMemoryTrieMut;
+    use merkle::MerkleNode;
+    use rlp::Rlp;
 
     use trie_test::{DatabaseGuard, Trie};
     use std::collections::HashMap;
@@ -89,5 +91,24 @@ mod tests {
         }
 
         assert_eq!(trie.database, mtrie.database);
+
+        mtrie.insert("key2bbb".as_bytes(), "aval4".as_bytes());
+        mtrie.delete("key2bbb".as_bytes());
+
+        assert_eq!(trie.database, mtrie.database);
+    }
+
+    #[test]
+    fn trie_two_keys() {
+        let mut mtrie = SingletonMemoryTrieMut::default();
+        mtrie.insert("key1".as_bytes(), "aval1".as_bytes());
+        mtrie.insert("key2bb".as_bytes(), "aval3".as_bytes());
+        mtrie.insert("key2bbb".as_bytes(), "aval4".as_bytes());
+
+        for (key, value) in &mtrie.database {
+            println!("key: {:?}, value: {:?}", key, MerkleNode::decode(&Rlp::new(value)));
+        }
+
+        mtrie.delete("key2bbb".as_bytes());
     }
 }
