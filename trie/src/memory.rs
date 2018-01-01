@@ -103,12 +103,11 @@ mod tests {
         let mut mtrie = SingletonMemoryTrieMut::default();
         mtrie.insert("key1".as_bytes(), "aval1".as_bytes());
         mtrie.insert("key2bb".as_bytes(), "aval3".as_bytes());
+        let db1 = mtrie.database.clone();
+
         mtrie.insert("key2bbb".as_bytes(), "aval4".as_bytes());
-
-        for (key, value) in &mtrie.database {
-            println!("key: {:?}, value: {:?}", key, MerkleNode::decode(&Rlp::new(value)));
-        }
-
         mtrie.delete("key2bbb".as_bytes());
+
+        assert_eq!(db1, mtrie.database);
     }
 }
