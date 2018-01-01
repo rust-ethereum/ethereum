@@ -56,6 +56,8 @@ fn collapse_extension<'a, D: DatabaseHandle>(
             MerkleNode::Leaf(new_sub_nibble, sub_value)
         },
         MerkleNode::Extension(mut sub_nibble, sub_value) => {
+            debug_assert!(sub_value != MerkleValue::Empty);
+
             let mut new_sub_nibble = node_nibble.clone();
             new_sub_nibble.append(&mut sub_nibble);
             MerkleNode::Extension(new_sub_nibble, sub_value)
@@ -103,6 +105,8 @@ fn collapse_branch<'a, D: DatabaseHandle>(
                     MerkleNode::Leaf(leaf_nibble, leaf_value)
                 },
                 MerkleNode::Extension(mut ext_nibble, ext_value) => {
+                    debug_assert!(ext_value != MerkleValue::Empty);
+
                     ext_nibble.insert(0, subnibble);
                     MerkleNode::Extension(ext_nibble, ext_value)
                 },
