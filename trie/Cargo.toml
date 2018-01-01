@@ -1,6 +1,6 @@
 [package]
 name = "ethereum-trie"
-version = "0.3.8"
+version = "0.4.0"
 license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Lightweight Ethereum world state storage."
@@ -11,9 +11,10 @@ keywords = ["ethereum"]
 name = "trie"
 
 [dependencies]
-ethereum-bigint = { version = "0.2", path = "../bigint" }
-ethereum-rlp = { version = "0.2", path = "../rlp" }
+ethereum-bigint = "0.2"
+ethereum-rlp = "0.2"
 sha3 = "0.6"
 
 [dev-dependencies]
-ethereum-hexutil = { version = "0.2", path = "../hexutil" }
+ethereum-hexutil = "0.2"
+ethereum-trie-test = "0.3"
