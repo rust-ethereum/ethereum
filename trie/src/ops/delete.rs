@@ -69,14 +69,20 @@ fn collapse_extension<'a, D: DatabaseHandle>(
     (node, change)
 }
 
+fn nonempty_node_count<'a, 'b>(
+    nodes: &'b [MerkleValue<'a>; 16], additional: &'b Option<&'a [u8]>
+) -> usize {
+    additional.iter().count() +
+        nodes.iter().filter(|v| v != &&MerkleValue::Empty).count()
+}
+
 fn collapse_branch<'a, D: DatabaseHandle>(
     node_nodes: [MerkleValue<'a>; 16], node_additional: Option<&'a [u8]>,
     database: &'a D
 ) -> (MerkleNode<'a>, Change) {
     let mut change = Change::default();
 
-    let value_count = node_additional.iter().count() +
-        node_nodes.iter().filter(|v| v != &&MerkleValue::Empty).count();
+    let value_count = nonempty_node_count(node_nodes, node_additional);
 
     let node = match value_count {
         0 => panic!(),
