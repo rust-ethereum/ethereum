@@ -39,6 +39,7 @@ mod ops;
 mod memory;
 
 use ops::insert;
+use ops::delete;
 
 pub use memory::SingletonMemoryTrieMut;
 
@@ -150,5 +151,31 @@ impl<D: DatabaseHandle> Trie<D> {
 
         let hash = H256::from(Keccak256::digest(&rlp::encode(&new).to_vec()).as_slice());
         (hash, change)
+    }
+
+    pub fn delete(&self, key: &[u8]) -> (H256, Change) {
+        let mut change = Change::default();
+        let nibble = nibble::from_key(key);
+
+        let (new, subchange) = if self.root == empty_trie_hash!() {
+            return (self.root, change)
+        } else {
+            let old = MerkleNode::decode(&Rlp::new(self.database.get(self.root)));
+            change.remove_raw(self.root);
+            delete::delete_by_node(old, nibble, &self.database)
+        };
+        change.merge(&subchange);
+
+        match new {
+            Some(new) => {
+                change.add_node(&new);
+
+                let hash = H256::from(Keccak256::digest(&rlp::encode(&new).to_vec()).as_slice());
+                (hash, change)
+            },
+            None => {
+                (empty_trie_hash!(), change)
+            },
+        }
     }
 }
