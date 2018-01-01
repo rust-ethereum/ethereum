@@ -163,23 +163,61 @@ pub fn delete_by_node<'a, D: DatabaseHandle>(
     let mut change = Change::default();
 
     let new = match node {
-        MerkleNode::Leaf(ref node_nibble, ref node_value) => {
+        MerkleNode::Leaf(node_nibble, node_value) => {
             if node_nibble == &nibble {
                 None
             } else {
-                Some(MerkleNode::Leaf(node_nibble.clone(), node_value.clone()))
+                Some(MerkleNode::Leaf(node_nibble, node_value))
             }
         },
-        MerkleNode::Extension(ref node_nibble, ref node_value) => {
+        MerkleNode::Extension(node_nibble, node_value) => {
             if nibble.starts_with(node_nibble) {
                 let (subvalue, subchange) = delete_by_value(
-                    node_value.clone(), nibble[node_nibble.len()..].into(),
+                    node_value, nibble[node_nibble.len()..].into(),
                     database);
                 change.merge(&subchange);
 
                 match subvalue {
-                    MerkleValue::Empty => None,
+                    Some(subvalue) => {
+                        let (new, subchange) = collapse_extension(node_nibble, subvalue, database);
+                        change.merge(&subchange);
+
+                        Some(new)
+                    },
+                    None => None,
                 }
+            } else {
+                MerkleNode::Extension(node_nibble, node_value)
+            }
+        },
+        MerkleNode::Branch(mut node_nodes, mut node_additional) => {
+            if nibble.len() == 0 {
+                node_additional = None;
+            } else {
+                let ni: usize = nibble[0].into();
+                let (new_subnode, subchange) = delete_by_value(
+                    node_nodes[ni].clone(), nibble[1..].into(),
+                    database);
+                change.merge(&subchange);
+
+                match new_subnode {
+                    Some(new_subnode) => {
+                        node_nodes[ni] = new_subnode;
+                    },
+                    None => {
+                        node_nodes[ni] = MerkleValue::Empty;
+                    },
+                }
+            }
+
+            let value_count = nonempty_node_count(node_nodes, node_additional);
+            if value_count > 0 {
+                let (new, subchange) = collapse_branch(node_nodes, node_additional, database);
+                change.merge(&subchange);
+
+                Some(new)
+            } else {
+                None
             }
         },
     }
