@@ -7,7 +7,7 @@ extern crate sha3;
 use bigint::H256;
 use rlp::Rlp;
 use sha3::{Digest, Keccak256};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use merkle::{MerkleValue, MerkleNode};
 use merkle::nibble::{self, NibbleVec, NibbleSlice, Nibble};
 
@@ -38,8 +38,7 @@ pub mod merkle;
 mod ops;
 mod memory;
 
-use ops::insert;
-use ops::delete;
+use ops::{insert, delete, build, get};
 
 pub use memory::SingletonMemoryTrieMut;
 
@@ -48,28 +47,29 @@ pub trait DatabaseHandle {
 }
 
 pub struct Change {
-    pub adds: Vec<(H256, Vec<u8>)>,
-    pub removes: Vec<H256>,
+    pub adds: HashMap<H256, Vec<u8>>,
+    pub removes: HashSet<H256>,
 }
 
 impl Default for Change {
     fn default() -> Self {
         Change {
-            adds: Vec::new(),
-            removes: Vec::new(),
+            adds: HashMap::new(),
+            removes: HashSet::new(),
         }
     }
 }
 
 impl Change {
     pub fn add_raw(&mut self, key: H256, value: Vec<u8>) {
-        self.adds.push((key, value));
+        self.adds.insert(key, value);
+        self.removes.remove(&key);
     }
 
     pub fn add_node<'a, 'b, 'c>(&'a mut self, node: &'c MerkleNode<'b>) {
         let subnode = rlp::encode(node).to_vec();
         let hash = H256::from(Keccak256::digest(&subnode).as_slice());
-        self.adds.push((hash, subnode));
+        self.add_raw(hash, subnode);
     }
 
     pub fn add_value<'a, 'b, 'c>(&'a mut self, node: &'c MerkleNode<'b>) -> MerkleValue<'b> {
@@ -78,13 +78,14 @@ impl Change {
         } else {
             let subnode = rlp::encode(node).to_vec();
             let hash = H256::from(Keccak256::digest(&subnode).as_slice());
-            self.adds.push((hash, subnode));
+            self.add_raw(hash, subnode);
             MerkleValue::Hash(hash)
         }
     }
 
     pub fn remove_raw(&mut self, key: H256) {
-        self.removes.push(key)
+        self.adds.remove(&key);
+        self.removes.insert(key);
     }
 
     pub fn remove_node<'a, 'b, 'c>(&'a mut self, node: &'c MerkleNode<'b>) -> bool {
@@ -93,88 +94,108 @@ impl Change {
         } else {
             let subnode = rlp::encode(node).to_vec();
             let hash = H256::from(Keccak256::digest(&subnode).as_slice());
-            self.removes.push(hash);
+            self.remove_raw(hash);
             true
         }
     }
 
     pub fn merge(&mut self, other: &Change) {
-        for v in &other.adds {
-            self.adds.push(v.clone());
+        for (key, value) in &other.adds {
+            self.add_raw(*key, value.clone());
         }
 
         for v in &other.removes {
-            self.removes.push(v.clone());
+            self.remove_raw(*v);
         }
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct Trie<D: DatabaseHandle> {
-    database: D,
-    root: H256,
+pub fn empty_trie_hash() -> H256 {
+    empty_trie_hash!()
 }
 
-impl<D: DatabaseHandle> Trie<D> {
-    pub fn empty(database: D) -> Self {
-        Self {
-            database,
-            root: empty_trie_hash!()
-        }
+pub fn insert<D: DatabaseHandle>(
+    root: H256, database: &D, key: &[u8], value: &[u8]
+) -> (H256, Change) {
+    let mut change = Change::default();
+    let nibble = nibble::from_key(key);
+
+    let (new, subchange) = if root == empty_trie_hash!() {
+        insert::insert_by_empty(nibble, value)
+    } else {
+        let old = MerkleNode::decode(&Rlp::new(database.get(root)));
+        change.remove_raw(root);
+        insert::insert_by_node(old, nibble, value, database)
+    };
+    change.merge(&subchange);
+    change.add_node(&new);
+
+    let hash = H256::from(Keccak256::digest(&rlp::encode(&new).to_vec()).as_slice());
+    (hash, change)
+}
+
+pub fn insert_empty<D: DatabaseHandle>(
+    database: &D, key: &[u8], value: &[u8]
+) -> (H256, Change) {
+    insert(empty_trie_hash!(), database, key, value)
+}
+
+pub fn delete<D: DatabaseHandle>(
+    root: H256, database: &D, key: &[u8]
+) -> (H256, Change) {
+    let mut change = Change::default();
+    let nibble = nibble::from_key(key);
+
+    let (new, subchange) = if root == empty_trie_hash!() {
+        return (root, change)
+    } else {
+        let old = MerkleNode::decode(&Rlp::new(database.get(root)));
+        change.remove_raw(root);
+        delete::delete_by_node(old, nibble, database)
+    };
+    change.merge(&subchange);
+
+    match new {
+        Some(new) => {
+            change.add_node(&new);
+
+            let hash = H256::from(Keccak256::digest(&rlp::encode(&new).to_vec()).as_slice());
+            (hash, change)
+        },
+        None => {
+            (empty_trie_hash!(), change)
+        },
+    }
+}
+
+pub fn build(map: &HashMap<Vec<u8>, Vec<u8>>) -> (H256, Change) {
+    let mut change = Change::default();
+
+    if map.len() == 0 {
+        return (empty_trie_hash!(), change);
     }
 
-    pub fn existing(database: D, root: H256) -> Self {
-        if root == empty_trie_hash!() {
-            return Self::empty(database);
-        }
-
-        Self {
-            database,
-            root
-        }
+    let mut node_map = HashMap::new();
+    for (key, value) in map {
+        node_map.insert(nibble::from_key(key.as_ref()), value.as_ref());
     }
 
-    pub fn insert(&self, key: &[u8], value: &[u8]) -> (H256, Change) {
-        let mut change = Change::default();
+    let (node, subchange) = build::build_node(&node_map);
+    change.merge(&subchange);
+    change.add_node(&node);
+
+    let hash = H256::from(Keccak256::digest(&rlp::encode(&node).to_vec()).as_slice());
+    (hash, change)
+}
+
+pub fn get<'a, 'b, D: DatabaseHandle>(
+    root: H256, database: &'a D, key: &'b [u8]
+) -> Option<&'a [u8]> {
+    if root == empty_trie_hash!() {
+        None
+    } else {
         let nibble = nibble::from_key(key);
-
-        let (new, subchange) = if self.root == empty_trie_hash!() {
-            insert::insert_by_empty(nibble, value)
-        } else {
-            let old = MerkleNode::decode(&Rlp::new(self.database.get(self.root)));
-            change.remove_raw(self.root);
-            insert::insert_by_node(old, nibble, value, &self.database)
-        };
-        change.merge(&subchange);
-        change.add_node(&new);
-
-        let hash = H256::from(Keccak256::digest(&rlp::encode(&new).to_vec()).as_slice());
-        (hash, change)
-    }
-
-    pub fn delete(&self, key: &[u8]) -> (H256, Change) {
-        let mut change = Change::default();
-        let nibble = nibble::from_key(key);
-
-        let (new, subchange) = if self.root == empty_trie_hash!() {
-            return (self.root, change)
-        } else {
-            let old = MerkleNode::decode(&Rlp::new(self.database.get(self.root)));
-            change.remove_raw(self.root);
-            delete::delete_by_node(old, nibble, &self.database)
-        };
-        change.merge(&subchange);
-
-        match new {
-            Some(new) => {
-                change.add_node(&new);
-
-                let hash = H256::from(Keccak256::digest(&rlp::encode(&new).to_vec()).as_slice());
-                (hash, change)
-            },
-            None => {
-                (empty_trie_hash!(), change)
-            },
-        }
+        let node = MerkleNode::decode(&Rlp::new(database.get(root)));
+        get::get_by_node(node, nibble, database)
     }
 }

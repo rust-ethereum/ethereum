@@ -22,8 +22,8 @@ fn find_and_remove_child<'a, D: DatabaseHandle>(
     (node, change)
 }
 
-fn collapse_extension<'a, D: DatabaseHandle>(
-    node_nibble: NibbleVec, subnode: MerkleNode<'a>, database: &'a D
+fn collapse_extension<'a>(
+    node_nibble: NibbleVec, subnode: MerkleNode<'a>
 ) -> (MerkleNode<'a>, Change) {
     let mut change = Change::default();
 
@@ -157,7 +157,7 @@ pub fn delete_by_node<'a, D: DatabaseHandle>(
 
                 match subnode {
                     Some(subnode) => {
-                        let (new, subchange) = collapse_extension(node_nibble, subnode, database);
+                        let (new, subchange) = collapse_extension(node_nibble, subnode);
                         change.merge(&subchange);
 
                         Some(new)

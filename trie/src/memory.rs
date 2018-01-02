@@ -1,5 +1,5 @@
 use bigint::H256;
-use {DatabaseHandle, Trie, Change};
+use {DatabaseHandle, Change, insert, delete, build, get};
 
 use std::collections::HashMap;
 
@@ -34,24 +34,32 @@ impl SingletonMemoryTrieMut {
         }
     }
 
+    pub fn build(map: &HashMap<Vec<u8>, Vec<u8>>) -> Self {
+        let (new_root, change) = build(map);
+
+        let mut ret = Self::default();
+        ret.apply_change(change);
+        ret.root = new_root;
+
+        ret
+    }
+
     pub fn insert(&mut self, key: &[u8], value: &[u8]) {
-        let (new_root, change) = {
-            let trie = Trie::existing(&self.database, self.root);
-            trie.insert(key, value)
-        };
+        let (new_root, change) = insert(self.root, &&self.database, key, value);
 
         self.apply_change(change);
         self.root = new_root;
     }
 
     pub fn delete(&mut self, key: &[u8]) {
-        let (new_root, change) = {
-            let trie = Trie::existing(&self.database, self.root);
-            trie.delete(key)
-        };
+        let (new_root, change) = delete(self.root, &&self.database, key);
 
         self.apply_change(change);
         self.root = new_root;
+    }
+
+    pub fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
+        get(self.root, &&self.database, key).map(|v| v.into())
     }
 }
 
@@ -78,12 +86,18 @@ mod tests {
         map.insert("key3cc".as_bytes().into(), "aval3".as_bytes().into());
         map.insert("key3".as_bytes().into(), "1234567890123456789012345678901".as_bytes().into());
 
+        let mut btrie = SingletonMemoryTrieMut::build(&map);
+
         let mut database: HashMap<H256, Vec<u8>> = HashMap::new();
         let mut trie: Trie<HashMap<H256, Vec<u8>>> = Trie::build(database, &map);
 
+        assert_eq!(trie.database, btrie.database);
+
         assert_eq!(trie.root(), H256::from_str("0xcb65032e2f76c48b82b5c24b3db8f670ce73982869d38cd39a624f23d62a9e89").unwrap());
         assert_eq!(trie.get_raw("key2bb".as_bytes()), Some("aval3".as_bytes().into()));
+        assert_eq!(btrie.get("key2bb".as_bytes()), Some("aval3".as_bytes().into()));
         assert_eq!(trie.get_raw("key2bbb".as_bytes()), None);
+        assert_eq!(btrie.get("key2bbb".as_bytes()), None);
 
         let mut mtrie = SingletonMemoryTrieMut::default();
         for (key, value) in &map {
