@@ -2,7 +2,6 @@ extern crate bigint;
 extern crate rlp;
 extern crate sha3;
 #[cfg(test)] extern crate hexutil;
-#[cfg(test)] extern crate trie_test;
 
 use bigint::H256;
 use rlp::Rlp;
