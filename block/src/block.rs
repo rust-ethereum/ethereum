@@ -1,23 +1,23 @@
 use rlp::{self, Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 use bigint::{Address, Gas, H256, U256, B256, H64, H2048};
 use bloom::LogsBloom;
-use trie::FixedMemoryTrie;
+use trie::FixedMemoryTrieMut;
 use sha3::{Keccak256, Digest};
 use std::collections::HashMap;
 use super::{Header, Transaction, Receipt, SignaturePatch};
 
 pub fn transactions_root(transactions: &[Transaction]) -> H256 {
-    let mut trie = FixedMemoryTrie::empty(HashMap::new());
+    let mut trie = FixedMemoryTrieMut::default();
     for (i, transaction) in transactions.iter().enumerate() {
-        trie.insert(U256::from(i), transaction.clone());
+        trie.insert(&U256::from(i), transaction);
     }
     trie.root()
 }
 
 pub fn receipts_root(receipts: &[Receipt]) -> H256 {
-    let mut trie = FixedMemoryTrie::empty(HashMap::new());
+    let mut trie = FixedMemoryTrieMut::default();
     for (i, receipt) in receipts.iter().enumerate() {
-        trie.insert(U256::from(i), receipt.clone());
+        trie.insert(&U256::from(i), receipt);
     }
     trie.root()
 }

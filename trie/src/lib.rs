@@ -36,10 +36,12 @@ macro_rules! empty_trie_hash {
 pub mod merkle;
 mod ops;
 mod memory;
+mod mutable;
 
 use ops::{insert, delete, build, get};
 
-pub use memory::SingletonMemoryTrieMut;
+pub use memory::*;
+pub use mutable::*;
 
 pub trait DatabaseHandle {
     fn get<'a>(&'a self, key: H256) -> &'a [u8];

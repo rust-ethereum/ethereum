@@ -1,5 +1,7 @@
 use bigint::H256;
-use {DatabaseHandle, Change, insert, delete, build, get};
+use {DatabaseHandle, Change, insert, delete, build, get,
+     TrieMut, FixedTrieMut, FixedSecureTrieMut,
+     AnyTrieMut, AnySecureTrieMut, SecureTrieMut};
 
 use std::collections::HashMap;
 
@@ -9,12 +11,18 @@ impl<'a> DatabaseHandle for &'a HashMap<H256, Vec<u8>> {
     }
 }
 
-pub struct SingletonMemoryTrieMut {
+pub struct MemoryTrieMut {
     database: HashMap<H256, Vec<u8>>,
     root: H256,
 }
 
-impl Default for SingletonMemoryTrieMut {
+pub type FixedMemoryTrieMut<K, V> = FixedTrieMut<MemoryTrieMut, K, V>;
+pub type FixedSecureMemoryTrieMut<K, V> = FixedSecureTrieMut<MemoryTrieMut, K, V>;
+pub type SecureMemoryTrieMut = SecureTrieMut<MemoryTrieMut>;
+pub type AnyMemoryTrieMut = AnyTrieMut<MemoryTrieMut>;
+pub type AnySecureMemoryTrieMut = AnySecureTrieMut<MemoryTrieMut>;
+
+impl Default for MemoryTrieMut {
     fn default() -> Self {
         Self {
             database: HashMap::new(),
@@ -23,7 +31,31 @@ impl Default for SingletonMemoryTrieMut {
     }
 }
 
-impl SingletonMemoryTrieMut {
+impl TrieMut for MemoryTrieMut {
+    fn root(&self) -> H256 {
+        self.root
+    }
+
+    fn insert(&mut self, key: &[u8], value: &[u8]) {
+        let (new_root, change) = insert(self.root, &&self.database, key, value);
+
+        self.apply_change(change);
+        self.root = new_root;
+    }
+
+    fn delete(&mut self, key: &[u8]) {
+        let (new_root, change) = delete(self.root, &&self.database, key);
+
+        self.apply_change(change);
+        self.root = new_root;
+    }
+
+    fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
+        get(self.root, &&self.database, key).map(|v| v.into())
+    }
+}
+
+impl MemoryTrieMut {
     fn apply_change(&mut self, change: Change) {
         for add in change.adds {
             self.database.insert(add.0, add.1);
@@ -43,29 +75,12 @@ impl SingletonMemoryTrieMut {
 
         ret
     }
-
-    pub fn insert(&mut self, key: &[u8], value: &[u8]) {
-        let (new_root, change) = insert(self.root, &&self.database, key, value);
-
-        self.apply_change(change);
-        self.root = new_root;
-    }
-
-    pub fn delete(&mut self, key: &[u8]) {
-        let (new_root, change) = delete(self.root, &&self.database, key);
-
-        self.apply_change(change);
-        self.root = new_root;
-    }
-
-    pub fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        get(self.root, &&self.database, key).map(|v| v.into())
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::SingletonMemoryTrieMut;
+    use {TrieMut};
+    use super::MemoryTrieMut;
     use merkle::MerkleNode;
     use rlp::Rlp;
 
@@ -85,13 +100,13 @@ mod tests {
         map.insert("key3cc".as_bytes().into(), "aval3".as_bytes().into());
         map.insert("key3".as_bytes().into(), "1234567890123456789012345678901".as_bytes().into());
 
-        let mut btrie = SingletonMemoryTrieMut::build(&map);
+        let mut btrie = MemoryTrieMut::build(&map);
 
         assert_eq!(btrie.root, H256::from_str("0xcb65032e2f76c48b82b5c24b3db8f670ce73982869d38cd39a624f23d62a9e89").unwrap());
         assert_eq!(btrie.get("key2bb".as_bytes()), Some("aval3".as_bytes().into()));
         assert_eq!(btrie.get("key2bbb".as_bytes()), None);
 
-        let mut mtrie = SingletonMemoryTrieMut::default();
+        let mut mtrie = MemoryTrieMut::default();
         for (key, value) in &map {
             mtrie.insert(key, value);
         }
@@ -113,7 +128,7 @@ mod tests {
 
     #[test]
     fn trie_two_keys() {
-        let mut mtrie = SingletonMemoryTrieMut::default();
+        let mut mtrie = MemoryTrieMut::default();
         mtrie.insert("key1".as_bytes(), "aval1".as_bytes());
         mtrie.insert("key2bb".as_bytes(), "aval3".as_bytes());
         let db1 = mtrie.database.clone();
