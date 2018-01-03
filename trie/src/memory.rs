@@ -116,6 +116,7 @@ mod tests {
         }
 
         assert!(mtrie.database.len() == 0);
+        assert!(mtrie.root == empty_trie_hash!());
     }
 
     #[test]
