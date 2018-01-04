@@ -11,6 +11,7 @@ impl<'a> DatabaseHandle for &'a HashMap<H256, Vec<u8>> {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct MemoryTrieMut {
     database: HashMap<H256, Vec<u8>>,
     root: H256,
@@ -28,6 +29,12 @@ impl Default for MemoryTrieMut {
             database: HashMap::new(),
             root: empty_trie_hash!(),
         }
+    }
+}
+
+impl Into<HashMap<H256, Vec<u8>>> for MemoryTrieMut {
+    fn into(self) -> HashMap<H256, Vec<u8>> {
+        self.database
     }
 }
 
