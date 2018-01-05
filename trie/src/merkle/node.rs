@@ -4,6 +4,7 @@ use rlp::{self, RlpStream, Encodable, Decodable, Rlp, Prototype};
 use bigint::H256;
 use std::borrow::Borrow;
 
+/// Represents a merkle node.
 #[derive(Debug, PartialEq, Eq)]
 pub enum MerkleNode<'a> {
     Leaf(NibbleVec, &'a [u8]),
@@ -12,6 +13,7 @@ pub enum MerkleNode<'a> {
 }
 
 impl<'a> MerkleNode<'a> {
+    /// Given a RLP, decode it to a merkle node.
     pub fn decode(rlp: &Rlp<'a>) -> Self {
         match rlp.prototype() {
             Prototype::List(2) => {
@@ -48,6 +50,7 @@ impl<'a> MerkleNode<'a> {
         }
     }
 
+    /// Whether the node can be inlined to a merkle value.
     pub fn inlinable(&self) -> bool {
         rlp::encode(self).to_vec().len() < 32
     }
@@ -107,6 +110,7 @@ impl<'a> Encodable for MerkleNode<'a> {
     }
 }
 
+/// Represents a merkle value.
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum MerkleValue<'a> {
     Empty,
@@ -115,6 +119,7 @@ pub enum MerkleValue<'a> {
 }
 
 impl<'a> MerkleValue<'a> {
+    /// Given a RLP, decode it to a merkle value.
     pub fn decode(rlp: &Rlp<'a>) -> Self {
         if rlp.is_empty() {
             return MerkleValue::Empty;

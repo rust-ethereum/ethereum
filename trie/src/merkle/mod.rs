@@ -1,3 +1,5 @@
+//! Merkle types.
+
 pub mod nibble;
 mod node;
 

@@ -1,3 +1,5 @@
+//! Merkle trie implementation for Ethereum.
+
 extern crate bigint;
 extern crate rlp;
 extern crate sha3;
@@ -43,12 +45,17 @@ use ops::{insert, delete, build, get};
 pub use memory::*;
 pub use mutable::*;
 
+/// An immutable database handle.
 pub trait DatabaseHandle {
+    /// Get a raw value from the database.
     fn get<'a>(&'a self, key: H256) -> &'a [u8];
 }
 
+/// Change for a merkle trie operation.
 pub struct Change {
+    /// Additions to the database.
     pub adds: HashMap<H256, Vec<u8>>,
+    /// Removals to the database.
     pub removes: HashSet<H256>,
 }
 
@@ -62,17 +69,20 @@ impl Default for Change {
 }
 
 impl Change {
+    /// Change to add a new raw value.
     pub fn add_raw(&mut self, key: H256, value: Vec<u8>) {
         self.adds.insert(key, value);
         self.removes.remove(&key);
     }
 
+    /// Change to add a new node.
     pub fn add_node<'a, 'b, 'c>(&'a mut self, node: &'c MerkleNode<'b>) {
         let subnode = rlp::encode(node).to_vec();
         let hash = H256::from(Keccak256::digest(&subnode).as_slice());
         self.add_raw(hash, subnode);
     }
 
+    /// Change to add a new node, and return the value added.
     pub fn add_value<'a, 'b, 'c>(&'a mut self, node: &'c MerkleNode<'b>) -> MerkleValue<'b> {
         if node.inlinable() {
             MerkleValue::Full(Box::new(node.clone()))
@@ -84,11 +94,14 @@ impl Change {
         }
     }
 
+    /// Change to remove a raw key.
     pub fn remove_raw(&mut self, key: H256) {
         self.adds.remove(&key);
         self.removes.insert(key);
     }
 
+    /// Change to remove a node. Return whether there's any node being
+    /// removed.
     pub fn remove_node<'a, 'b, 'c>(&'a mut self, node: &'c MerkleNode<'b>) -> bool {
         if node.inlinable() {
             false
@@ -100,6 +113,7 @@ impl Change {
         }
     }
 
+    /// Merge another change to this change.
     pub fn merge(&mut self, other: &Change) {
         for (key, value) in &other.adds {
             self.add_raw(*key, value.clone());
@@ -111,10 +125,12 @@ impl Change {
     }
 }
 
+/// Get the empty trie hash for merkle trie.
 pub fn empty_trie_hash() -> H256 {
     empty_trie_hash!()
 }
 
+/// Insert to a merkle trie. Return the new root hash and the changes.
 pub fn insert<D: DatabaseHandle>(
     root: H256, database: &D, key: &[u8], value: &[u8]
 ) -> (H256, Change) {
@@ -135,12 +151,24 @@ pub fn insert<D: DatabaseHandle>(
     (hash, change)
 }
 
+/// Insert to an empty merkle trie. Return the new root hash and the
+/// changes.
 pub fn insert_empty<D: DatabaseHandle>(
-    database: &D, key: &[u8], value: &[u8]
+    key: &[u8], value: &[u8]
 ) -> (H256, Change) {
-    insert(empty_trie_hash!(), database, key, value)
+    let mut change = Change::default();
+    let nibble = nibble::from_key(key);
+
+    let (new, subchange) = insert::insert_by_empty(nibble, value);
+    change.merge(&subchange);
+    change.add_node(&new);
+
+    let hash = H256::from(Keccak256::digest(&rlp::encode(&new).to_vec()).as_slice());
+    (hash, change)
 }
 
+/// Delete a key from a markle trie. Return the new root hash and the
+/// changes.
 pub fn delete<D: DatabaseHandle>(
     root: H256, database: &D, key: &[u8]
 ) -> (H256, Change) {
@@ -169,6 +197,8 @@ pub fn delete<D: DatabaseHandle>(
     }
 }
 
+/// Build a merkle trie from a map. Return the root hash and the
+/// changes.
 pub fn build(map: &HashMap<Vec<u8>, Vec<u8>>) -> (H256, Change) {
     let mut change = Change::default();
 
@@ -189,6 +219,7 @@ pub fn build(map: &HashMap<Vec<u8>, Vec<u8>>) -> (H256, Change) {
     (hash, change)
 }
 
+/// Get a value given the root hash and the database.
 pub fn get<'a, 'b, D: DatabaseHandle>(
     root: H256, database: &'a D, key: &'b [u8]
 ) -> Option<&'a [u8]> {

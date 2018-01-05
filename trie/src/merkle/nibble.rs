@@ -1,9 +1,12 @@
+//! Merkle nibble types.
+
 use rlp::{RlpStream, Encodable, Decodable, Rlp, Prototype};
 use std::ops::Deref;
 use std::cmp::min;
 use std::hash::{Hash, Hasher};
 use std::fmt::{self, Debug, Formatter};
 
+/// Represents a nibble. A 16-variant value.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Nibble {
     N0, N1, N2, N3, N4, N5, N6, N7,
@@ -62,15 +65,19 @@ impl Into<u8> for Nibble {
     }
 }
 
+/// A nibble type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NibbleType {
     Leaf,
     Extension
 }
 
+/// A nibble vector.
 pub type NibbleVec = Vec<Nibble>;
+/// A nibble slice.
 pub type NibbleSlice<'a> = &'a [Nibble];
 
+/// Given a key, return the corresponding nibble.
 pub fn from_key(key: &[u8]) -> NibbleVec {
     let mut vec = NibbleVec::new();
 
@@ -85,6 +92,7 @@ pub fn from_key(key: &[u8]) -> NibbleVec {
     vec
 }
 
+/// Given a nibble, return the corresponding key.
 pub fn into_key(nibble: NibbleSlice) -> Vec<u8> {
     let mut ret = Vec::new();
 
@@ -101,6 +109,7 @@ pub fn into_key(nibble: NibbleSlice) -> Vec<u8> {
     ret
 }
 
+/// Decode a nibble from RLP.
 pub fn decode(rlp: &Rlp) -> (NibbleVec, NibbleType) {
     let mut vec = NibbleVec::new();
 
@@ -122,6 +131,7 @@ pub fn decode(rlp: &Rlp) -> (NibbleVec, NibbleType) {
     (vec, if is_leaf { NibbleType::Leaf } else { NibbleType::Extension })
 }
 
+/// Encode a nibble into the given RLP stream.
 pub fn encode(vec: NibbleSlice, typ: NibbleType, s: &mut RlpStream) {
     let mut ret: Vec<u8> = Vec::new();
 
@@ -161,6 +171,7 @@ pub fn encode(vec: NibbleSlice, typ: NibbleType, s: &mut RlpStream) {
     s.append(&ret);
 }
 
+/// Common prefix for two nibbles.
 pub fn common<'a, 'b>(a: NibbleSlice<'a>, b: NibbleSlice<'b>) -> NibbleSlice<'a> {
     let mut common_len = 0;
 
@@ -175,6 +186,7 @@ pub fn common<'a, 'b>(a: NibbleSlice<'a>, b: NibbleSlice<'b>) -> NibbleSlice<'a>
     &a[0..common_len]
 }
 
+/// Common prefix for two nibbles. Return the sub nibbles.
 pub fn common_with_sub<'a, 'b>(
     a: NibbleSlice<'a>, b: NibbleSlice<'b>
 ) -> (NibbleSlice<'a>, NibbleVec, NibbleVec) {
@@ -185,6 +197,7 @@ pub fn common_with_sub<'a, 'b>(
     (common, asub, bsub)
 }
 
+/// Common prefix for all provided nibbles.
 pub fn common_all<'a, T: Iterator<Item=NibbleSlice<'a>>>(mut iter: T) -> NibbleSlice<'a> {
     let first = match iter.next() {
         Some(val) => val,
