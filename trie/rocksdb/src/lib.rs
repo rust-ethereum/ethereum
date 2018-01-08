@@ -1,0 +1,88 @@
+extern crate trie;
+extern crate bigint;
+extern crate rocksdb;
+
+use bigint::H256;
+use trie::{CachedDatabaseHandle, CachedHandle, Change, DatabaseHandle, TrieMut, get, insert, delete};
+use rocksdb::{DB, Writable};
+
+pub struct RocksDatabaseHandle<'a>(&'a DB);
+
+impl<'a> CachedDatabaseHandle for RocksDatabaseHandle<'a> {
+    fn get(&self, key: H256) -> Vec<u8> {
+        let value = self.0.get(key.as_ref()).unwrap().unwrap();
+        value.as_ref().into()
+    }
+}
+
+impl<'a> RocksDatabaseHandle<'a> {
+    pub fn new(db: &'a DB) -> Self {
+        RocksDatabaseHandle(db)
+    }
+}
+
+pub type RocksHandle<'a> = CachedHandle<RocksDatabaseHandle<'a>>;
+
+pub struct RocksMemoryTrieMut<'a> {
+    handle: RocksHandle<'a>,
+    change: Change,
+    root: H256,
+    db: &'a DB,
+}
+
+impl<'a, 'b> DatabaseHandle for &'b RocksMemoryTrieMut<'a> {
+    fn get(&self, key: H256) -> &[u8] {
+        if self.change.adds.contains_key(&key) {
+            self.change.adds.get(&key).unwrap()
+        } else {
+            self.handle.get(key)
+        }
+    }
+}
+
+impl<'a> TrieMut for RocksMemoryTrieMut<'a> {
+    fn root(&self) -> H256 {
+        self.root
+    }
+
+    fn insert(&mut self, key: &[u8], value: &[u8]) {
+        let (new_root, change) = insert(self.root, &&*self, key, value);
+
+        self.change.merge(&change);
+        self.root = new_root;
+    }
+
+    fn delete(&mut self, key: &[u8]) {
+        let (new_root, change) = delete(self.root, &&*self, key);
+
+        self.change.merge(&change);
+        self.root = new_root;
+    }
+
+    fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
+        get(self.root, &self, key).map(|v| v.into())
+    }
+}
+
+impl<'a> RocksMemoryTrieMut<'a> {
+    pub fn new(db: &'a DB, root: H256) -> Self {
+        Self {
+            handle: RocksHandle::new(RocksDatabaseHandle::new(db.clone())),
+            change: Change::default(),
+            root,
+            db
+        }
+    }
+
+    pub fn apply(self) -> Result<(), String> {
+        for (key, value) in self.change.adds {
+            self.db.put(key.as_ref(), &value)?;
+        }
+
+        for key in self.change.removes {
+            self.db.delete(key.as_ref())?;
+        }
+
+        Ok(())
+    }
+}

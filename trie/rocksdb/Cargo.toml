@@ -1,0 +1,16 @@
+[package]
+name = "ethereum-trie-rocksdb"
+version = "0.4.0"
+license = "Apache-2.0"
+authors = ["Wei Tang <hi@that.world>"]
+description = "Rocksdb adaptor for trie."
+repository = "https://source.that.world/source/ethereum-rs"
+keywords = ["ethereum"]
+
+[lib]
+name = "trie_rocksdb"
+
+[dependencies]
+ethereum-trie = { version = "0.4", path = ".." }
+ethereum-bigint = { version = "0.2", path = "../../bigint" }
+rocksdb = { git = "https://github.com/paritytech/rust-rocksdb" }
