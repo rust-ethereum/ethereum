@@ -28,6 +28,7 @@ pub struct RocksMemoryTrieMut<'a> {
     change: Change,
     root: H256,
     db: &'a DB,
+    cached: bool,
 }
 
 impl<'a, 'b> DatabaseHandle for &'b RocksMemoryTrieMut<'a> {
@@ -46,6 +47,8 @@ impl<'a> TrieMut for RocksMemoryTrieMut<'a> {
     }
 
     fn insert(&mut self, key: &[u8], value: &[u8]) {
+        self.clear_cache();
+
         let (new_root, change) = insert(self.root, &&*self, key, value);
 
         self.change.merge(&change);
@@ -53,6 +56,8 @@ impl<'a> TrieMut for RocksMemoryTrieMut<'a> {
     }
 
     fn delete(&mut self, key: &[u8]) {
+        self.clear_cache();
+
         let (new_root, change) = delete(self.root, &&*self, key);
 
         self.change.merge(&change);
@@ -65,14 +70,24 @@ impl<'a> TrieMut for RocksMemoryTrieMut<'a> {
 }
 
 impl<'a> RocksMemoryTrieMut<'a> {
-    pub fn new(db: &'a DB, root: H256) -> Self {
+    fn clear_cache(&mut self) {
+        if !self.cached {
+            self.handle = RocksHandle::new(RocksDatabaseHandle::new(self.db.clone()));
+        }
+    }
+
+    pub fn new(db: &'a DB, root: H256, cached: bool) -> Self {
         Self {
             handle: RocksHandle::new(RocksDatabaseHandle::new(db.clone())),
             change: Change::default(),
             root,
-            db
+            db,
+            cached,
         }
     }
+
+    pub fn new_cached(db: &'a DB, root: H256) -> Self { Self::new(db, root, true) }
+    pub fn new_uncached(db: &'a DB, root: H256) -> Self { Self::new(db, root, false) }
 
     pub fn apply(self) -> Result<(), String> {
         for (key, value) in self.change.adds {
