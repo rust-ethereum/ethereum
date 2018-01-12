@@ -36,6 +36,7 @@ macro_rules! empty_trie_hash {
 }
 
 pub mod merkle;
+pub mod gc;
 mod ops;
 mod memory;
 mod mutable;
