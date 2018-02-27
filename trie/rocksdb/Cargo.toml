@@ -13,4 +13,5 @@ name = "trie_rocksdb"
 [dependencies]
 ethereum-trie = { version = "0.4", path = ".." }
 ethereum-bigint = { version = "0.2", path = "../../bigint" }
+ethereum-trie-memory = { version = "0.4", path = "../memory" }
 rocksdb = { git = "https://github.com/paritytech/rust-rocksdb" }

@@ -1,9 +1,11 @@
 extern crate trie;
+extern crate trie_memory;
 extern crate bigint;
 extern crate rocksdb;
 
 use bigint::H256;
-use trie::{CachedDatabaseHandle, CachedHandle, Change, DatabaseHandle, TrieMut, get, insert, delete};
+use trie::{Change, DatabaseHandle, get, insert, delete};
+use trie_memory::{CachedDatabaseHandle, CachedHandle, TrieMut};
 use rocksdb::{DB, Writable};
 
 pub struct RocksDatabaseHandle<'a>(&'a DB);
@@ -32,9 +34,9 @@ pub struct RocksMemoryTrieMut<'a> {
 }
 
 impl<'a, 'b> DatabaseHandle for &'b RocksMemoryTrieMut<'a> {
-    fn get(&self, key: H256) -> &[u8] {
+    fn get(&self, key: H256) -> Option<&[u8]> {
         if self.change.adds.contains_key(&key) {
-            self.change.adds.get(&key).unwrap()
+            self.change.adds.get(&key).map(|v| v.as_ref())
         } else {
             self.handle.get(key)
         }
@@ -49,7 +51,7 @@ impl<'a> TrieMut for RocksMemoryTrieMut<'a> {
     fn insert(&mut self, key: &[u8], value: &[u8]) {
         self.clear_cache();
 
-        let (new_root, change) = insert(self.root, &&*self, key, value);
+        let (new_root, change) = insert(self.root, &&*self, key, value).unwrap();
 
         self.change.merge(&change);
         self.root = new_root;
@@ -58,14 +60,14 @@ impl<'a> TrieMut for RocksMemoryTrieMut<'a> {
     fn delete(&mut self, key: &[u8]) {
         self.clear_cache();
 
-        let (new_root, change) = delete(self.root, &&*self, key);
+        let (new_root, change) = delete(self.root, &&*self, key).unwrap();
 
         self.change.merge(&change);
         self.root = new_root;
     }
 
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        get(self.root, &self, key).map(|v| v.into())
+        get(self.root, &self, key).unwrap().map(|v| v.into())
     }
 }
 
