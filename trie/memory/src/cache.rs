@@ -1,4 +1,4 @@
-use super::merkle::MerkleNode;
+use trie::merkle::MerkleNode;
 use bigint::H256;
 use rlp::Rlp;
 use std::collections::HashMap;

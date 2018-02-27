@@ -1,25 +1,25 @@
 use merkle::{MerkleValue, MerkleNode};
-use merkle::nibble::{self, NibbleVec, NibbleSlice, Nibble};
-use {Change, DatabaseHandle};
+use merkle::nibble::{NibbleVec, Nibble};
+use {Change, DatabaseHandle, Error};
 
-use rlp::{self, Rlp};
+use rlp::Rlp;
 
 fn find_and_remove_child<'a, D: DatabaseHandle>(
     merkle: MerkleValue<'a>, database: &'a D
-) -> (MerkleNode<'a>, Change) {
+) -> Result<(MerkleNode<'a>, Change), Error> {
     let mut change = Change::default();
 
     let node = match merkle {
         MerkleValue::Empty => panic!(),
         MerkleValue::Full(ref sub_node) => sub_node.as_ref().clone(),
         MerkleValue::Hash(h) => {
-            let sub_node = MerkleNode::decode(&Rlp::new(database.get(h)));
+            let sub_node = MerkleNode::decode(&Rlp::new(database.get_with_error(h)?));
             change.remove_raw(h);
             sub_node
         },
     };
 
-    (node, change)
+    Ok((node, change))
 }
 
 fn collapse_extension<'a>(
@@ -59,7 +59,7 @@ fn nonempty_node_count<'a, 'b>(
 fn collapse_branch<'a, D: DatabaseHandle>(
     node_nodes: [MerkleValue<'a>; 16], node_additional: Option<&'a [u8]>,
     database: &'a D
-) -> (MerkleNode<'a>, Change) {
+) -> Result<(MerkleNode<'a>, Change), Error> {
     let mut change = Change::default();
 
     let value_count = nonempty_node_count(&node_nodes, &node_additional);
@@ -74,7 +74,7 @@ fn collapse_branch<'a, D: DatabaseHandle>(
                 .map(|(i, v)| (i, v.clone())).unwrap();
             let subnibble: Nibble = subindex.into();
 
-            let (subnode, subchange) = find_and_remove_child(subvalue, database);
+            let (subnode, subchange) = find_and_remove_child(subvalue, database)?;
             change.merge(&subchange);
 
             match subnode {
@@ -98,12 +98,12 @@ fn collapse_branch<'a, D: DatabaseHandle>(
             MerkleNode::Branch(node_nodes, node_additional),
     };
 
-    (node, change)
+    Ok((node, change))
 }
 
 pub fn delete_by_child<'a, D: DatabaseHandle>(
     merkle: MerkleValue<'a>, nibble: NibbleVec, database: &'a D
-) -> (Option<MerkleNode<'a>>, Change) {
+) -> Result<(Option<MerkleNode<'a>>, Change), Error> {
     let mut change = Change::default();
 
     let new = match merkle {
@@ -112,7 +112,7 @@ pub fn delete_by_child<'a, D: DatabaseHandle>(
         },
         MerkleValue::Full(ref sub_node) => {
             let (new_node, subchange) = delete_by_node(
-                sub_node.as_ref().clone(), nibble, database);
+                sub_node.as_ref().clone(), nibble, database)?;
             change.merge(&subchange);
             match new_node {
                 Some(new_node) => Some(new_node),
@@ -120,10 +120,10 @@ pub fn delete_by_child<'a, D: DatabaseHandle>(
             }
         },
         MerkleValue::Hash(h) => {
-            let sub_node = MerkleNode::decode(&Rlp::new(database.get(h)));
+            let sub_node = MerkleNode::decode(&Rlp::new(database.get_with_error(h)?));
             change.remove_raw(h);
             let (new_node, subchange) = delete_by_node(
-                sub_node, nibble, database);
+                sub_node, nibble, database)?;
             change.merge(&subchange);
             match new_node {
                 Some(new_node) => Some(new_node),
@@ -132,12 +132,12 @@ pub fn delete_by_child<'a, D: DatabaseHandle>(
         },
     };
 
-    (new, change)
+    Ok((new, change))
 }
 
 pub fn delete_by_node<'a, D: DatabaseHandle>(
     node: MerkleNode<'a>, nibble: NibbleVec, database: &'a D
-) -> (Option<MerkleNode<'a>>, Change) {
+) -> Result<(Option<MerkleNode<'a>>, Change), Error> {
     let mut change = Change::default();
 
     let new = match node {
@@ -152,7 +152,7 @@ pub fn delete_by_node<'a, D: DatabaseHandle>(
             if nibble.starts_with(&node_nibble) {
                 let (subnode, subchange) = delete_by_child(
                     node_value, nibble[node_nibble.len()..].into(),
-                    database);
+                    database)?;
                 change.merge(&subchange);
 
                 match subnode {
@@ -178,7 +178,7 @@ pub fn delete_by_node<'a, D: DatabaseHandle>(
                 let ni: usize = nibble[0].into();
                 let (new_subnode, subchange) = delete_by_child(
                     node_nodes[ni].clone(), nibble[1..].into(),
-                    database);
+                    database)?;
                 change.merge(&subchange);
 
                 match new_subnode {
@@ -198,7 +198,7 @@ pub fn delete_by_node<'a, D: DatabaseHandle>(
             if needs_collapse {
                 let value_count = nonempty_node_count(&node_nodes, &node_additional);
                 if value_count > 0 {
-                    let (new, subchange) = collapse_branch(node_nodes, node_additional, database);
+                    let (new, subchange) = collapse_branch(node_nodes, node_additional, database)?;
                     change.merge(&subchange);
 
                     Some(new)
@@ -211,5 +211,5 @@ pub fn delete_by_node<'a, D: DatabaseHandle>(
         },
     };
 
-    (new, change)
+    Ok((new, change))
 }

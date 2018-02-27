@@ -1,0 +1,20 @@
+[package]
+name = "ethereum-trie-memory"
+version = "0.4.0"
+license = "Apache-2.0"
+authors = ["Wei Tang <hi@that.world>"]
+description = "Rocksdb adaptor for trie."
+repository = "https://source.that.world/source/ethereum-rs"
+keywords = ["ethereum"]
+
+[lib]
+name = "trie_memory"
+
+[dependencies]
+ethereum-trie = { version = "0.4", path = ".." }
+ethereum-bigint = { version = "0.2", path = "../../bigint" }
+ethereum-rlp = { version = "0.2", path = "../../rlp" }
+sha3 = "0.6"
+
+[dev-dependencies]
+ethereum-hexutil = { version = "0.2", path = "../../hexutil" }

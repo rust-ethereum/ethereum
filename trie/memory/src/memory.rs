@@ -1,15 +1,9 @@
 use bigint::H256;
-use {DatabaseHandle, Change, insert, delete, build, get,
-     TrieMut, FixedTrieMut, FixedSecureTrieMut,
+use trie::{DatabaseHandle, Change, insert, delete, build, get};
+use {TrieMut, FixedTrieMut, FixedSecureTrieMut,
      AnyTrieMut, AnySecureTrieMut, SecureTrieMut};
 
 use std::collections::HashMap;
-
-impl<'a> DatabaseHandle for &'a HashMap<H256, Vec<u8>> {
-    fn get(&self, hash: H256) -> &[u8] {
-        HashMap::get(self, &hash).unwrap()
-    }
-}
 
 /// A memory-backed trie.
 #[derive(Clone, Debug)]
@@ -54,21 +48,21 @@ impl TrieMut for MemoryTrieMut {
     }
 
     fn insert(&mut self, key: &[u8], value: &[u8]) {
-        let (new_root, change) = insert(self.root, &&self.database, key, value);
+        let (new_root, change) = insert(self.root, &&self.database, key, value).unwrap();
 
         self.apply_change(change);
         self.root = new_root;
     }
 
     fn delete(&mut self, key: &[u8]) {
-        let (new_root, change) = delete(self.root, &&self.database, key);
+        let (new_root, change) = delete(self.root, &&self.database, key).unwrap();
 
         self.apply_change(change);
         self.root = new_root;
     }
 
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        get(self.root, &&self.database, key).map(|v| v.into())
+        get(self.root, &&self.database, key).unwrap().map(|v| v.into())
     }
 }
 
@@ -99,7 +93,7 @@ impl MemoryTrieMut {
 mod tests {
     use {TrieMut};
     use super::MemoryTrieMut;
-    use merkle::MerkleNode;
+    use trie::merkle::MerkleNode;
     use rlp::Rlp;
 
     use std::collections::HashMap;

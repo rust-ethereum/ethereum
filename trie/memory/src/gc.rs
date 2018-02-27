@@ -1,5 +1,6 @@
 use bigint::H256;
-use {Change, TrieMut, DatabaseHandle, get, insert, delete};
+use trie::{Change, DatabaseHandle, get, insert, delete};
+use TrieMut;
 
 pub trait ItemCounter {
     fn increase(&mut self, key: H256) -> usize;
@@ -11,9 +12,11 @@ pub trait DatabaseMut {
     fn set(&mut self, key: H256, value: Option<&[u8]>);
 }
 
-impl<'a, D: DatabaseMut> DatabaseHandle for &'a D {
-    fn get(&self, key: H256) -> &[u8] {
-        DatabaseMut::get(*self, key)
+struct DatabaseMutHandle<'a, D: DatabaseMut + 'a>(&'a D);
+
+impl<'a, D: DatabaseMut> DatabaseHandle for DatabaseMutHandle<'a, D> {
+    fn get(&self, key: H256) -> Option<&[u8]> {
+        Some(DatabaseMut::get(self.0, key))
     }
 }
 
@@ -62,20 +65,20 @@ impl<'a, D: DatabaseMut> TrieMut for DatabaseTrieMut<'a, D> {
     }
 
     fn insert(&mut self, key: &[u8], value: &[u8]) {
-        let (new_root, change) = insert(self.root, &self.database, key, value);
+        let (new_root, change) = insert(self.root, &DatabaseMutHandle(self.database), key, value).unwrap();
 
         self.change.merge(&change);
         self.root = new_root;
     }
 
     fn delete(&mut self, key: &[u8]) {
-        let (new_root, change) = delete(self.root, &self.database, key);
+        let (new_root, change) = delete(self.root, &DatabaseMutHandle(self.database), key).unwrap();
 
         self.change.merge(&change);
         self.root = new_root;
     }
 
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        get(self.root, &self.database, key).map(|v| v.into())
+        get(self.root, &DatabaseMutHandle(self.database), key).unwrap().map(|v| v.into())
     }
 }

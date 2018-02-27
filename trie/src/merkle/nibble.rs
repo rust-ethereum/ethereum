@@ -1,10 +1,7 @@
 //! Merkle nibble types.
 
-use rlp::{RlpStream, Encodable, Decodable, Rlp, Prototype};
-use std::ops::Deref;
+use rlp::{RlpStream, Rlp};
 use std::cmp::min;
-use std::hash::{Hash, Hasher};
-use std::fmt::{self, Debug, Formatter};
 
 /// Represents a nibble. A 16-variant value.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

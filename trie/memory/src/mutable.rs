@@ -1,6 +1,6 @@
 use bigint::H256;
-use rlp::{self, Rlp};
 use sha3::{Digest, Keccak256};
+use rlp::{self, Rlp};
 
 use std::marker::PhantomData;
 

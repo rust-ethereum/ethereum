@@ -1,5 +1,10 @@
 //! Merkle trie implementation for Ethereum.
 
+#![deny(unused_import_braces, unused_imports,
+        unused_comparisons, unused_must_use,
+        unused_variables, non_shorthand_field_patterns,
+        unreachable_code)]
+
 extern crate bigint;
 extern crate rlp;
 extern crate sha3;
@@ -9,8 +14,7 @@ use bigint::H256;
 use rlp::Rlp;
 use sha3::{Digest, Keccak256};
 use std::collections::{HashMap, HashSet};
-use merkle::{MerkleValue, MerkleNode};
-use merkle::nibble::{self, NibbleVec, NibbleSlice, Nibble};
+use merkle::{MerkleValue, MerkleNode, nibble};
 
 macro_rules! empty_nodes {
     () => (
@@ -25,6 +29,7 @@ macro_rules! empty_nodes {
     )
 }
 
+#[macro_export]
 macro_rules! empty_trie_hash {
     () => {
         {
@@ -36,50 +41,29 @@ macro_rules! empty_trie_hash {
 }
 
 pub mod merkle;
-pub mod gc;
 mod ops;
-mod memory;
-mod mutable;
-mod cache;
+mod error;
 
 use ops::{insert, delete, build, get};
-use cache::Cache;
-
-pub use memory::*;
-pub use mutable::*;
-
-pub trait CachedDatabaseHandle {
-    fn get(&self, key: H256) -> Vec<u8>;
-}
-
-pub struct CachedHandle<D: CachedDatabaseHandle> {
-    db: D,
-    cache: Cache,
-}
-
-impl<D: CachedDatabaseHandle> CachedHandle<D> {
-    pub fn new(db: D) -> Self {
-        Self {
-            db,
-            cache: Cache::new(),
-        }
-    }
-}
-
-impl<D: CachedDatabaseHandle> DatabaseHandle for CachedHandle<D> {
-    fn get(&self, key: H256) -> &[u8] {
-        if !self.cache.contains_key(key) {
-            self.cache.insert(key, self.db.get(key))
-        } else {
-            self.cache.get(key).unwrap()
-        }
-    }
-}
+pub use error::Error;
 
 /// An immutable database handle.
 pub trait DatabaseHandle {
     /// Get a raw value from the database.
-    fn get<'a>(&'a self, key: H256) -> &'a [u8];
+    fn get<'a>(&'a self, key: H256) -> Option<&'a [u8]>;
+
+    fn get_with_error<'a>(&'a self, key: H256) -> Result<&'a [u8], Error> {
+        match self.get(key) {
+            Some(value) => Ok(value),
+            None => Err(Error::Require(key)),
+        }
+    }
+}
+
+impl<'a> DatabaseHandle for &'a HashMap<H256, Vec<u8>> {
+    fn get(&self, hash: H256) -> Option<&[u8]> {
+        HashMap::get(self, &hash).map(|v| v.as_ref())
+    }
 }
 
 /// Change for a merkle trie operation.
@@ -164,22 +148,22 @@ pub fn empty_trie_hash() -> H256 {
 /// Insert to a merkle trie. Return the new root hash and the changes.
 pub fn insert<D: DatabaseHandle>(
     root: H256, database: &D, key: &[u8], value: &[u8]
-) -> (H256, Change) {
+) -> Result<(H256, Change), Error> {
     let mut change = Change::default();
     let nibble = nibble::from_key(key);
 
     let (new, subchange) = if root == empty_trie_hash!() {
         insert::insert_by_empty(nibble, value)
     } else {
-        let old = MerkleNode::decode(&Rlp::new(database.get(root)));
+        let old = MerkleNode::decode(&Rlp::new(database.get_with_error(root)?));
         change.remove_raw(root);
-        insert::insert_by_node(old, nibble, value, database)
+        insert::insert_by_node(old, nibble, value, database)?
     };
     change.merge(&subchange);
     change.add_node(&new);
 
     let hash = H256::from(Keccak256::digest(&rlp::encode(&new).to_vec()).as_slice());
-    (hash, change)
+    Ok((hash, change))
 }
 
 /// Insert to an empty merkle trie. Return the new root hash and the
@@ -202,16 +186,16 @@ pub fn insert_empty<D: DatabaseHandle>(
 /// changes.
 pub fn delete<D: DatabaseHandle>(
     root: H256, database: &D, key: &[u8]
-) -> (H256, Change) {
+) -> Result<(H256, Change), Error> {
     let mut change = Change::default();
     let nibble = nibble::from_key(key);
 
     let (new, subchange) = if root == empty_trie_hash!() {
-        return (root, change)
+        return Ok((root, change))
     } else {
-        let old = MerkleNode::decode(&Rlp::new(database.get(root)));
+        let old = MerkleNode::decode(&Rlp::new(database.get_with_error(root)?));
         change.remove_raw(root);
-        delete::delete_by_node(old, nibble, database)
+        delete::delete_by_node(old, nibble, database)?
     };
     change.merge(&subchange);
 
@@ -220,10 +204,10 @@ pub fn delete<D: DatabaseHandle>(
             change.add_node(&new);
 
             let hash = H256::from(Keccak256::digest(&rlp::encode(&new).to_vec()).as_slice());
-            (hash, change)
+            Ok((hash, change))
         },
         None => {
-            (empty_trie_hash!(), change)
+            Ok((empty_trie_hash!(), change))
         },
     }
 }
@@ -253,12 +237,12 @@ pub fn build(map: &HashMap<Vec<u8>, Vec<u8>>) -> (H256, Change) {
 /// Get a value given the root hash and the database.
 pub fn get<'a, 'b, D: DatabaseHandle>(
     root: H256, database: &'a D, key: &'b [u8]
-) -> Option<&'a [u8]> {
+) -> Result<Option<&'a [u8]>, Error> {
     if root == empty_trie_hash!() {
-        None
+        Ok(None)
     } else {
         let nibble = nibble::from_key(key);
-        let node = MerkleNode::decode(&Rlp::new(database.get(root)));
+        let node = MerkleNode::decode(&Rlp::new(database.get_with_error(root)?));
         get::get_by_node(node, nibble, database)
     }
 }

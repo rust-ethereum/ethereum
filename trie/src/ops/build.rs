@@ -1,10 +1,8 @@
 use merkle::{MerkleValue, MerkleNode};
-use merkle::nibble::{self, NibbleVec, NibbleSlice, Nibble};
-use {Change, DatabaseHandle};
+use merkle::nibble::{self, NibbleVec, Nibble};
+use Change;
 
 use std::collections::HashMap;
-
-use rlp::{self, Rlp};
 
 fn make_submap<'a, 'b: 'a, T: Iterator<Item=(&'a NibbleVec, &'a &'b [u8])>>(
     common_len: usize, map: T

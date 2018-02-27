@@ -1,7 +1,7 @@
 use rlp::{self, Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 use bigint::{Address, Gas, H256, U256, B256, H64, H2048};
 use bloom::LogsBloom;
-use trie::FixedMemoryTrieMut;
+use trie_memory::FixedMemoryTrieMut;
 use sha3::{Keccak256, Digest};
 use std::collections::HashMap;
 use super::{Header, Transaction, Receipt, SignaturePatch};

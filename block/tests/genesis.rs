@@ -5,13 +5,14 @@ extern crate serde;
 extern crate serde_json;
 extern crate bigint;
 extern crate trie;
+extern crate trie_memory;
 extern crate block;
 extern crate sha3;
 extern crate rlp;
 extern crate rand;
 
 use bigint::{Address, H256, M256, U256};
-use trie::{FixedSecureMemoryTrieMut, MemoryTrieMut, TrieMut};
+use trie_memory::{FixedSecureMemoryTrieMut, MemoryTrieMut, TrieMut};
 use block::Account;
 use sha3::{Digest, Keccak256};
 use rand::Rng;

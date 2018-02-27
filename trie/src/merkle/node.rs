@@ -1,6 +1,6 @@
-use super::nibble::{self, Nibble, NibbleVec, NibbleSlice, NibbleType};
+use super::nibble::{self, NibbleVec, NibbleType};
 
-use rlp::{self, RlpStream, Encodable, Decodable, Rlp, Prototype};
+use rlp::{self, RlpStream, Encodable, Rlp, Prototype};
 use bigint::H256;
 use std::borrow::Borrow;
 
@@ -159,8 +159,7 @@ impl<'a> Encodable for MerkleValue<'a> {
 mod tests {
     use hexutil::read_hex;
     use rlp::{self, Rlp};
-    use sha3::{Digest, Keccak256};
-    use merkle::nibble::{self, NibbleVec, NibbleSlice, Nibble};
+    use merkle::nibble;
     use super::MerkleNode;
 
     #[test]
