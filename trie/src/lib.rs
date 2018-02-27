@@ -29,16 +29,10 @@ macro_rules! empty_nodes {
     )
 }
 
-#[macro_export]
-macro_rules! empty_trie_hash {
-    () => {
-        {
-            use std::str::FromStr;
-
-            H256::from_str("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421").unwrap()
-        }
-    }
-}
+pub const EMPTY_TRIE_HASH: H256 = H256([0x56, 0xe8, 0x1f, 0x17, 0x1b, 0xcc, 0x55, 0xa6,
+                                        0xff, 0x83, 0x45, 0xe6, 0x92, 0xc0, 0xf8, 0x6e,
+                                        0x5b, 0x48, 0xe0, 0x1b, 0x99, 0x6c, 0xad, 0xc0,
+                                        0x01, 0x62, 0x2f, 0xb5, 0xe3, 0x63, 0xb4, 0x21]);
 
 pub mod merkle;
 mod ops;
@@ -140,11 +134,6 @@ impl Change {
     }
 }
 
-/// Get the empty trie hash for merkle trie.
-pub fn empty_trie_hash() -> H256 {
-    empty_trie_hash!()
-}
-
 /// Insert to a merkle trie. Return the new root hash and the changes.
 pub fn insert<D: DatabaseHandle>(
     root: H256, database: &D, key: &[u8], value: &[u8]
@@ -152,7 +141,7 @@ pub fn insert<D: DatabaseHandle>(
     let mut change = Change::default();
     let nibble = nibble::from_key(key);
 
-    let (new, subchange) = if root == empty_trie_hash!() {
+    let (new, subchange) = if root == EMPTY_TRIE_HASH {
         insert::insert_by_empty(nibble, value)
     } else {
         let old = MerkleNode::decode(&Rlp::new(database.get_with_error(root)?));
@@ -190,7 +179,7 @@ pub fn delete<D: DatabaseHandle>(
     let mut change = Change::default();
     let nibble = nibble::from_key(key);
 
-    let (new, subchange) = if root == empty_trie_hash!() {
+    let (new, subchange) = if root == EMPTY_TRIE_HASH {
         return Ok((root, change))
     } else {
         let old = MerkleNode::decode(&Rlp::new(database.get_with_error(root)?));
@@ -207,7 +196,7 @@ pub fn delete<D: DatabaseHandle>(
             Ok((hash, change))
         },
         None => {
-            Ok((empty_trie_hash!(), change))
+            Ok((EMPTY_TRIE_HASH, change))
         },
     }
 }
@@ -218,7 +207,7 @@ pub fn build(map: &HashMap<Vec<u8>, Vec<u8>>) -> (H256, Change) {
     let mut change = Change::default();
 
     if map.len() == 0 {
-        return (empty_trie_hash!(), change);
+        return (EMPTY_TRIE_HASH, change);
     }
 
     let mut node_map = HashMap::new();
@@ -238,7 +227,7 @@ pub fn build(map: &HashMap<Vec<u8>, Vec<u8>>) -> (H256, Change) {
 pub fn get<'a, 'b, D: DatabaseHandle>(
     root: H256, database: &'a D, key: &'b [u8]
 ) -> Result<Option<&'a [u8]>, Error> {
-    if root == empty_trie_hash!() {
+    if root == EMPTY_TRIE_HASH {
         Ok(None)
     } else {
         let nibble = nibble::from_key(key);

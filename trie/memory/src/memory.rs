@@ -1,5 +1,5 @@
 use bigint::H256;
-use trie::{DatabaseHandle, Change, insert, delete, build, get};
+use trie::{DatabaseHandle, Change, insert, delete, build, get, EMPTY_TRIE_HASH};
 use {TrieMut, FixedTrieMut, FixedSecureTrieMut,
      AnyTrieMut, AnySecureTrieMut, SecureTrieMut};
 
@@ -31,7 +31,7 @@ impl Default for MemoryTrieMut {
     fn default() -> Self {
         Self {
             database: HashMap::new(),
-            root: empty_trie_hash!(),
+            root: EMPTY_TRIE_HASH,
         }
     }
 }
@@ -93,6 +93,7 @@ impl MemoryTrieMut {
 mod tests {
     use {TrieMut};
     use super::MemoryTrieMut;
+    use trie::EMPTY_TRIE_HASH;
     use trie::merkle::MerkleNode;
     use rlp::Rlp;
 
@@ -135,7 +136,7 @@ mod tests {
         }
 
         assert!(mtrie.database.len() == 0);
-        assert!(mtrie.root == empty_trie_hash!());
+        assert!(mtrie.root == EMPTY_TRIE_HASH);
     }
 
     #[test]
