@@ -2,7 +2,7 @@ use rlp::{Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 use bigint::{Address, Gas, H256, U256, B256, H64};
 
 #[cfg(not(feature = "std"))]
-use alloc::Vec;
+use alloc::vec::Vec;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Log {

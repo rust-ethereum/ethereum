@@ -12,7 +12,7 @@
 mod rlp;
 
 #[cfg(all(not(feature = "std"), feature = "string"))]
-use alloc::String;
+use alloc::string::String;
 
 #[cfg(feature = "std")] use std::{ops, fmt, cmp};
 #[cfg(feature = "std")] use std::cmp::{min, Ordering};

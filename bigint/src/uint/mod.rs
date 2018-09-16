@@ -40,7 +40,7 @@
 #[cfg(not(feature = "std"))] use core::cmp::Ordering;
 
 #[cfg(all(not(feature = "std"), feature = "string"))]
-use alloc::String;
+use alloc::string::String;
 
 use byteorder::{ByteOrder, BigEndian, LittleEndian};
 #[cfg(feature = "string")]
