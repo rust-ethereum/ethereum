@@ -10,9 +10,9 @@ use std::fmt::Write;
 #[cfg(not(feature = "std"))]
 use core::fmt::Write;
 #[cfg(not(feature = "std"))]
-use alloc::{String, Vec};
+use alloc::vec::Vec;
 #[cfg(not(feature = "std"))]
-use alloc::string::ToString;
+use alloc::string::{ToString, String};
 
 #[derive(Debug)]
 /// Errors exhibited from `read_hex`.
