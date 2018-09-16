@@ -6,8 +6,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#[cfg(not(feature = "std"))]
-use alloc::{String, Vec};
+#[cfg(not(feature = "std"))] use alloc::string::String;
+#[cfg(not(feature = "std"))] use alloc::vec::Vec;
 
 #[cfg(feature = "std")] use std::borrow::Borrow;
 #[cfg(not(feature = "std"))] use core::borrow::Borrow;

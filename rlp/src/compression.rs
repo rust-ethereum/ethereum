@@ -7,7 +7,7 @@
 // except according to those terms.
 
 #[cfg(feature = "std")] use std::collections::{HashMap as Map};
-#[cfg(not(feature = "std"))] use alloc::{BTreeMap as Map};
+#[cfg(not(feature = "std"))] use alloc::collections::{BTreeMap as Map};
 use elastic_array::ElasticArray1024;
 #[cfg(feature = "std")]
 use common::{BLOCKS_RLP_SWAPPER, SNAPSHOT_RLP_SWAPPER};

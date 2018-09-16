@@ -61,8 +61,8 @@ mod compression;
 mod common;
 mod impls;
 
-#[cfg(not(feature = "std"))]
-use alloc::{String, Vec};
+#[cfg(not(feature = "std"))]use alloc::vec::Vec;
+#[cfg(not(feature = "std"))]use alloc::string::String;
 
 #[cfg(feature = "std")] use std::borrow::Borrow;
 #[cfg(not(feature = "std"))] use core::borrow::Borrow;
