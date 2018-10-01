@@ -1,6 +1,7 @@
 use rlp::{UntrustedRlp, DecoderError, RlpStream, Encodable, Decodable};
 use bigint::{Address, U256, M256, H256};
 use sha3::{Digest, Keccak256};
+use std::rc::Rc;
 
 // Use transaction action so we can keep most of the common fields
 // without creating a large enum.
@@ -8,7 +9,7 @@ use sha3::{Digest, Keccak256};
 pub enum TransactionAction {
     Call(Address),
     Create,
-    Create2(H256, Vec<u8>),
+    Create2(H256, Rc<Vec<u8>>),
 }
 
 impl TransactionAction {
@@ -48,7 +49,7 @@ impl Encodable for TransactionAction {
                 s.begin_list(3)
                     .append(&0xc2_u8)
                     .append(&salt)
-                    .append(code);
+                    .append(code.as_ref());
             }
         }
     }
@@ -61,7 +62,7 @@ impl Decodable for TransactionAction {
         } else if let Ok(0xc2_u8) = rlp.val_at(0) {
             println!("entered branch");
             let (salt, code) = (rlp.val_at(1)?, rlp.val_at(2)?);
-            TransactionAction::Create2(salt, code)
+            TransactionAction::Create2(salt, Rc::new(code))
         } else {
             TransactionAction::Call(rlp.as_val()?)
         };
@@ -95,7 +96,7 @@ mod tests {
     #[test]
     fn rlp_roundtrip_create2() {
         let salt = H256::from(M256::from(0xDEADBEEF));
-        let code = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let code = Rc::new(vec![1, 2, 3, 4, 5, 6, 7, 8, 9]);
         let action = TransactionAction::Create2(salt, code);
         let encoded = rlp::encode(&action);
         println!("{:?}", encoded);
