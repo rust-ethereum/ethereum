@@ -1,7 +1,10 @@
 use rlp::{UntrustedRlp, DecoderError, RlpStream, Encodable, Decodable};
 use bigint::{Address, U256, M256, H256};
 use sha3::{Digest, Keccak256};
-use std::rc::Rc;
+
+#[cfg(not(feature = "std"))] use alloc::vec::Vec;
+#[cfg(not(feature = "std"))] use alloc::rc::Rc;
+#[cfg(feature = "std")] use std::rc::Rc;
 
 // Use transaction action so we can keep most of the common fields
 // without creating a large enum.
@@ -60,7 +63,6 @@ impl Decodable for TransactionAction {
         let action = if rlp.is_empty() {
             TransactionAction::Create
         } else if let Ok(0xc2_u8) = rlp.val_at(0) {
-            println!("entered branch");
             let (salt, code) = (rlp.val_at(1)?, rlp.val_at(2)?);
             TransactionAction::Create2(salt, Rc::new(code))
         } else {
@@ -99,7 +101,6 @@ mod tests {
         let code = Rc::new(vec![1, 2, 3, 4, 5, 6, 7, 8, 9]);
         let action = TransactionAction::Create2(salt, code);
         let encoded = rlp::encode(&action);
-        println!("{:?}", encoded);
         let decoded: TransactionAction = rlp::decode(&encoded);
         assert_eq!(action, decoded);
     }
