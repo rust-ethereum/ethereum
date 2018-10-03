@@ -39,6 +39,8 @@ impl TransactionAction {
     }
 }
 
+const CREATE2_TAG: u8 = 0xc2;
+
 impl Encodable for TransactionAction {
     fn rlp_append(&self, s: &mut RlpStream) {
         match self {
@@ -50,7 +52,7 @@ impl Encodable for TransactionAction {
             },
             &TransactionAction::Create2(salt, ref code) => {
                 s.begin_list(3)
-                    .append(&0xc2_u8)
+                    .append(&CREATE2_TAG)
                     .append(&salt)
                     .append(code.as_ref());
             }
@@ -62,7 +64,7 @@ impl Decodable for TransactionAction {
     fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
         let action = if rlp.is_empty() {
             TransactionAction::Create
-        } else if let Ok(0xc2_u8) = rlp.val_at(0) {
+        } else if let Ok(CREATE2_TAG) = rlp.val_at(0) {
             let (salt, code) = (rlp.val_at(1)?, rlp.val_at(2)?);
             TransactionAction::Create2(salt, Rc::new(code))
         } else {
