@@ -27,11 +27,12 @@ impl TransactionAction {
                 Address::from(M256::from(Keccak256::digest(rlp.out().as_slice()).as_slice()))
             },
             &TransactionAction::Create2(salt, ref code) => {
+                let code_hash = Keccak256::digest(code);
                 let mut digest = Keccak256::new();
                 digest.input(&[0xff]);
                 digest.input(&caller);
                 digest.input(&salt);
-                digest.input(code);
+                digest.input(&code_hash);
                 let hash = digest.result();
                 Address::from(M256::from(&hash[12..]))
             }
