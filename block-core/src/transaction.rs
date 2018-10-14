@@ -8,7 +8,7 @@ use sha3::{Digest, Keccak256};
 
 // Use transaction action so we can keep most of the common fields
 // without creating a large enum.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TransactionAction {
     Call(Address),
     Create,
