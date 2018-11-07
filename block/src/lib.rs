@@ -18,7 +18,7 @@ mod address;
 
 pub use block_core::*;
 pub use transaction::*;
-pub use header::{TotalHeader, Header};
+pub use header::{TotalHeader, Header, HeaderHash};
 pub use block::{Block, transactions_root, receipts_root, ommers_hash};
 pub use receipt::Receipt;
 pub use address::FromKey;
