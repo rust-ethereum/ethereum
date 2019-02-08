@@ -2,9 +2,10 @@ use rlp::{self, Encodable, Decodable, RlpStream, DecoderError, UntrustedRlp};
 use bigint::{Address, Gas, H256, U256, B256, H64};
 use bloom::LogsBloom;
 use std::cmp::Ordering;
-use blockchain::chain::HeaderHash;
 use sha3::{Keccak256, Digest};
 use super::RlpHash;
+
+pub use blockchain::chain::HeaderHash;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TotalHeader(pub Header, U256);

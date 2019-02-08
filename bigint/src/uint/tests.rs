@@ -327,16 +327,6 @@ pub fn uint128_add_overflow() {
 }
 
 #[test]
-#[should_panic]
-// overflows panic only in debug builds. Running this test with `--release` flag, always fails
-#[ignore]
-pub fn uint128_add_overflow_panic() {
-    U128::from_str("ffffffffffffffffffffffffffffffff").unwrap()
-        +
-        U128::from_str("ffffffffffffffffffffffffffffffff").unwrap();
-}
-
-#[test]
 pub fn uint128_mul() {
     assert_eq!(
     U128::from_str("fffffffff").unwrap() * U128::from_str("fffffffff").unwrap(),
@@ -365,14 +355,6 @@ pub fn uint256_mul_overflow() {
 }
 
 #[test]
-#[should_panic]
-pub fn uint256_mul_overflow_panic() {
-    U256::from_str("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap()
-        *
-        U256::from_str("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap();
-}
-
-#[test]
 pub fn uint256_sub_overflow() {
     assert_eq!(
     U256::from_str("0").unwrap()
@@ -381,14 +363,6 @@ pub fn uint256_sub_overflow() {
         ),
     (U256::from_str("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap(), true)
     );
-}
-
-#[test]
-#[should_panic]
-pub fn uint256_sub_overflow_panic() {
-    U256::from_str("0").unwrap()
-        -
-        U256::from_str("1").unwrap();
 }
 
 #[test]
