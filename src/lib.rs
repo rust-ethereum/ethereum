@@ -8,4 +8,4 @@ mod transaction;
 
 pub use account::Account;
 pub use log::Log;
-pub use transaction::TransactionAction;
+pub use transaction::{TransactionAction, Transaction, TransactionSignature};
