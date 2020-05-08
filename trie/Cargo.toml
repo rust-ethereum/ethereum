@@ -7,13 +7,7 @@ description = "Lightweight Ethereum world state storage."
 repository = "https://source.that.world/source/ethereum-rs"
 keywords = ["ethereum"]
 
-[lib]
-name = "trie"
-
 [dependencies]
-ethereum-bigint = { version = "0.2", path = "../bigint" }
-ethereum-rlp = { version = "0.2", path = "../rlp" }
-sha3 = "0.6"
-
-[dev-dependencies]
-ethereum-hexutil = { version = "0.2", path = "../hexutil" }
+primitive-types = { version = "0.7" }
+rlp = { version = "0.4" }
+sha3 = "0.8"

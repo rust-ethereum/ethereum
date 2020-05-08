@@ -1,24 +1,22 @@
 [package]
-name = "ethereum-block-core"
+name = "ethereum"
 version = "0.1.0"
 license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Core block and transaction types for Ethereum."
 repository = "https://source.that.world/source/ethereum-rs"
 keywords = ["no_std", "ethereum"]
-
-[lib]
-name = "block_core"
+edition = "2018"
 
 [dependencies]
-sha3 = "0.6"
-ethereum-bigint = { version = "0.2", path = "../bigint", default-features = false, features = ["rlp", "string"] }
-ethereum-rlp = { version = "0.2", path = "../rlp", default-features = false }
+ethereum-types = { version = "0.9", default-features = false }
+rlp = { version = "0.4", default-features = false }
+rlp-derive = "0.1"
+sha3 = "0.8"
 
 [dev-dependencies]
-rand = "0.3.12"
-ethereum-hexutil = { version = "0.2", path = "../hexutil" }
+rand = "0.7"
 
 [features]
 default = ["std"]
-std = ["ethereum-bigint/std", "ethereum-rlp/std"]
+std = ["ethereum-types/std", "rlp/std"]
