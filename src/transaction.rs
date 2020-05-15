@@ -3,6 +3,7 @@ use rlp::{Rlp, DecoderError, RlpStream, Encodable, Decodable};
 use ethereum_types::{H160, U256, H256};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "codec", derive(codec::Encode, codec::Decode))]
 pub enum TransactionAction {
     Call(H160),
     Create,
@@ -34,6 +35,7 @@ impl Decodable for TransactionAction {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "codec", derive(codec::Encode, codec::Decode))]
 pub struct TransactionSignature {
     pub v: u64,
     pub r: H256,
@@ -41,6 +43,7 @@ pub struct TransactionSignature {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "codec", derive(codec::Encode, codec::Decode))]
 pub struct Transaction {
     pub nonce: U256,
     pub gas_price: U256,

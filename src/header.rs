@@ -2,6 +2,7 @@ use rlp_derive::{RlpEncodable, RlpDecodable};
 use ethereum_types::{H160, H256, H64, U256, Bloom};
 
 #[derive(Clone, Debug, PartialEq, Eq, RlpEncodable, RlpDecodable)]
+#[cfg_attr(feature = "codec", derive(codec::Encode, codec::Decode))]
 pub struct Header {
     pub parent_hash: H256,
     pub ommers_hash: H256,
