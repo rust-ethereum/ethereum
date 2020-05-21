@@ -13,14 +13,14 @@ ethereum-types = { version = "0.9", default-features = false, features = ["codec
 rlp = { version = "0.4", default-features = false }
 codec = { package = "parity-scale-codec", version = "1.3", default-features = false, features = ["derive"], optional = true }
 rlp-derive = "0.1"
-sha3 = "0.8"
+sha3 = { version = "0.8", default-features = false }
 
 [dev-dependencies]
 rand = "0.7"
 
 [features]
 default = ["std", "codec"]
-std = ["ethereum-types/std", "rlp/std", "codec/std"]
+std = ["ethereum-types/std", "rlp/std", "codec/std", "sha3/std"]
 
 [workspace]
 members = [
