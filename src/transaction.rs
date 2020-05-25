@@ -1,6 +1,7 @@
 use core::ops::Deref;
 use alloc::vec::Vec;
 use rlp::{Rlp, DecoderError, RlpStream, Encodable, Decodable};
+use sha3::{Keccak256, Digest};
 use ethereum_types::{H160, U256, H256};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -25,13 +26,15 @@ impl Encodable for TransactionAction {
 
 impl Decodable for TransactionAction {
     fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
-        let action = if rlp.is_empty() {
-            TransactionAction::Create
+        if rlp.is_empty() {
+			if rlp.is_data() {
+				Ok(TransactionAction::Create)
+			} else {
+				Err(DecoderError::RlpExpectedToBeData)
+			}
         } else {
-            TransactionAction::Call(rlp.as_val()?)
-        };
-
-        Ok(action)
+            Ok(TransactionAction::Call(rlp.as_val()?))
+        }
     }
 }
 
@@ -159,6 +162,30 @@ pub struct Transaction {
     pub input: Vec<u8>,
 }
 
+impl Transaction {
+    fn message_rlp_append(&self, s: &mut RlpStream, chain_id: Option<u64>) {
+        s.begin_list(if chain_id.is_some() { 9 } else { 6 });
+        s.append(&self.nonce);
+        s.append(&self.gas_price);
+        s.append(&self.gas_limit);
+        s.append(&self.action);
+        s.append(&self.value);
+        s.append(&self.input);
+
+        if let Some(chain_id) = chain_id {
+            s.append(&chain_id);
+            s.append(&0u8);
+            s.append(&0u8);
+        }
+    }
+
+    pub fn message_hash(&self, chain_id: Option<u64>) -> H256 {
+        let mut stream = RlpStream::new();
+        self.message_rlp_append(&mut stream, chain_id);
+        H256::from_slice(Keccak256::digest(&stream.drain()).as_slice())
+    }
+}
+
 impl Encodable for Transaction {
     fn rlp_append(&self, s: &mut RlpStream) {
         s.begin_list(9);
@@ -176,6 +203,10 @@ impl Encodable for Transaction {
 
 impl Decodable for Transaction {
     fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
+		if rlp.item_count()? != 9 {
+			return Err(DecoderError::RlpIncorrectListLen)
+		}
+
 		let v = rlp.val_at(6)?;
 		let r = rlp.val_at(7)?;
 		let s = rlp.val_at(8)?;
@@ -192,4 +223,17 @@ impl Decodable for Transaction {
             signature: signature,
         })
     }
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use hex_literal::hex;
+
+	#[test]
+	fn can_decode_raw_transaction() {
+		let bytes = hex!("f901e48080831000008080b90196608060405234801561001057600080fd5b50336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055507fc68045c3c562488255b55aa2c4c7849de001859ff0d8a36a75c2d5ed80100fb660405180806020018281038252600d8152602001807f48656c6c6f2c20776f726c64210000000000000000000000000000000000000081525060200191505060405180910390a160cf806100c76000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c80638da5cb5b14602d575b600080fd5b60336075565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff168156fea265627a7a72315820fae816ad954005c42bea7bc7cb5b19f7fd5d3a250715ca2023275c9ca7ce644064736f6c634300050f003278a04cab43609092a99cf095d458b61b47189d1bbab64baed10a0fd7b7d2de2eb960a011ab1bcda76dfed5e733219beb83789f9887b2a7b2e61759c7c90f7d40403201");
+
+		assert!(rlp::decode::<Transaction>(&bytes[..]).is_ok());
+	}
 }

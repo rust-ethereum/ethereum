@@ -17,6 +17,7 @@ sha3 = { version = "0.8", default-features = false }
 
 [dev-dependencies]
 rand = "0.7"
+hex-literal = "0.2"
 
 [features]
 default = ["std", "codec"]
