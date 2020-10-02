@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 use rlp_derive::{RlpEncodable, RlpDecodable};
 use sha3::{Digest, Keccak256};
 use ethereum_types::H256;
-use crate::{Header, Transaction};
+use crate::{Header, PartialHeader, Transaction};
 
 #[derive(Clone, Debug, PartialEq, Eq, RlpEncodable, RlpDecodable)]
 #[cfg_attr(feature = "codec", derive(codec::Encode, codec::Decode))]
