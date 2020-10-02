@@ -14,7 +14,7 @@ pub struct Block {
 
 impl Block {
 	pub fn new(
-		partial_header: Header,
+		partial_header: PartialHeader,
 		transactions: Vec<Transaction>,
 		ommers: Vec<Header>,
 	) -> Self {
