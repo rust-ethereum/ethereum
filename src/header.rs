@@ -25,7 +25,7 @@ pub struct Header {
 
 impl Header {
 	pub fn new(
-		partial_header: Header,
+		partial_header: PartialHeader,
 		ommers_hash: H256,
 		transactions_root: H256,
 	) -> Self {
