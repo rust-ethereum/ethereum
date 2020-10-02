@@ -1,5 +1,6 @@
 use rlp_derive::{RlpEncodable, RlpDecodable};
 use ethereum_types::{H160, H256, H64, U256, Bloom};
+use sha3::{Digest, Keccak256};
 
 #[derive(Clone, Debug, PartialEq, Eq, RlpEncodable, RlpDecodable)]
 #[cfg_attr(feature = "codec", derive(codec::Encode, codec::Decode))]
@@ -45,6 +46,10 @@ impl Header {
 			mix_hash: partial_header.mix_hash,
 			nonce: partial_header.nonce,
 		}
+	}
+
+	pub fn hash(&self) -> H256 {
+		H256::from_slice(Keccak256::digest(&rlp::encode(self)).as_slice())
 	}
 }
 
