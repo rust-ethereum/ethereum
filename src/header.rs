@@ -18,7 +18,7 @@ pub struct Header {
 	pub gas_limit: U256,
 	pub gas_used: U256,
 	pub timestamp: u64,
-	pub extra_data: H256,
+	pub extra_data: Vec<u8>,
 	pub mix_hash: H256,
 	pub nonce: H64,
 }
@@ -64,7 +64,7 @@ pub struct PartialHeader {
 	pub gas_limit: U256,
 	pub gas_used: U256,
 	pub timestamp: u64,
-	pub extra_data: H256,
+	pub extra_data: Vec<u8>,
 	pub mix_hash: H256,
 	pub nonce: H64,
 }
