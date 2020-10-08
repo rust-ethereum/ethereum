@@ -1,34 +1,31 @@
-use rlp_derive::{RlpEncodable, RlpDecodable};
-use ethereum_types::{H160, H256, H64, U256, Bloom};
+use ethereum_types::{Bloom, H160, H256, H64, U256};
+use rlp_derive::{RlpDecodable, RlpEncodable};
 use sha3::{Digest, Keccak256};
 
 #[derive(Clone, Debug, PartialEq, Eq, RlpEncodable, RlpDecodable)]
 #[cfg_attr(feature = "codec", derive(codec::Encode, codec::Decode))]
 /// Ethereum header definition.
 pub struct Header {
-    pub parent_hash: H256,
-    pub ommers_hash: H256,
-    pub beneficiary: H160,
-    pub state_root: H256,
-    pub transactions_root: H256,
-    pub receipts_root: H256,
-    pub logs_bloom: Bloom,
-    pub difficulty: U256,
-    pub number: U256,
-    pub gas_limit: U256,
-    pub gas_used: U256,
-    pub timestamp: u64,
-    pub extra_data: H256,
-    pub mix_hash: H256,
-    pub nonce: H64,
+	pub parent_hash: H256,
+	pub ommers_hash: H256,
+	pub beneficiary: H160,
+	pub state_root: H256,
+	pub transactions_root: H256,
+	pub receipts_root: H256,
+	pub logs_bloom: Bloom,
+	pub difficulty: U256,
+	pub number: U256,
+	pub gas_limit: U256,
+	pub gas_used: U256,
+	pub timestamp: u64,
+	pub extra_data: H256,
+	pub mix_hash: H256,
+	pub nonce: H64,
 }
 
 impl Header {
-	pub fn new(
-		partial_header: PartialHeader,
-		ommers_hash: H256,
-		transactions_root: H256,
-	) -> Self {
+	#[must_use]
+	pub fn new(partial_header: PartialHeader, ommers_hash: H256, transactions_root: H256) -> Self {
 		Self {
 			parent_hash: partial_header.parent_hash,
 			ommers_hash,
@@ -48,6 +45,7 @@ impl Header {
 		}
 	}
 
+	#[must_use]
 	pub fn hash(&self) -> H256 {
 		H256::from_slice(Keccak256::digest(&rlp::encode(self)).as_slice())
 	}
@@ -56,19 +54,19 @@ impl Header {
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// Partial header definition without ommers hash and transactions root.
 pub struct PartialHeader {
-    pub parent_hash: H256,
-    pub beneficiary: H160,
-    pub state_root: H256,
-    pub receipts_root: H256,
-    pub logs_bloom: Bloom,
-    pub difficulty: U256,
-    pub number: U256,
-    pub gas_limit: U256,
-    pub gas_used: U256,
-    pub timestamp: u64,
-    pub extra_data: H256,
-    pub mix_hash: H256,
-    pub nonce: H64,
+	pub parent_hash: H256,
+	pub beneficiary: H160,
+	pub state_root: H256,
+	pub receipts_root: H256,
+	pub logs_bloom: Bloom,
+	pub difficulty: U256,
+	pub number: U256,
+	pub gas_limit: U256,
+	pub gas_used: U256,
+	pub timestamp: u64,
+	pub extra_data: H256,
+	pub mix_hash: H256,
+	pub nonce: H64,
 }
 
 impl From<Header> for PartialHeader {
