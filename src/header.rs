@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use ethereum_types::{Bloom, H160, H256, H64, U256};
 use rlp_derive::{RlpDecodable, RlpEncodable};
 use sha3::{Digest, Keccak256};
