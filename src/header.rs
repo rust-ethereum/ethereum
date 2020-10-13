@@ -4,6 +4,7 @@ use sha3::{Digest, Keccak256};
 
 #[derive(Clone, Debug, PartialEq, Eq, RlpEncodable, RlpDecodable)]
 #[cfg_attr(feature = "codec", derive(codec::Encode, codec::Decode))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// Ethereum header definition.
 pub struct Header {
 	pub parent_hash: H256,

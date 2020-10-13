@@ -9,9 +9,10 @@ keywords = ["no_std", "ethereum"]
 edition = "2018"
 
 [dependencies]
-ethereum-types = { version = "0.9", default-features = false, features = ["codec"] }
+ethereum-types = { version = "0.9", default-features = false }
 rlp = { version = "0.4", default-features = false }
 codec = { package = "parity-scale-codec", version = "1.3", default-features = false, features = ["derive"], optional = true }
+serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
 rlp-derive = "0.1"
 sha3 = { version = "0.9", default-features = false }
 
@@ -21,7 +22,9 @@ hex-literal = "0.3"
 
 [features]
 default = ["std", "codec"]
-std = ["ethereum-types/std", "rlp/std", "codec/std", "sha3/std"]
+with-codec = ["codec", "ethereum-types/codec"]
+with-serde = ["serde", "ethereum-types/serialize"]
+std = ["ethereum-types/std", "rlp/std", "codec/std", "serde/std", "sha3/std"]
 
 [workspace]
 members = []

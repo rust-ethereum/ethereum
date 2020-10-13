@@ -6,6 +6,7 @@ use sha3::{Digest, Keccak256};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "codec", derive(codec::Encode, codec::Decode))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum TransactionAction {
 	Call(H160),
 	Create,
@@ -38,6 +39,7 @@ impl Decodable for TransactionAction {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "codec", derive(codec::Encode, codec::Decode))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TransactionRecoveryId(pub u64);
 
 impl Deref for TransactionRecoveryId {
@@ -67,6 +69,7 @@ impl TransactionRecoveryId {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TransactionSignature {
 	v: TransactionRecoveryId,
 	r: H256,
@@ -158,6 +161,7 @@ impl codec::Decode for TransactionSignature {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "codec", derive(codec::Encode, codec::Decode))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Transaction {
 	pub nonce: U256,
 	pub gas_price: U256,

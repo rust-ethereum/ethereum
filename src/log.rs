@@ -4,6 +4,7 @@ use rlp_derive::{RlpDecodable, RlpEncodable};
 
 #[derive(Clone, Debug, PartialEq, Eq, RlpEncodable, RlpDecodable)]
 #[cfg_attr(feature = "codec", derive(codec::Encode, codec::Decode))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Log {
 	pub address: H160,
 	pub topics: Vec<H256>,
