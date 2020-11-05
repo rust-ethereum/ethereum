@@ -9,6 +9,7 @@ mod header;
 mod log;
 mod receipt;
 mod transaction;
+pub mod util;
 
 pub use account::Account;
 pub use block::Block;
