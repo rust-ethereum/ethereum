@@ -1,4 +1,4 @@
-use crate::{Header, PartialHeader, Transaction, util::ordered_trie_root};
+use crate::{util::ordered_trie_root, Header, PartialHeader, Transaction};
 use alloc::vec::Vec;
 use ethereum_types::H256;
 use rlp_derive::{RlpDecodable, RlpEncodable};
@@ -22,8 +22,7 @@ impl Block {
 	) -> Self {
 		let ommers_hash =
 			H256::from_slice(Keccak256::digest(&rlp::encode_list(&ommers)[..]).as_slice());
-		let transactions_root =
-			ordered_trie_root(transactions.iter().map(|r| rlp::encode(r)));
+		let transactions_root = ordered_trie_root(transactions.iter().map(|r| rlp::encode(r)));
 
 		Self {
 			header: Header::new(partial_header, ommers_hash, transactions_root),
