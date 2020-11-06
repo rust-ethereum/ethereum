@@ -11,6 +11,9 @@ mod receipt;
 mod transaction;
 pub mod util;
 
+/// Alias for `Vec<u8>`. This type alias is necessary for rlp-derive to work correctly.
+pub type Bytes = alloc::vec::Vec<u8>;
+
 pub use account::Account;
 pub use block::Block;
 pub use header::{Header, PartialHeader};
