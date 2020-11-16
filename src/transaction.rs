@@ -161,6 +161,63 @@ impl codec::Decode for TransactionSignature {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "with-codec", derive(codec::Encode, codec::Decode))]
+pub struct TransactionMessage {
+	pub nonce: U256,
+	pub gas_price: U256,
+	pub gas_limit: U256,
+	pub action: TransactionAction,
+	pub value: U256,
+	pub input: Vec<u8>,
+	pub chain_id: Option<u64>,
+}
+
+impl Encodable for TransactionMessage {
+	fn rlp_append(&self, s: &mut RlpStream) {
+		if let Some(chain_id) = self.chain_id {
+			s.begin_list(9);
+			s.append(&self.nonce);
+			s.append(&self.gas_price);
+			s.append(&self.gas_limit);
+			s.append(&self.action);
+			s.append(&self.value);
+			s.append(&self.input);
+			s.append(&chain_id);
+			s.append(&0_u8);
+			s.append(&0_u8);
+		} else {
+			s.begin_list(6);
+			s.append(&self.nonce);
+			s.append(&self.gas_price);
+			s.append(&self.gas_limit);
+			s.append(&self.action);
+			s.append(&self.value);
+			s.append(&self.input);
+		}
+	}
+}
+
+impl TransactionMessage {
+	pub fn hash(&self) -> H256 {
+		H256::from_slice(Keccak256::digest(&rlp::encode(self)).as_slice())
+	}
+}
+
+impl From<Transaction> for TransactionMessage {
+	fn from(t: Transaction) -> TransactionMessage {
+		TransactionMessage {
+			nonce: t.nonce,
+			gas_price: t.gas_price,
+			gas_limit: t.gas_limit,
+			action: t.action,
+			value: t.value,
+			input: t.input,
+			chain_id: t.signature.chain_id(),
+		}
+	}
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "with-codec", derive(codec::Encode, codec::Decode))]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Transaction {
 	pub nonce: U256,
@@ -170,31 +227,6 @@ pub struct Transaction {
 	pub value: U256,
 	pub signature: TransactionSignature,
 	pub input: Vec<u8>,
-}
-
-impl Transaction {
-	fn message_rlp_append(&self, s: &mut RlpStream, chain_id: Option<u64>) {
-		s.begin_list(if chain_id.is_some() { 9 } else { 6 });
-		s.append(&self.nonce);
-		s.append(&self.gas_price);
-		s.append(&self.gas_limit);
-		s.append(&self.action);
-		s.append(&self.value);
-		s.append(&self.input);
-
-		if let Some(chain_id) = chain_id {
-			s.append(&chain_id);
-			s.append(&0_u8);
-			s.append(&0_u8);
-		}
-	}
-
-	#[must_use]
-	pub fn message_hash(&self, chain_id: Option<u64>) -> H256 {
-		let mut stream = RlpStream::new();
-		self.message_rlp_append(&mut stream, chain_id);
-		H256::from_slice(Keccak256::digest(&stream.drain()).as_slice())
-	}
 }
 
 impl Encodable for Transaction {
