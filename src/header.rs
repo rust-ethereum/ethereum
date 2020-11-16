@@ -1,7 +1,8 @@
-use alloc::vec::Vec;
 use ethereum_types::{Bloom, H160, H256, H64, U256};
 use rlp_derive::{RlpDecodable, RlpEncodable};
 use sha3::{Digest, Keccak256};
+
+use crate::Bytes;
 
 #[derive(Clone, Debug, PartialEq, Eq, RlpEncodable, RlpDecodable)]
 #[cfg_attr(feature = "with-codec", derive(codec::Encode, codec::Decode))]
@@ -20,7 +21,7 @@ pub struct Header {
 	pub gas_limit: U256,
 	pub gas_used: U256,
 	pub timestamp: u64,
-	pub extra_data: Vec<u8>,
+	pub extra_data: Bytes,
 	pub mix_hash: H256,
 	pub nonce: H64,
 }
@@ -66,7 +67,7 @@ pub struct PartialHeader {
 	pub gas_limit: U256,
 	pub gas_used: U256,
 	pub timestamp: u64,
-	pub extra_data: Vec<u8>,
+	pub extra_data: Bytes,
 	pub mix_hash: H256,
 	pub nonce: H64,
 }

@@ -1,4 +1,4 @@
-use alloc::vec::Vec;
+use crate::Bytes;
 use core::ops::Deref;
 use ethereum_types::{H160, H256, U256};
 use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
@@ -167,7 +167,7 @@ pub struct TransactionMessage {
 	pub gas_limit: U256,
 	pub action: TransactionAction,
 	pub value: U256,
-	pub input: Vec<u8>,
+	pub input: Bytes,
 	pub chain_id: Option<u64>,
 }
 
@@ -225,8 +225,8 @@ pub struct Transaction {
 	pub gas_limit: U256,
 	pub action: TransactionAction,
 	pub value: U256,
+	pub input: Bytes,
 	pub signature: TransactionSignature,
-	pub input: Vec<u8>,
 }
 
 impl Encodable for Transaction {
