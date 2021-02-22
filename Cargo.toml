@@ -19,7 +19,7 @@ triehash = { version = "0.8", default-features = false }
 hash256-std-hasher = { version = "0.15", default-features = false }
 hash-db = { version = "0.15", default-features = false }
 # Work-around for https://github.com/myrrlyn/funty/issues/3
-funty = "=1.1"
+funty = {version = "=1.1", default-features = false}
 
 [dev-dependencies]
 rand = "0.8"
@@ -38,6 +38,7 @@ std = [
 	"triehash/std",
 	"hash256-std-hasher/std",
 	"hash-db/std",
+	"funty/std",
 ]
 
 [workspace]
