@@ -162,7 +162,7 @@ impl codec::Decode for TransactionSignature {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "with-codec", derive(codec::Encode, codec::Decode))]
 pub struct TransactionMessage {
-	pub nonce: U256,
+	pub nonce: u64,
 	pub gas_price: U256,
 	pub gas_limit: U256,
 	pub action: TransactionAction,
@@ -220,7 +220,7 @@ impl From<Transaction> for TransactionMessage {
 #[cfg_attr(feature = "with-codec", derive(codec::Encode, codec::Decode))]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Transaction {
-	pub nonce: U256,
+	pub nonce: u64,
 	pub gas_price: U256,
 	pub gas_limit: U256,
 	pub action: TransactionAction,
