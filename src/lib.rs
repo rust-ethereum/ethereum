@@ -19,4 +19,7 @@ pub use block::Block;
 pub use header::{Header, PartialHeader};
 pub use log::Log;
 pub use receipt::Receipt;
-pub use transaction::{Transaction, TransactionAction, TransactionSignature, TransactionMessage};
+pub use transaction::{
+	Transaction, TransactionAction, TransactionMessage, TransactionSignature, TransactionV0,
+	TransactionV1,
+};
