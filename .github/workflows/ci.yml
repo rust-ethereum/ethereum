@@ -1,6 +1,10 @@
-on: [push, pull_request]
+on:
+  pull_request:
+  push:
+    branches:
+      - master
 
-name: Continuous integration
+name: CI
 
 jobs:
   check:
@@ -45,7 +49,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --all -- --check --config merge_imports=true
+          args: --all -- --check --config imports_granularity=Crate
 
   clippy:
     name: Clippy
