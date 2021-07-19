@@ -9,17 +9,21 @@ keywords = ["no_std", "ethereum"]
 edition = "2018"
 
 [dependencies]
-ethereum-types = { version = "0.11", default-features = false, features = ["rlp"] }
+ethereum-types = { version = "0.12", default-features = false, features = [
+	"rlp",
+] }
 rlp = { version = "0.5", default-features = false }
-codec = { package = "parity-scale-codec", version = "2.0", default-features = false, features = ["derive"], optional = true }
-serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
+codec = { package = "parity-scale-codec", optional = true, version = "2.0", default-features = false, features = [
+	"derive",
+] }
+serde = { version = "1.0", optional = true, default-features = false, features = [
+	"derive",
+] }
 rlp-derive = "0.1"
 sha3 = { version = "0.9", default-features = false }
 triehash = { version = "0.8", default-features = false }
 hash256-std-hasher = { version = "0.15", default-features = false }
 hash-db = { version = "0.15", default-features = false }
-# Work-around for https://github.com/myrrlyn/funty/issues/3
-funty = { version = "=1.1", default-features = false }
 
 [dev-dependencies]
 rand = "0.8"
@@ -38,7 +42,6 @@ std = [
 	"triehash/std",
 	"hash256-std-hasher/std",
 	"hash-db/std",
-	"funty/std",
 ]
 
 [workspace]
