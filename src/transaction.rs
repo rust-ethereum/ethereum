@@ -52,7 +52,7 @@ impl Deref for TransactionRecoveryId {
 }
 
 impl TransactionRecoveryId {
-	pub fn standard(&self) -> u8 {
+	pub fn standard(self) -> u8 {
 		if self.0 == 27 || self.0 == 28 || self.0 > 36 {
 			((self.0 - 1) % 2) as u8
 		} else {
@@ -60,7 +60,7 @@ impl TransactionRecoveryId {
 		}
 	}
 
-	pub fn chain_id(&self) -> Option<u64> {
+	pub fn chain_id(self) -> Option<u64> {
 		if self.0 > 36 {
 			Some((self.0 - 35) / 2)
 		} else {

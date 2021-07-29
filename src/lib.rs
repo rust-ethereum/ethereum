@@ -1,5 +1,4 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![warn(clippy::all, clippy::pedantic)]
 
 extern crate alloc;
 
