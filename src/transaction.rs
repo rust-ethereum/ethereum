@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use crate::Bytes;
 use bytes::{BufMut, BytesMut};
 use core::ops::Deref;
