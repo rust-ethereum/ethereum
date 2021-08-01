@@ -1,4 +1,5 @@
 use crate::Bytes;
+use alloc::vec::Vec;
 use bytes::{BufMut, BytesMut};
 use core::ops::Deref;
 use ethereum_types::{Address, H160, H256, U256};
