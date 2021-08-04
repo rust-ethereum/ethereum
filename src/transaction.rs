@@ -1,6 +1,5 @@
 use crate::Bytes;
 use alloc::vec::Vec;
-use bytes::{BufMut, BytesMut};
 use core::ops::Deref;
 use ethereum_types::{Address, H160, H256, U256};
 use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
@@ -334,14 +333,7 @@ pub enum TransactionMessage {
 impl TransactionMessage {
 	#[must_use]
 	pub fn hash(&self) -> H256 {
-		H256::from_slice(
-			Keccak256::digest(&match self {
-				Self::V0(msg) => rlp::encode(msg),
-				Self::V1(msg) => enveloped(1, msg),
-				Self::V2(msg) => enveloped(2, msg),
-			})
-			.as_slice(),
-		)
+		H256::from_slice(Keccak256::digest(&rlp::encode(self)).as_slice())
 	}
 }
 
@@ -568,12 +560,24 @@ pub enum Transaction {
 	V2(TransactionV2),
 }
 
-impl Transaction {
-	pub fn from_slice(slice: &[u8]) -> Result<Self, DecoderError> {
+impl Encodable for Transaction {
+	fn rlp_append(&self, s: &mut RlpStream) {
+		match self {
+			Transaction::V0(tx) => tx.rlp_append(s),
+			Transaction::V1(tx) => enveloped(1, tx, s),
+			Transaction::V2(tx) => enveloped(2, tx, s),
+		}
+	}
+}
+
+impl Decodable for Transaction {
+	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
+		let slice = rlp.data()?;
+
 		let first = *slice.get(0).ok_or(DecoderError::Custom("empty slice"))?;
 
-		if first >= 0xc0 {
-			return rlp::decode(slice).map(Self::V0);
+		if rlp.is_list() {
+			return Ok(Self::V0(rlp.as_val()?));
 		}
 
 		let s = slice.get(1..).ok_or(DecoderError::Custom("no tx body"))?;
@@ -588,22 +592,14 @@ impl Transaction {
 
 		Err(DecoderError::Custom("invalid tx type"))
 	}
-
-	pub fn serialize(&self) -> BytesMut {
-		match self {
-			Transaction::V0(tx) => rlp::encode(tx),
-			Transaction::V1(tx) => enveloped(1, tx),
-			Transaction::V2(tx) => enveloped(2, tx),
-		}
-	}
 }
 
-fn enveloped<T: Encodable>(id: u8, v: &T) -> BytesMut {
+fn enveloped<T: Encodable>(id: u8, v: &T, s: &mut RlpStream) {
 	let encoded = rlp::encode(v);
-	let mut out = BytesMut::with_capacity(1 + encoded.len());
-	out.put_u8(id);
-	out.unsplit(encoded);
-	out
+	let mut out = alloc::vec![0; 1 + encoded.len()];
+	out[0] = id;
+	out[1..].copy_from_slice(&encoded);
+	out.rlp_append(s)
 }
 
 #[cfg(test)]
@@ -615,7 +611,7 @@ mod tests {
 	fn can_decode_raw_transaction() {
 		let bytes = hex!("f901e48080831000008080b90196608060405234801561001057600080fd5b50336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055507fc68045c3c562488255b55aa2c4c7849de001859ff0d8a36a75c2d5ed80100fb660405180806020018281038252600d8152602001807f48656c6c6f2c20776f726c64210000000000000000000000000000000000000081525060200191505060405180910390a160cf806100c76000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c80638da5cb5b14602d575b600080fd5b60336075565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff168156fea265627a7a72315820fae816ad954005c42bea7bc7cb5b19f7fd5d3a250715ca2023275c9ca7ce644064736f6c634300050f003278a04cab43609092a99cf095d458b61b47189d1bbab64baed10a0fd7b7d2de2eb960a011ab1bcda76dfed5e733219beb83789f9887b2a7b2e61759c7c90f7d40403201");
 
-		assert!(Transaction::from_slice(&bytes).is_ok());
+		rlp::decode::<Transaction>(&bytes).unwrap();
 	}
 
 	#[test]
@@ -632,10 +628,7 @@ mod tests {
 			signature: TransactionSignature::new(38, hex!("be67e0a07db67da8d446f76add590e54b6e92cb6b8f9835aeb67540579a27717").into(), hex!("2d690516512020171c1ec870f6ff45398cc8609250326be89915fb538e7bd718").into()).unwrap(),
 		});
 
-		assert_eq!(
-			tx,
-			Transaction::from_slice(&tx.serialize().freeze()).unwrap()
-		);
+		assert_eq!(tx, rlp::decode::<Transaction>(&rlp::encode(&tx)).unwrap());
 	}
 
 	#[test]
@@ -670,10 +663,7 @@ mod tests {
 			s: hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094").into(),
 		});
 
-		assert_eq!(
-			tx,
-			Transaction::from_slice(&tx.serialize().freeze()).unwrap()
-		);
+		assert_eq!(tx, rlp::decode(&rlp::encode(&tx)).unwrap());
 	}
 
 	#[test]
@@ -709,9 +699,6 @@ mod tests {
 			s: hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094").into(),
 		});
 
-		assert_eq!(
-			tx,
-			Transaction::from_slice(&tx.serialize().freeze()).unwrap()
-		);
+		assert_eq!(tx, rlp::decode(&rlp::encode(&tx)).unwrap());
 	}
 }
