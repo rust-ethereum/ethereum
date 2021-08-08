@@ -1,23 +1,42 @@
-use crate::{util::ordered_trie_root, Header, PartialHeader, Transaction};
+use crate::{util::ordered_trie_root, Header, PartialHeader, TransactionV0, TransactionV1, TransactionV2};
 use alloc::vec::Vec;
 use ethereum_types::H256;
-use rlp_derive::{RlpDecodable, RlpEncodable};
+use rlp::{Encodable, Decodable, RlpStream, Rlp, DecoderError};
 use sha3::{Digest, Keccak256};
 
-#[derive(Clone, Debug, PartialEq, Eq, RlpEncodable, RlpDecodable)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "with-codec", derive(codec::Encode, codec::Decode))]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Block {
+pub struct Block<T> {
 	pub header: Header,
-	pub transactions: Vec<Transaction>,
+	pub transactions: Vec<T>,
 	pub ommers: Vec<Header>,
 }
 
-impl Block {
+impl<T: Encodable> Encodable for Block<T> {
+	fn rlp_append(&self, s: &mut RlpStream) {
+		s.begin_list(3);
+		s.append(&self.header);
+		s.append_list(&self.transactions);
+		s.append_list(&self.ommers);
+	}
+}
+
+impl<T: Decodable> Decodable for Block<T> {
+	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
+		Ok(Self {
+			header: rlp.val_at(0)?,
+			transactions: rlp.list_at(1)?,
+			ommers: rlp.list_at(2)?,
+		})
+	}
+}
+
+impl<T: Encodable> Block<T> {
 	#[must_use]
 	pub fn new(
 		partial_header: PartialHeader,
-		transactions: Vec<Transaction>,
+		transactions: Vec<T>,
 		ommers: Vec<Header>,
 	) -> Self {
 		let ommers_hash =
@@ -32,3 +51,7 @@ impl Block {
 		}
 	}
 }
+
+pub type BlockV0 = Block<TransactionV0>;
+pub type BlockV1 = Block<TransactionV1>;
+pub type BlockV2 = Block<TransactionV2>;
