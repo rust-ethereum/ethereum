@@ -1,7 +1,9 @@
-use crate::{util::ordered_trie_root, Header, PartialHeader, TransactionV0, TransactionV1, TransactionV2};
+use crate::{
+	util::ordered_trie_root, Header, PartialHeader, TransactionV0, TransactionV1, TransactionV2,
+};
 use alloc::vec::Vec;
 use ethereum_types::H256;
-use rlp::{Encodable, Decodable, RlpStream, Rlp, DecoderError};
+use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 use sha3::{Digest, Keccak256};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -34,11 +36,7 @@ impl<T: Decodable> Decodable for Block<T> {
 
 impl<T: Encodable> Block<T> {
 	#[must_use]
-	pub fn new(
-		partial_header: PartialHeader,
-		transactions: Vec<T>,
-		ommers: Vec<Header>,
-	) -> Self {
+	pub fn new(partial_header: PartialHeader, transactions: Vec<T>, ommers: Vec<Header>) -> Self {
 		let ommers_hash =
 			H256::from_slice(Keccak256::digest(&rlp::encode_list(&ommers)[..]).as_slice());
 		let transactions_root =
