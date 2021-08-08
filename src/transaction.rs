@@ -189,7 +189,7 @@ pub type AccessList = Vec<AccessListItem>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "with-codec", derive(codec::Encode, codec::Decode))]
-pub struct TransactionMessageV0 {
+pub struct LegacyTransactionMessage {
 	pub nonce: U256,
 	pub gas_price: U256,
 	pub gas_limit: U256,
@@ -199,7 +199,13 @@ pub struct TransactionMessageV0 {
 	pub chain_id: Option<u64>,
 }
 
-impl From<TransactionV0> for TransactionMessageV0 {
+impl LegacyTransactionMessage {
+	pub fn hash(&self) -> H256 {
+		H256::from_slice(Keccak256::digest(&rlp::encode(self)).as_slice())
+	}
+}
+
+impl From<LegacyTransaction> for LegacyTransactionMessage {
 	fn from(t: TransactionV0) -> Self {
 		Self {
 			nonce: t.nonce,
@@ -213,7 +219,7 @@ impl From<TransactionV0> for TransactionMessageV0 {
 	}
 }
 
-impl Encodable for TransactionMessageV0 {
+impl Encodable for LegacyTransactionMessage {
 	fn rlp_append(&self, s: &mut RlpStream) {
 		if let Some(chain_id) = self.chain_id {
 			s.begin_list(9);
@@ -239,7 +245,7 @@ impl Encodable for TransactionMessageV0 {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TransactionMessageV1 {
+pub struct EIP2930TransactionMessage {
 	pub chain_id: u64,
 	pub nonce: U256,
 	pub gas_price: U256,
@@ -250,8 +256,8 @@ pub struct TransactionMessageV1 {
 	pub access_list: Vec<AccessListItem>,
 }
 
-impl From<TransactionV1> for TransactionMessageV1 {
-	fn from(t: TransactionV1) -> Self {
+impl From<EIP2930Transaction> for EIP2930TransactionMessage {
+	fn from(t: EIP2930Transaction) -> Self {
 		Self {
 			chain_id: t.chain_id,
 			nonce: t.nonce,
@@ -265,7 +271,7 @@ impl From<TransactionV1> for TransactionMessageV1 {
 	}
 }
 
-impl Encodable for TransactionMessageV1 {
+impl Encodable for EIP2930TransactionMessage {
 	fn rlp_append(&self, s: &mut RlpStream) {
 		s.begin_list(8);
 		s.append(&self.chain_id);
@@ -279,8 +285,14 @@ impl Encodable for TransactionMessageV1 {
 	}
 }
 
+impl EIP2930TransactionMessage {
+	pub fn hash(&self) -> H256 {
+		H256::from_slice(Keccak256::digest(&rlp::encode(self)).as_slice())
+	}
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TransactionMessageV2 {
+pub struct EIP1559TransactionMessage {
 	pub chain_id: u64,
 	pub nonce: U256,
 	pub max_priority_fee_per_gas: U256,
@@ -292,8 +304,8 @@ pub struct TransactionMessageV2 {
 	pub access_list: Vec<AccessListItem>,
 }
 
-impl From<TransactionV2> for TransactionMessageV2 {
-	fn from(t: TransactionV2) -> Self {
+impl From<EIP1559Transaction> for EIP1559TransactionMessage {
+	fn from(t: EIP1559Transaction) -> Self {
 		Self {
 			chain_id: t.chain_id,
 			nonce: t.nonce,
@@ -308,7 +320,7 @@ impl From<TransactionV2> for TransactionMessageV2 {
 	}
 }
 
-impl Encodable for TransactionMessageV2 {
+impl Encodable for EIP1559TransactionMessage {
 	fn rlp_append(&self, s: &mut RlpStream) {
 		s.begin_list(8);
 		s.append(&self.chain_id);
@@ -323,44 +335,16 @@ impl Encodable for TransactionMessageV2 {
 	}
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum TransactionMessage {
-	V0(TransactionMessageV0),
-	V1(TransactionMessageV1),
-	V2(TransactionMessageV2),
-}
-
-impl TransactionMessage {
-	#[must_use]
+impl EIP1559TransactionMessage {
 	pub fn hash(&self) -> H256 {
 		H256::from_slice(Keccak256::digest(&rlp::encode(self)).as_slice())
-	}
-}
-
-impl From<Transaction> for TransactionMessage {
-	fn from(t: Transaction) -> TransactionMessage {
-		match t {
-			Transaction::V0(t) => Self::V0(t.into()),
-			Transaction::V1(t) => Self::V1(t.into()),
-			Transaction::V2(t) => Self::V2(t.into()),
-		}
-	}
-}
-
-impl Encodable for TransactionMessage {
-	fn rlp_append(&self, s: &mut RlpStream) {
-		match self {
-			TransactionMessage::V0(msg) => msg.rlp_append(s),
-			TransactionMessage::V1(msg) => msg.rlp_append(s),
-			TransactionMessage::V2(msg) => msg.rlp_append(s),
-		}
 	}
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "with-codec", derive(codec::Encode, codec::Decode))]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct TransactionV0 {
+pub struct LegacyTransaction {
 	pub nonce: U256,
 	pub gas_price: U256,
 	pub gas_limit: U256,
@@ -370,7 +354,7 @@ pub struct TransactionV0 {
 	pub signature: TransactionSignature,
 }
 
-impl Encodable for TransactionV0 {
+impl Encodable for LegacyTransaction {
 	fn rlp_append(&self, s: &mut RlpStream) {
 		s.begin_list(9);
 		s.append(&self.nonce);
@@ -385,7 +369,7 @@ impl Encodable for TransactionV0 {
 	}
 }
 
-impl Decodable for TransactionV0 {
+impl Decodable for LegacyTransaction {
 	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
 		if rlp.item_count()? != 9 {
 			return Err(DecoderError::RlpIncorrectListLen);
@@ -420,7 +404,7 @@ impl Decodable for TransactionV0 {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "with-codec", derive(codec::Encode, codec::Decode))]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct TransactionV1 {
+pub struct EIP2930Transaction {
 	pub chain_id: u64,
 	pub nonce: U256,
 	pub gas_price: U256,
@@ -434,7 +418,7 @@ pub struct TransactionV1 {
 	pub s: H256,
 }
 
-impl Encodable for TransactionV1 {
+impl Encodable for EIP2930Transaction {
 	fn rlp_append(&self, s: &mut RlpStream) {
 		s.begin_list(11);
 		s.append(&self.chain_id);
@@ -451,7 +435,7 @@ impl Encodable for TransactionV1 {
 	}
 }
 
-impl Decodable for TransactionV1 {
+impl Decodable for EIP2930Transaction {
 	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
 		if rlp.item_count()? != 11 {
 			return Err(DecoderError::RlpIncorrectListLen);
@@ -484,7 +468,7 @@ impl Decodable for TransactionV1 {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "with-codec", derive(codec::Encode, codec::Decode))]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct TransactionV2 {
+pub struct EIP1559Transaction {
 	pub chain_id: u64,
 	pub nonce: U256,
 	pub max_priority_fee_per_gas: U256,
@@ -499,7 +483,7 @@ pub struct TransactionV2 {
 	pub s: H256,
 }
 
-impl Encodable for TransactionV2 {
+impl Encodable for EIP1559Transaction {
 	fn rlp_append(&self, s: &mut RlpStream) {
 		s.begin_list(12);
 		s.append(&self.chain_id);
@@ -517,7 +501,7 @@ impl Encodable for TransactionV2 {
 	}
 }
 
-impl Decodable for TransactionV2 {
+impl Decodable for EIP1559Transaction {
 	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
 		if rlp.item_count()? != 12 {
 			return Err(DecoderError::RlpIncorrectListLen);
@@ -548,46 +532,87 @@ impl Decodable for TransactionV2 {
 	}
 }
 
+pub type TransactionV0 = LegacyTransaction;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "with-codec", derive(codec::Encode, codec::Decode))]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Transaction {
+pub enum TransactionV1 {
 	/// Legacy transaction type
-	V0(TransactionV0),
+	Legacy(LegacyTransaction),
 	/// EIP-2930 transaction
-	V1(TransactionV1),
-	/// EIP-1559 transaction
-	V2(TransactionV2),
+	EIP2930(EIP2930Transaction),
 }
 
-impl Encodable for Transaction {
+impl Encodable for TransactionV1 {
 	fn rlp_append(&self, s: &mut RlpStream) {
 		match self {
-			Transaction::V0(tx) => tx.rlp_append(s),
-			Transaction::V1(tx) => enveloped(1, tx, s),
-			Transaction::V2(tx) => enveloped(2, tx, s),
+			Self::Legacy(tx) => tx.rlp_append(s),
+			Self::EIP2930(tx) => enveloped(1, tx, s),
 		}
 	}
 }
 
-impl Decodable for Transaction {
+impl Decodable for TransactionV1 {
 	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
 		let slice = rlp.data()?;
 
 		let first = *slice.get(0).ok_or(DecoderError::Custom("empty slice"))?;
 
 		if rlp.is_list() {
-			return Ok(Self::V0(rlp.as_val()?));
+			return Ok(Self::Legacy(rlp.as_val()?));
 		}
 
 		let s = slice.get(1..).ok_or(DecoderError::Custom("no tx body"))?;
 
 		if first == 0x01 {
-			return rlp::decode(s).map(Self::V1);
+			return rlp::decode(s).map(Self::EIP2930);
+		}
+
+		Err(DecoderError::Custom("invalid tx type"))
+	}
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "with-codec", derive(codec::Encode, codec::Decode))]
+#[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum TransactionV2 {
+	/// Legacy transaction type
+	Legacy(LegacyTransaction),
+	/// EIP-2930 transaction
+	EIP2930(EIP2930Transaction),
+	/// EIP-1559 transaction
+	EIP1559(EIP1559Transaction),
+}
+
+impl Encodable for TransactionV2 {
+	fn rlp_append(&self, s: &mut RlpStream) {
+		match self {
+			Self::Legacy(tx) => tx.rlp_append(s),
+			Self::EIP2930(tx) => enveloped(1, tx, s),
+			Self::EIP1559(tx) => enveloped(2, tx, s),
+		}
+	}
+}
+
+impl Decodable for TransactionV2 {
+	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
+		let slice = rlp.data()?;
+
+		let first = *slice.get(0).ok_or(DecoderError::Custom("empty slice"))?;
+
+		if rlp.is_list() {
+			return Ok(Self::Legacy(rlp.as_val()?));
+		}
+
+		let s = slice.get(1..).ok_or(DecoderError::Custom("no tx body"))?;
+
+		if first == 0x01 {
+			return rlp::decode(s).map(Self::EIP2930);
 		}
 
 		if first == 0x02 {
-			return rlp::decode(s).map(Self::V2);
+			return rlp::decode(s).map(Self::EIP1559);
 		}
 
 		Err(DecoderError::Custom("invalid tx type"))
@@ -611,12 +636,14 @@ mod tests {
 	fn can_decode_raw_transaction() {
 		let bytes = hex!("f901e48080831000008080b90196608060405234801561001057600080fd5b50336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055507fc68045c3c562488255b55aa2c4c7849de001859ff0d8a36a75c2d5ed80100fb660405180806020018281038252600d8152602001807f48656c6c6f2c20776f726c64210000000000000000000000000000000000000081525060200191505060405180910390a160cf806100c76000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c80638da5cb5b14602d575b600080fd5b60336075565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff168156fea265627a7a72315820fae816ad954005c42bea7bc7cb5b19f7fd5d3a250715ca2023275c9ca7ce644064736f6c634300050f003278a04cab43609092a99cf095d458b61b47189d1bbab64baed10a0fd7b7d2de2eb960a011ab1bcda76dfed5e733219beb83789f9887b2a7b2e61759c7c90f7d40403201");
 
-		rlp::decode::<Transaction>(&bytes).unwrap();
+		rlp::decode::<TransactionV0>(&bytes).unwrap();
+		rlp::decode::<TransactionV1>(&bytes).unwrap();
+		rlp::decode::<TransactionV2>(&bytes).unwrap();
 	}
 
 	#[test]
 	fn transaction_v0() {
-		let tx = Transaction::V0(TransactionV0 {
+		let tx = TransactionV0 {
 			nonce: 12.into(),
 			gas_price: 20_000_000_000_u64.into(),
 			gas_limit: 21000.into(),
@@ -626,14 +653,14 @@ mod tests {
 			value: U256::from(10) * 1_000_000_000 * 1_000_000_000,
 			input: hex!("a9059cbb000000000213ed0f886efd100b67c7e4ec0a85a7d20dc971600000000000000000000015af1d78b58c4000").into(),
 			signature: TransactionSignature::new(38, hex!("be67e0a07db67da8d446f76add590e54b6e92cb6b8f9835aeb67540579a27717").into(), hex!("2d690516512020171c1ec870f6ff45398cc8609250326be89915fb538e7bd718").into()).unwrap(),
-		});
+		};
 
-		assert_eq!(tx, rlp::decode::<Transaction>(&rlp::encode(&tx)).unwrap());
+		assert_eq!(tx, rlp::decode::<TransactionV0>(&rlp::encode(&tx)).unwrap());
 	}
 
 	#[test]
 	fn transaction_v1() {
-		let tx = Transaction::V1(TransactionV1 {
+		let tx = TransactionV1::EIP2930(EIP2930Transaction {
 			chain_id: 5,
 			nonce: 7.into(),
 			gas_price: 30_000_000_000_u64.into(),
@@ -663,12 +690,12 @@ mod tests {
 			s: hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094").into(),
 		});
 
-		assert_eq!(tx, rlp::decode(&rlp::encode(&tx)).unwrap());
+		assert_eq!(tx, rlp::decode::<TransactionV1>(&rlp::encode(&tx)).unwrap());
 	}
 
 	#[test]
 	fn transaction_v2() {
-		let tx = Transaction::V2(TransactionV2 {
+		let tx = TransactionV2::EIP1559(EIP1559Transaction {
 			chain_id: 5,
 			nonce: 7.into(),
 			max_priority_fee_per_gas: 10_000_000_000_u64.into(),
@@ -699,6 +726,6 @@ mod tests {
 			s: hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094").into(),
 		});
 
-		assert_eq!(tx, rlp::decode(&rlp::encode(&tx)).unwrap());
+		assert_eq!(tx, rlp::decode::<TransactionV2>(&rlp::encode(&tx)).unwrap());
 	}
 }
