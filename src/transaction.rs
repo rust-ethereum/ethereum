@@ -38,7 +38,7 @@ impl Decodable for TransactionAction {
 	}
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "with-codec", derive(codec::Encode, codec::Decode))]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TransactionRecoveryId(pub u64);
@@ -69,7 +69,7 @@ impl TransactionRecoveryId {
 	}
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Default, Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TransactionSignature {
 	v: TransactionRecoveryId,
