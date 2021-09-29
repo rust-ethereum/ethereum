@@ -187,7 +187,7 @@ impl Decodable for AccessListItem {
 
 pub type AccessList = Vec<AccessListItem>;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, scale_info::TypeInfo)]
 #[cfg_attr(feature = "with-codec", derive(codec::Encode, codec::Decode))]
 pub struct LegacyTransactionMessage {
 	pub nonce: U256,
@@ -573,7 +573,7 @@ impl Decodable for TransactionV1 {
 	}
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, scale_info::TypeInfo)]
 #[cfg_attr(feature = "with-codec", derive(codec::Encode, codec::Decode))]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum TransactionV2 {

@@ -10,7 +10,7 @@ edition = "2018"
 
 [dependencies]
 ethereum-types = { version = "0.12", default-features = false, features = [
-	"rlp", "scale-info",
+	"rlp", "codec",
 ] }
 rlp = { version = "0.5", default-features = false }
 codec = { package = "parity-scale-codec", optional = true, version = "2.0", default-features = false, features = [

@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use ethereum_types::{Bloom, H256, U256};
 use rlp_derive::{RlpDecodable, RlpEncodable};
 
-#[derive(Clone, Debug, PartialEq, Eq, RlpEncodable, RlpDecodable)]
+#[derive(Clone, Debug, PartialEq, Eq, RlpEncodable, RlpDecodable, scale_info::TypeInfo)]
 #[cfg_attr(feature = "with-codec", derive(codec::Encode, codec::Decode))]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Receipt {
