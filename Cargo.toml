@@ -9,7 +9,7 @@ keywords = ["no_std", "ethereum"]
 edition = "2018"
 
 [dependencies]
-ethereum-types = { version = "0.12", default-features = false, features = [
+ethereum-types = { version = "0.12.1", default-features = false, features = [
 	"rlp", "codec",
 ] }
 rlp = { version = "0.5", default-features = false }
@@ -51,9 +51,3 @@ std = [
 
 [workspace]
 members = []
-
-# Use scale-info compatible crate that I hacked together.
-[patch.crates-io]
-ethereum-types = { git = "https://github.com/purestake/parity-common", branch = "joshy-scale-info-ethereum"}
-rlp = { git = "https://github.com/purestake/parity-common", branch = "joshy-scale-info-ethereum"}
-rlp-derive = { git = "https://github.com/purestake/parity-common", branch = "joshy-scale-info-ethereum"}
