@@ -627,6 +627,27 @@ fn enveloped<T: Encodable>(id: u8, v: &T, s: &mut RlpStream) {
 	out.rlp_append(s)
 }
 
+impl From<LegacyTransaction> for TransactionV1 {
+	fn from(t: LegacyTransaction) -> Self {
+		TransactionV1::Legacy(t)
+	}
+}
+
+impl From<LegacyTransaction> for TransactionV2 {
+	fn from(t: LegacyTransaction) -> Self {
+		TransactionV2::Legacy(t)
+	}
+}
+
+impl From<TransactionV1> for TransactionV2 {
+	fn from(t: TransactionV1) -> Self {
+		match t {
+			TransactionV1::Legacy(t) => TransactionV2::Legacy(t),
+			TransactionV1::EIP2930(t) => TransactionV2::EIP2930(t),
+		}
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
