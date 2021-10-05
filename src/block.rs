@@ -54,12 +54,15 @@ pub type BlockV0 = Block<TransactionV0>;
 pub type BlockV1 = Block<TransactionV1>;
 pub type BlockV2 = Block<TransactionV2>;
 
-impl<T> From<BlockV0> for Block<T> where T: From<TransactionV0> + From<TransactionV1> {
+impl<T> From<BlockV0> for Block<T>
+where
+	T: From<TransactionV0> + From<TransactionV1>,
+{
 	fn from(t: BlockV0) -> Self {
 		Self {
 			header: t.header,
 			transactions: t.transactions.into_iter().map(|t| t.into()).collect(),
-			ommers: t.ommers
+			ommers: t.ommers,
 		}
 	}
 }
@@ -69,7 +72,7 @@ impl From<BlockV1> for BlockV2 {
 		Self {
 			header: t.header,
 			transactions: t.transactions.into_iter().map(|t| t.into()).collect(),
-			ommers: t.ommers
+			ommers: t.ommers,
 		}
 	}
 }
