@@ -362,6 +362,12 @@ pub struct LegacyTransaction {
 	pub signature: TransactionSignature,
 }
 
+impl LegacyTransaction {
+	pub fn hash(&self) -> H256 {
+		H256::from_slice(Keccak256::digest(&rlp::encode(self)).as_slice())
+	}
+}
+
 impl Encodable for LegacyTransaction {
 	fn rlp_append(&self, s: &mut RlpStream) {
 		s.begin_list(9);
@@ -424,6 +430,16 @@ pub struct EIP2930Transaction {
 	pub odd_y_parity: bool,
 	pub r: H256,
 	pub s: H256,
+}
+
+impl EIP2930Transaction {
+	pub fn hash(&self) -> H256 {
+		let encoded = rlp::encode(self);
+		let mut out = alloc::vec![0; 1 + encoded.len()];
+		out[0] = 1;
+		out[1..].copy_from_slice(&encoded);
+		H256::from_slice(Keccak256::digest(&out).as_slice())
+	}
 }
 
 impl Encodable for EIP2930Transaction {
@@ -491,6 +507,16 @@ pub struct EIP1559Transaction {
 	pub s: H256,
 }
 
+impl EIP1559Transaction {
+	pub fn hash(&self) -> H256 {
+		let encoded = rlp::encode(self);
+		let mut out = alloc::vec![0; 1 + encoded.len()];
+		out[0] = 2;
+		out[1..].copy_from_slice(&encoded);
+		H256::from_slice(Keccak256::digest(&out).as_slice())
+	}
+}
+
 impl Encodable for EIP1559Transaction {
 	fn rlp_append(&self, s: &mut RlpStream) {
 		s.begin_list(12);
@@ -552,6 +578,15 @@ pub enum TransactionV1 {
 	EIP2930(EIP2930Transaction),
 }
 
+impl TransactionV1 {
+	pub fn hash(&self) -> H256 {
+		match self {
+			TransactionV1::Legacy(t) => t.hash(),
+			TransactionV1::EIP2930(t) => t.hash(),
+		}
+	}
+}
+
 impl Encodable for TransactionV1 {
 	fn rlp_append(&self, s: &mut RlpStream) {
 		match self {
@@ -591,6 +626,16 @@ pub enum TransactionV2 {
 	EIP2930(EIP2930Transaction),
 	/// EIP-1559 transaction
 	EIP1559(EIP1559Transaction),
+}
+
+impl TransactionV2 {
+	pub fn hash(&self) -> H256 {
+		match self {
+			TransactionV2::Legacy(t) => t.hash(),
+			TransactionV2::EIP2930(t) => t.hash(),
+			TransactionV2::EIP1559(t) => t.hash(),
+		}
+	}
 }
 
 impl Encodable for TransactionV2 {
