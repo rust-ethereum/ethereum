@@ -287,7 +287,11 @@ impl Encodable for EIP2930TransactionMessage {
 
 impl EIP2930TransactionMessage {
 	pub fn hash(&self) -> H256 {
-		H256::from_slice(Keccak256::digest(&rlp::encode(self)).as_slice())
+		let encoded = rlp::encode(self);
+		let mut out = alloc::vec![0; 1 + encoded.len()];
+		out[0] = 1;
+		out[1..].copy_from_slice(&encoded);
+		H256::from_slice(Keccak256::digest(&out).as_slice())
 	}
 }
 
@@ -337,7 +341,11 @@ impl Encodable for EIP1559TransactionMessage {
 
 impl EIP1559TransactionMessage {
 	pub fn hash(&self) -> H256 {
-		H256::from_slice(Keccak256::digest(&rlp::encode(self)).as_slice())
+		let encoded = rlp::encode(self);
+		let mut out = alloc::vec![0; 1 + encoded.len()];
+		out[0] = 2;
+		out[1..].copy_from_slice(&encoded);
+		H256::from_slice(Keccak256::digest(&out).as_slice())
 	}
 }
 
