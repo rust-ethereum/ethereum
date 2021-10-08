@@ -322,7 +322,7 @@ impl From<EIP1559Transaction> for EIP1559TransactionMessage {
 
 impl Encodable for EIP1559TransactionMessage {
 	fn rlp_append(&self, s: &mut RlpStream) {
-		s.begin_list(8);
+		s.begin_list(9);
 		s.append(&self.chain_id);
 		s.append(&self.nonce);
 		s.append(&self.max_priority_fee_per_gas);
