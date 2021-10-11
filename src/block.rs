@@ -6,8 +6,8 @@ use ethereum_types::H256;
 use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 use sha3::{Digest, Keccak256};
 
-#[derive(Clone, Debug, PartialEq, Eq, scale_info::TypeInfo)]
-#[cfg_attr(feature = "with-codec", derive(codec::Encode, codec::Decode))]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "with-codec", derive(codec::Encode, codec::Decode, scale_info::TypeInfo))]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Block<T> {
 	pub header: Header,
