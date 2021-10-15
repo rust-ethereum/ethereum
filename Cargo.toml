@@ -9,8 +9,8 @@ keywords = ["no_std", "ethereum"]
 edition = "2018"
 
 [dependencies]
-ethereum-types = { version = "0.12", default-features = false, features = [
-	"rlp",
+ethereum-types = { version = "0.12.1", default-features = false, features = [
+	"rlp", "codec",
 ] }
 rlp = { version = "0.5", default-features = false }
 codec = { package = "parity-scale-codec", optional = true, version = "2.0", default-features = false, features = [
@@ -25,6 +25,7 @@ sha3 = { version = "0.9", default-features = false }
 triehash = { version = "0.8", default-features = false }
 hash256-std-hasher = { version = "0.15", default-features = false }
 hash-db = { version = "0.15", default-features = false }
+scale-info = { version = "1.0.0", default-features = false, features = ["derive"], optional = true}
 
 [dev-dependencies]
 rand = "0.8"
@@ -32,7 +33,7 @@ hex-literal = "0.3"
 
 [features]
 default = ["std"]
-with-codec = ["codec", "ethereum-types/codec"]
+with-codec = ["codec", "scale-info", "ethereum-types/codec"]
 with-serde = ["serde", "ethereum-types/serialize"]
 std = [
 	"ethereum-types/std",
@@ -44,6 +45,7 @@ std = [
 	"triehash/std",
 	"hash256-std-hasher/std",
 	"hash-db/std",
+	"scale-info/std",
 ]
 
 [workspace]
