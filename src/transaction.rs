@@ -1,4 +1,5 @@
 use crate::Bytes;
+use crate::util::enveloped;
 use alloc::vec::Vec;
 use core::ops::Deref;
 use ethereum_types::{Address, H160, H256, U256};
@@ -695,14 +696,6 @@ impl Decodable for TransactionV2 {
 
 		Err(DecoderError::Custom("invalid tx type"))
 	}
-}
-
-fn enveloped<T: Encodable>(id: u8, v: &T, s: &mut RlpStream) {
-	let encoded = rlp::encode(v);
-	let mut out = alloc::vec![0; 1 + encoded.len()];
-	out[0] = id;
-	out[1..].copy_from_slice(&encoded);
-	out.rlp_append(s)
 }
 
 impl From<LegacyTransaction> for TransactionV1 {
