@@ -3,8 +3,8 @@
 use ethereum_types::H256;
 use hash256_std_hasher::Hash256StdHasher;
 use hash_db::Hasher;
-use sha3::{Digest, Keccak256};
 use rlp::{Encodable, RlpStream};
+use sha3::{Digest, Keccak256};
 
 pub fn enveloped<T: Encodable>(id: u8, v: &T, s: &mut RlpStream) {
 	let encoded = rlp::encode(v);

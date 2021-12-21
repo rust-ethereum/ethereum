@@ -1,5 +1,5 @@
-use crate::Bytes;
 use crate::util::enveloped;
+use crate::Bytes;
 use alloc::vec::Vec;
 use core::ops::Deref;
 use ethereum_types::{Address, H160, H256, U256};

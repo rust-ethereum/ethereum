@@ -1,8 +1,8 @@
-use crate::Log;
 use crate::util::enveloped;
+use crate::Log;
 use alloc::vec::Vec;
 use ethereum_types::{Bloom, H256, U256};
-use rlp::{Rlp, DecoderError, Decodable, Encodable, RlpStream};
+use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 use rlp_derive::{RlpDecodable, RlpEncodable};
 
 #[derive(Clone, Debug, PartialEq, Eq, RlpEncodable, RlpDecodable)]
@@ -49,7 +49,9 @@ impl Decodable for ReceiptV1 {
 			return Ok(Self::Legacy(rlp.as_val()?));
 		}
 
-		let s = slice.get(1..).ok_or(DecoderError::Custom("no receipt body"))?;
+		let s = slice
+			.get(1..)
+			.ok_or(DecoderError::Custom("no receipt body"))?;
 
 		if first == 0x01 {
 			return rlp::decode(s).map(Self::EIP2930);
@@ -91,7 +93,9 @@ impl Decodable for ReceiptV2 {
 			return Ok(Self::Legacy(rlp.as_val()?));
 		}
 
-		let s = slice.get(1..).ok_or(DecoderError::Custom("no receipt body"))?;
+		let s = slice
+			.get(1..)
+			.ok_or(DecoderError::Custom("no receipt body"))?;
 
 		if first == 0x01 {
 			return rlp::decode(s).map(Self::EIP2930);
