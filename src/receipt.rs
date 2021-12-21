@@ -32,7 +32,7 @@ impl<'a> rlp::Encodable for EncodeableReceipt<'a> {
 			s.append(&self.status);
 			s.append(&self.cumulative_gas_used);
 			s.append(&self.bloom);
-			s.append_list(&self.logs);
+			s.append_list(self.logs);
 		} else {
 			// Typed transactions are prepended with the envelope byte
 			s.begin_list(5);
@@ -40,7 +40,7 @@ impl<'a> rlp::Encodable for EncodeableReceipt<'a> {
 			s.append(&self.status);
 			s.append(&self.cumulative_gas_used);
 			s.append(&self.bloom);
-			s.append_list(&self.logs);
+			s.append_list(self.logs);
 		}
 	}
 }
