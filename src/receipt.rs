@@ -18,8 +18,6 @@ pub struct FrontierReceiptData {
 	pub logs: Vec<Log>,
 }
 
-pub type FrontierReceipt = FrontierReceiptData;
-
 #[derive(Clone, Debug, PartialEq, Eq, RlpEncodable, RlpDecodable)]
 #[cfg_attr(
 	feature = "with-codec",
@@ -36,8 +34,6 @@ pub struct EIP658ReceiptData {
 pub type EIP2930ReceiptData = EIP658ReceiptData;
 
 pub type EIP1559ReceiptData = EIP658ReceiptData;
-
-pub type EIP658Receipt = EIP658ReceiptData;
 
 pub type ReceiptV0 = FrontierReceiptData;
 
