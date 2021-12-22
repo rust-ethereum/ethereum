@@ -133,3 +133,66 @@ impl Decodable for ReceiptV3 {
 		Err(DecoderError::Custom("invalid receipt type"))
 	}
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(
+	feature = "with-codec",
+	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
+)]
+#[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum ReceiptAny {
+	/// Frontier receipt type
+	Frontier(FrontierReceiptData),
+	/// EIP658 receipt type
+	EIP658(EIP658ReceiptData),
+	/// EIP-2930 receipt type
+	EIP2930(EIP2930ReceiptData),
+	/// EIP-1559 receipt type
+	EIP1559(EIP1559ReceiptData),
+}
+
+impl Encodable for ReceiptAny {
+	fn rlp_append(&self, s: &mut RlpStream) {
+		match self {
+			Self::Frontier(r) => r.rlp_append(s),
+			Self::EIP658(r) => r.rlp_append(s),
+			Self::EIP2930(r) => enveloped(1, r, s),
+			Self::EIP1559(r) => enveloped(2, r, s),
+		}
+	}
+}
+
+impl Decodable for ReceiptAny {
+	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
+		let slice = rlp.data()?;
+
+		let first = *slice.get(0).ok_or(DecoderError::Custom("empty slice"))?;
+
+		if rlp.is_list() {
+			if rlp.item_count()? == 4 {
+				let first = rlp.at(0)?;
+				if first.is_data() && first.data()?.len() <= 1 {
+					return Ok(Self::Frontier(Decodable::decode(rlp)?));
+				} else {
+					return Ok(Self::EIP658(Decodable::decode(rlp)?));
+				}
+			}
+
+			return Err(DecoderError::RlpIncorrectListLen);
+		}
+
+		let s = slice
+			.get(1..)
+			.ok_or(DecoderError::Custom("no receipt body"))?;
+
+		if first == 0x01 {
+			return rlp::decode(s).map(Self::EIP2930);
+		}
+
+		if first == 0x02 {
+			return rlp::decode(s).map(Self::EIP1559);
+		}
+
+		Err(DecoderError::Custom("invalid receipt type"))
+	}
+}

@@ -722,6 +722,8 @@ impl From<TransactionV1> for TransactionV2 {
 	}
 }
 
+pub type TransactionAny = TransactionV2;
+
 #[cfg(test)]
 mod tests {
 	use super::*;
