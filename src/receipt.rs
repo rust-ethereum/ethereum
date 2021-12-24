@@ -83,6 +83,15 @@ impl Decodable for ReceiptV2 {
 	}
 }
 
+impl From<ReceiptV2> for EIP658ReceiptData {
+	fn from(v2: ReceiptV2) -> Self {
+		match v2 {
+			ReceiptV2::Legacy(r) => r,
+			ReceiptV2::EIP2930(r) => r,
+		}
+	}
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
 	feature = "with-codec",
@@ -131,6 +140,16 @@ impl Decodable for ReceiptV3 {
 		}
 
 		Err(DecoderError::Custom("invalid receipt type"))
+	}
+}
+
+impl From<ReceiptV3> for EIP658ReceiptData {
+	fn from(v3: ReceiptV3) -> Self {
+		match v3 {
+			ReceiptV3::Legacy(r) => r,
+			ReceiptV3::EIP2930(r) => r,
+			ReceiptV3::EIP1559(r) => r,
+		}
 	}
 }
 

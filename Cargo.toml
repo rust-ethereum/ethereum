@@ -1,6 +1,6 @@
 [package]
 name = "ethereum"
-version = "0.10.0"
+version = "0.11.0"
 license = "Apache-2.0"
 authors = ["Wei Tang <hi@that.world>"]
 description = "Core block and transaction types for Ethereum."
