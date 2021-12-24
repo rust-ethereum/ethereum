@@ -79,13 +79,13 @@ impl TransactionRecoveryId {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "with-codec", derive(scale_info::TypeInfo))]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct TransactionSignature {
+pub struct LegacySignature {
 	v: TransactionRecoveryId,
 	r: H256,
 	s: H256,
 }
 
-impl TransactionSignature {
+impl LegacySignature {
 	#[must_use]
 	pub fn new(v: u64, r: H256, s: H256) -> Option<Self> {
 		const LOWER: H256 = H256([
@@ -147,7 +147,7 @@ impl TransactionSignature {
 }
 
 #[cfg(feature = "codec")]
-impl codec::Encode for TransactionSignature {
+impl codec::Encode for LegacySignature {
 	fn size_hint(&self) -> usize {
 		codec::Encode::size_hint(&(self.v.0, self.r, self.s))
 	}
@@ -158,7 +158,7 @@ impl codec::Encode for TransactionSignature {
 }
 
 #[cfg(feature = "codec")]
-impl codec::Decode for TransactionSignature {
+impl codec::Decode for LegacySignature {
 	fn decode<I: codec::Input>(value: &mut I) -> Result<Self, codec::Error> {
 		let (v, r, s) = codec::Decode::decode(value)?;
 		match Self::new(v, r, s) {
@@ -167,6 +167,20 @@ impl codec::Decode for TransactionSignature {
 		}
 	}
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(
+	feature = "with-codec",
+	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
+)]
+#[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct EIP2930Signature {
+	pub odd_y_parity: bool,
+	pub r: H256,
+	pub s: H256,
+}
+
+pub type EIP1559Signature = EIP2930Signature;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
@@ -376,7 +390,7 @@ pub struct LegacyTransaction {
 	pub action: TransactionAction,
 	pub value: U256,
 	pub input: Bytes,
-	pub signature: TransactionSignature,
+	pub signature: LegacySignature,
 }
 
 impl LegacyTransaction {
@@ -417,7 +431,7 @@ impl Decodable for LegacyTransaction {
 			rlp.val_at::<U256>(8)?.to_big_endian(&mut sarr);
 			H256::from(sarr)
 		};
-		let signature = TransactionSignature::new(v, r, s)
+		let signature = LegacySignature::new(v, r, s)
 			.ok_or(DecoderError::Custom("Invalid transaction signature format"))?;
 
 		Ok(Self {
@@ -447,9 +461,7 @@ pub struct EIP2930Transaction {
 	pub value: U256,
 	pub input: Bytes,
 	pub access_list: AccessList,
-	pub odd_y_parity: bool,
-	pub r: H256,
-	pub s: H256,
+	pub signature: EIP2930Signature,
 }
 
 impl EIP2930Transaction {
@@ -473,9 +485,9 @@ impl Encodable for EIP2930Transaction {
 		s.append(&self.value);
 		s.append(&self.input);
 		s.append_list(&self.access_list);
-		s.append(&self.odd_y_parity);
-		s.append(&U256::from_big_endian(&self.r[..]));
-		s.append(&U256::from_big_endian(&self.s[..]));
+		s.append(&self.signature.odd_y_parity);
+		s.append(&U256::from_big_endian(&self.signature.r[..]));
+		s.append(&U256::from_big_endian(&self.signature.s[..]));
 	}
 }
 
@@ -494,16 +506,18 @@ impl Decodable for EIP2930Transaction {
 			value: rlp.val_at(5)?,
 			input: rlp.val_at(6)?,
 			access_list: rlp.list_at(7)?,
-			odd_y_parity: rlp.val_at(8)?,
-			r: {
-				let mut rarr = [0_u8; 32];
-				rlp.val_at::<U256>(9)?.to_big_endian(&mut rarr);
-				H256::from(rarr)
-			},
-			s: {
-				let mut sarr = [0_u8; 32];
-				rlp.val_at::<U256>(10)?.to_big_endian(&mut sarr);
-				H256::from(sarr)
+			signature: EIP2930Signature {
+				odd_y_parity: rlp.val_at(8)?,
+				r: {
+					let mut rarr = [0_u8; 32];
+					rlp.val_at::<U256>(9)?.to_big_endian(&mut rarr);
+					H256::from(rarr)
+				},
+				s: {
+					let mut sarr = [0_u8; 32];
+					rlp.val_at::<U256>(10)?.to_big_endian(&mut sarr);
+					H256::from(sarr)
+				},
 			},
 		})
 	}
@@ -525,9 +539,7 @@ pub struct EIP1559Transaction {
 	pub value: U256,
 	pub input: Bytes,
 	pub access_list: AccessList,
-	pub odd_y_parity: bool,
-	pub r: H256,
-	pub s: H256,
+	pub signature: EIP1559Signature,
 }
 
 impl EIP1559Transaction {
@@ -552,9 +564,9 @@ impl Encodable for EIP1559Transaction {
 		s.append(&self.value);
 		s.append(&self.input);
 		s.append_list(&self.access_list);
-		s.append(&self.odd_y_parity);
-		s.append(&U256::from_big_endian(&self.r[..]));
-		s.append(&U256::from_big_endian(&self.s[..]));
+		s.append(&self.signature.odd_y_parity);
+		s.append(&U256::from_big_endian(&self.signature.r[..]));
+		s.append(&U256::from_big_endian(&self.signature.s[..]));
 	}
 }
 
@@ -574,16 +586,18 @@ impl Decodable for EIP1559Transaction {
 			value: rlp.val_at(6)?,
 			input: rlp.val_at(7)?,
 			access_list: rlp.list_at(8)?,
-			odd_y_parity: rlp.val_at(9)?,
-			r: {
-				let mut rarr = [0_u8; 32];
-				rlp.val_at::<U256>(10)?.to_big_endian(&mut rarr);
-				H256::from(rarr)
-			},
-			s: {
-				let mut sarr = [0_u8; 32];
-				rlp.val_at::<U256>(11)?.to_big_endian(&mut sarr);
-				H256::from(sarr)
+			signature: EIP1559Signature {
+				odd_y_parity: rlp.val_at(9)?,
+				r: {
+					let mut rarr = [0_u8; 32];
+					rlp.val_at::<U256>(10)?.to_big_endian(&mut rarr);
+					H256::from(rarr)
+				},
+				s: {
+					let mut sarr = [0_u8; 32];
+					rlp.val_at::<U256>(11)?.to_big_endian(&mut sarr);
+					H256::from(sarr)
+				},
 			},
 		})
 	}
@@ -749,7 +763,7 @@ mod tests {
 			),
 			value: U256::from(10) * 1_000_000_000 * 1_000_000_000,
 			input: hex!("a9059cbb000000000213ed0f886efd100b67c7e4ec0a85a7d20dc971600000000000000000000015af1d78b58c4000").into(),
-			signature: TransactionSignature::new(38, hex!("be67e0a07db67da8d446f76add590e54b6e92cb6b8f9835aeb67540579a27717").into(), hex!("2d690516512020171c1ec870f6ff45398cc8609250326be89915fb538e7bd718").into()).unwrap(),
+			signature: LegacySignature::new(38, hex!("be67e0a07db67da8d446f76add590e54b6e92cb6b8f9835aeb67540579a27717").into(), hex!("2d690516512020171c1ec870f6ff45398cc8609250326be89915fb538e7bd718").into()).unwrap(),
 		};
 
 		assert_eq!(tx, rlp::decode::<TransactionV0>(&rlp::encode(&tx)).unwrap());
@@ -782,9 +796,11 @@ mod tests {
 					slots: vec![],
 				},
 			],
-			odd_y_parity: false,
-			r: hex!("36b241b061a36a32ab7fe86c7aa9eb592dd59018cd0443adc0903590c16b02b0").into(),
-			s: hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094").into(),
+			signature: EIP2930Signature {
+				odd_y_parity: false,
+				r: hex!("36b241b061a36a32ab7fe86c7aa9eb592dd59018cd0443adc0903590c16b02b0").into(),
+				s: hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094").into(),
+			},
 		});
 
 		assert_eq!(tx, rlp::decode::<TransactionV1>(&rlp::encode(&tx)).unwrap());
@@ -818,9 +834,11 @@ mod tests {
 					slots: vec![],
 				},
 			],
-			odd_y_parity: false,
-			r: hex!("36b241b061a36a32ab7fe86c7aa9eb592dd59018cd0443adc0903590c16b02b0").into(),
-			s: hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094").into(),
+			signature: EIP1559Signature {
+				odd_y_parity: false,
+				r: hex!("36b241b061a36a32ab7fe86c7aa9eb592dd59018cd0443adc0903590c16b02b0").into(),
+				s: hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094").into(),
+			},
 		});
 
 		assert_eq!(tx, rlp::decode::<TransactionV2>(&rlp::encode(&tx)).unwrap());
