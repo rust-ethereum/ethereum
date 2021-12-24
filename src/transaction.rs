@@ -1,3 +1,4 @@
+use crate::util::enveloped;
 use crate::Bytes;
 use alloc::vec::Vec;
 use core::ops::Deref;
@@ -591,7 +592,10 @@ impl Decodable for EIP1559Transaction {
 pub type TransactionV0 = LegacyTransaction;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "with-codec", derive(codec::Encode, codec::Decode))]
+#[cfg_attr(
+	feature = "with-codec",
+	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
+)]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum TransactionV1 {
 	/// Legacy transaction type
@@ -697,14 +701,6 @@ impl Decodable for TransactionV2 {
 	}
 }
 
-fn enveloped<T: Encodable>(id: u8, v: &T, s: &mut RlpStream) {
-	let encoded = rlp::encode(v);
-	let mut out = alloc::vec![0; 1 + encoded.len()];
-	out[0] = id;
-	out[1..].copy_from_slice(&encoded);
-	out.rlp_append(s)
-}
-
 impl From<LegacyTransaction> for TransactionV1 {
 	fn from(t: LegacyTransaction) -> Self {
 		TransactionV1::Legacy(t)
@@ -725,6 +721,8 @@ impl From<TransactionV1> for TransactionV2 {
 		}
 	}
 }
+
+pub type TransactionAny = TransactionV2;
 
 #[cfg(test)]
 mod tests {

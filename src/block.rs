@@ -1,5 +1,6 @@
 use crate::{
-	util::ordered_trie_root, Header, PartialHeader, TransactionV0, TransactionV1, TransactionV2,
+	util::ordered_trie_root, Header, PartialHeader, TransactionAny, TransactionV0, TransactionV1,
+	TransactionV2,
 };
 use alloc::vec::Vec;
 use ethereum_types::H256;
@@ -56,6 +57,7 @@ impl<T: Encodable> Block<T> {
 pub type BlockV0 = Block<TransactionV0>;
 pub type BlockV1 = Block<TransactionV1>;
 pub type BlockV2 = Block<TransactionV2>;
+pub type BlockAny = Block<TransactionAny>;
 
 impl<T> From<BlockV0> for Block<T>
 where

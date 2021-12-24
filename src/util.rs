@@ -3,7 +3,16 @@
 use ethereum_types::H256;
 use hash256_std_hasher::Hash256StdHasher;
 use hash_db::Hasher;
+use rlp::{Encodable, RlpStream};
 use sha3::{Digest, Keccak256};
+
+pub fn enveloped<T: Encodable>(id: u8, v: &T, s: &mut RlpStream) {
+	let encoded = rlp::encode(v);
+	let mut out = alloc::vec![0; 1 + encoded.len()];
+	out[0] = id;
+	out[1..].copy_from_slice(&encoded);
+	out.rlp_append(s)
+}
 
 /// Concrete `Hasher` impl for the Keccak-256 hash
 #[derive(Default, Debug, Clone, PartialEq)]
