@@ -176,6 +176,7 @@ impl codec::Decode for TransactionSignature {
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AccessListItem {
 	pub address: Address,
+	#[cfg_attr(feature = "with-serde", serde(alias = "storageKeys"))]
 	pub slots: Vec<H256>,
 }
 
