@@ -171,12 +171,27 @@ impl codec::Decode for TransactionSignature {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
 	feature = "with-codec",
-	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
+	derive(codec::Encode, codec::Decode)
 )]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AccessListItem {
 	pub address: Address,
-	pub storageKeys: Vec<H256>,
+	#[cfg_attr(feature = "with-serde", serde(alias = "storageKeys"))]
+	pub slots: Vec<H256>,
+}
+
+#[cfg(feature = "with-codec")]
+impl scale_info::TypeInfo for AccessListItem {
+    type Identity = Self;
+
+    fn type_info() -> scale_info::Type {
+        scale_info::Type::builder()
+            .path(scale_info::Path::new("AccessListItem", module_path!()))
+			.composite(scale_info::build::Fields::named()
+					   .field(|f| f.ty::<Address>().name("address").type_name("Address"))
+					   .field(|f| f.ty::<Vec<H256>>().name("storageKeys").type_name("Vec<H256>"))
+            )
+    }
 }
 
 impl Encodable for AccessListItem {
