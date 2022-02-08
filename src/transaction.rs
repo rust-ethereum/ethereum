@@ -644,10 +644,7 @@ impl Decodable for TransactionV1 {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(
-	feature = "with-codec",
-	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
-)]
+#[cfg_attr(feature = "with-codec", derive(codec::Encode, scale_info::TypeInfo))]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum TransactionV2 {
 	/// Legacy transaction type
@@ -655,6 +652,31 @@ pub enum TransactionV2 {
 	/// EIP-2930 transaction
 	EIP2930(EIP2930Transaction),
 	/// EIP-1559 transaction
+	EIP1559(EIP1559Transaction),
+}
+
+#[cfg(feature = "with-codec")]
+// We need to implement Decode manually in order for the `LegacyTransaction` type (without enum)
+// to be decoded correctly
+impl codec::Decode for TransactionV2 {
+	fn decode<I: codec::Input>(input: &mut I) -> Result<Self, codec::Error> {
+		match TransactionV2Like::decode(input) {
+			Ok(TransactionV2Like::Legacy(tx)) => Ok(TransactionV2::Legacy(tx)),
+			Ok(TransactionV2Like::EIP2930(tx)) => Ok(TransactionV2::EIP2930(tx)),
+			Ok(TransactionV2Like::EIP1559(tx)) => Ok(TransactionV2::EIP1559(tx)),
+			Err(_) => Ok(TransactionV2::Legacy(
+				<LegacyTransaction as codec::Decode>::decode(input)?,
+			)),
+		}
+	}
+}
+
+#[cfg(feature = "with-codec")]
+// We need 2 implementations of Decode, a first one to test if we have an enum, and a second one to test if we have an `LegacyTransaction` without enum.
+#[derive(codec::Decode)]
+enum TransactionV2Like {
+	Legacy(LegacyTransaction),
+	EIP2930(EIP2930Transaction),
 	EIP1559(EIP1559Transaction),
 }
 
