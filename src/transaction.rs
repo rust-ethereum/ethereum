@@ -176,15 +176,14 @@ impl codec::Decode for TransactionSignature {
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AccessListItem {
 	pub address: Address,
-	#[cfg_attr(feature = "with-serde", serde(alias = "storageKeys"))]
-	pub slots: Vec<H256>,
+	pub storage_keys: Vec<H256>,
 }
 
 impl Encodable for AccessListItem {
 	fn rlp_append(&self, s: &mut RlpStream) {
 		s.begin_list(2);
 		s.append(&self.address);
-		s.append_list(&self.slots);
+		s.append_list(&self.storage_keys);
 	}
 }
 
@@ -192,7 +191,7 @@ impl Decodable for AccessListItem {
 	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
 		Ok(Self {
 			address: rlp.val_at(0)?,
-			slots: rlp.list_at(1)?,
+			storage_keys: rlp.list_at(1)?,
 		})
 	}
 }
@@ -771,7 +770,7 @@ mod tests {
 			access_list: vec![
 				AccessListItem {
 					address: hex!("de0b295669a9fd93d5f28d9ec85e40f4cb697bae").into(),
-					slots: vec![
+					storage_keys: vec![
 						hex!("0000000000000000000000000000000000000000000000000000000000000003")
 							.into(),
 						hex!("0000000000000000000000000000000000000000000000000000000000000007")
@@ -780,7 +779,7 @@ mod tests {
 				},
 				AccessListItem {
 					address: hex!("bb9bc244d798123fde783fcc1c72d3bb8c189413").into(),
-					slots: vec![],
+					storage_keys: vec![],
 				},
 			],
 			odd_y_parity: false,
@@ -807,7 +806,7 @@ mod tests {
 			access_list: vec![
 				AccessListItem {
 					address: hex!("de0b295669a9fd93d5f28d9ec85e40f4cb697bae").into(),
-					slots: vec![
+					storage_keys: vec![
 						hex!("0000000000000000000000000000000000000000000000000000000000000003")
 							.into(),
 						hex!("0000000000000000000000000000000000000000000000000000000000000007")
@@ -816,7 +815,7 @@ mod tests {
 				},
 				AccessListItem {
 					address: hex!("bb9bc244d798123fde783fcc1c72d3bb8c189413").into(),
-					slots: vec![],
+					storage_keys: vec![],
 				},
 			],
 			odd_y_parity: false,
