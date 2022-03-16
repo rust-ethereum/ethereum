@@ -173,7 +173,11 @@ impl codec::Decode for TransactionSignature {
 	feature = "with-codec",
 	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
 )]
-#[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+	feature = "with-serde",
+	derive(serde::Serialize, serde::Deserialize),
+	serde(rename_all = "camelCase")
+)]
 pub struct AccessListItem {
 	pub address: Address,
 	pub storage_keys: Vec<H256>,
