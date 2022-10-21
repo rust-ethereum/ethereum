@@ -3,9 +3,9 @@ use crate::Log;
 use alloc::vec::Vec;
 use ethereum_types::{Bloom, H256, U256};
 use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
-use rlp_derive::{RlpDecodable, RlpEncodable};
 
-#[derive(Clone, Debug, PartialEq, Eq, RlpEncodable, RlpDecodable)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(rlp::RlpEncodable, rlp::RlpDecodable)]
 #[cfg_attr(
 	feature = "with-codec",
 	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
@@ -18,7 +18,8 @@ pub struct FrontierReceiptData {
 	pub logs: Vec<Log>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, RlpEncodable, RlpDecodable)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(rlp::RlpEncodable, rlp::RlpDecodable)]
 #[cfg_attr(
 	feature = "with-codec",
 	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
@@ -65,7 +66,7 @@ impl Decodable for ReceiptV2 {
 	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
 		let slice = rlp.data()?;
 
-		let first = *slice.get(0).ok_or(DecoderError::Custom("empty slice"))?;
+		let first = *slice.first().ok_or(DecoderError::Custom("empty slice"))?;
 
 		if rlp.is_list() {
 			return Ok(Self::Legacy(Decodable::decode(rlp)?));
@@ -121,7 +122,7 @@ impl Decodable for ReceiptV3 {
 	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
 		let slice = rlp.data()?;
 
-		let first = *slice.get(0).ok_or(DecoderError::Custom("empty slice"))?;
+		let first = *slice.first().ok_or(DecoderError::Custom("empty slice"))?;
 
 		if rlp.is_list() {
 			return Ok(Self::Legacy(Decodable::decode(rlp)?));
@@ -185,7 +186,7 @@ impl Decodable for ReceiptAny {
 	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
 		let slice = rlp.data()?;
 
-		let first = *slice.get(0).ok_or(DecoderError::Custom("empty slice"))?;
+		let first = *slice.first().ok_or(DecoderError::Custom("empty slice"))?;
 
 		if rlp.is_list() {
 			if rlp.item_count()? == 4 {

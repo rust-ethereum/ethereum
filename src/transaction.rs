@@ -630,7 +630,7 @@ impl Decodable for TransactionV1 {
 	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
 		let slice = rlp.data()?;
 
-		let first = *slice.get(0).ok_or(DecoderError::Custom("empty slice"))?;
+		let first = *slice.first().ok_or(DecoderError::Custom("empty slice"))?;
 
 		if rlp.is_list() {
 			return Ok(Self::Legacy(rlp.as_val()?));
@@ -685,7 +685,7 @@ impl Decodable for TransactionV2 {
 	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
 		let slice = rlp.data()?;
 
-		let first = *slice.get(0).ok_or(DecoderError::Custom("empty slice"))?;
+		let first = *slice.first().ok_or(DecoderError::Custom("empty slice"))?;
 
 		if rlp.is_list() {
 			return Ok(Self::Legacy(rlp.as_val()?));

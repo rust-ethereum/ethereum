@@ -1,9 +1,9 @@
 use crate::Bytes;
 use alloc::vec::Vec;
 use ethereum_types::{H160, H256};
-use rlp_derive::{RlpDecodable, RlpEncodable};
 
-#[derive(Clone, Debug, PartialEq, Eq, RlpEncodable, RlpDecodable)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(rlp::RlpEncodable, rlp::RlpDecodable)]
 #[cfg_attr(
 	feature = "with-codec",
 	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)

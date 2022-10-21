@@ -15,7 +15,7 @@ pub fn enveloped<T: Encodable>(id: u8, v: &T, s: &mut RlpStream) {
 }
 
 /// Concrete `Hasher` impl for the Keccak-256 hash
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct KeccakHasher;
 impl Hasher for KeccakHasher {
 	type Out = H256;
