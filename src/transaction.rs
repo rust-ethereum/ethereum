@@ -1,6 +1,6 @@
-use crate::util::enveloped;
-use crate::Bytes;
+use crate::{Bytes, EnvelopedDecodable, EnvelopedDecoderError, EnvelopedEncodable};
 use alloc::vec::Vec;
+use bytes::BytesMut;
 use core::ops::Deref;
 use ethereum_types::{Address, H160, H256, U256};
 use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
@@ -595,6 +595,23 @@ impl Decodable for EIP1559Transaction {
 
 pub type TransactionV0 = LegacyTransaction;
 
+impl EnvelopedEncodable for TransactionV0 {
+	fn type_id(&self) -> Option<u8> {
+		None
+	}
+	fn encode_payload(&self) -> BytesMut {
+		rlp::encode(self)
+	}
+}
+
+impl EnvelopedDecodable for TransactionV0 {
+	type PayloadDecoderError = DecoderError;
+
+	fn decode(bytes: &[u8]) -> Result<Self, EnvelopedDecoderError<Self::PayloadDecoderError>> {
+		Ok(rlp::decode(bytes)?)
+	}
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
 	feature = "with-codec",
@@ -617,32 +634,44 @@ impl TransactionV1 {
 	}
 }
 
-impl Encodable for TransactionV1 {
-	fn rlp_append(&self, s: &mut RlpStream) {
+impl EnvelopedEncodable for TransactionV1 {
+	fn type_id(&self) -> Option<u8> {
 		match self {
-			Self::Legacy(tx) => tx.rlp_append(s),
-			Self::EIP2930(tx) => enveloped(1, tx, s),
+			Self::Legacy(_) => None,
+			Self::EIP2930(_) => Some(1),
+		}
+	}
+
+	fn encode_payload(&self) -> BytesMut {
+		match self {
+			Self::Legacy(tx) => rlp::encode(tx),
+			Self::EIP2930(tx) => rlp::encode(tx),
 		}
 	}
 }
 
-impl Decodable for TransactionV1 {
-	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
-		let slice = rlp.data()?;
+impl EnvelopedDecodable for TransactionV1 {
+	type PayloadDecoderError = DecoderError;
 
-		let first = *slice.get(0).ok_or(DecoderError::Custom("empty slice"))?;
+	fn decode(bytes: &[u8]) -> Result<Self, EnvelopedDecoderError<Self::PayloadDecoderError>> {
+		if bytes.is_empty() {
+			return Err(EnvelopedDecoderError::UnknownTypeId);
+		}
 
+		let first = bytes[0];
+
+		let rlp = Rlp::new(bytes);
 		if rlp.is_list() {
 			return Ok(Self::Legacy(rlp.as_val()?));
 		}
 
-		let s = slice.get(1..).ok_or(DecoderError::Custom("no tx body"))?;
+		let s = &bytes[1..];
 
 		if first == 0x01 {
-			return rlp::decode(s).map(Self::EIP2930);
+			return Ok(Self::EIP2930(rlp::decode(s)?));
 		}
 
-		Err(DecoderError::Custom("invalid tx type"))
+		Err(DecoderError::Custom("invalid tx type").into())
 	}
 }
 
@@ -671,37 +700,50 @@ impl TransactionV2 {
 	}
 }
 
-impl Encodable for TransactionV2 {
-	fn rlp_append(&self, s: &mut RlpStream) {
+impl EnvelopedEncodable for TransactionV2 {
+	fn type_id(&self) -> Option<u8> {
 		match self {
-			Self::Legacy(tx) => tx.rlp_append(s),
-			Self::EIP2930(tx) => enveloped(1, tx, s),
-			Self::EIP1559(tx) => enveloped(2, tx, s),
+			Self::Legacy(_) => None,
+			Self::EIP2930(_) => Some(1),
+			Self::EIP1559(_) => Some(2),
+		}
+	}
+
+	fn encode_payload(&self) -> BytesMut {
+		match self {
+			Self::Legacy(tx) => rlp::encode(tx),
+			Self::EIP2930(tx) => rlp::encode(tx),
+			Self::EIP1559(tx) => rlp::encode(tx),
 		}
 	}
 }
 
-impl Decodable for TransactionV2 {
-	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
-		let slice = rlp.data()?;
+impl EnvelopedDecodable for TransactionV2 {
+	type PayloadDecoderError = DecoderError;
 
-		let first = *slice.get(0).ok_or(DecoderError::Custom("empty slice"))?;
+	fn decode(bytes: &[u8]) -> Result<Self, EnvelopedDecoderError<Self::PayloadDecoderError>> {
+		if bytes.is_empty() {
+			return Err(EnvelopedDecoderError::UnknownTypeId);
+		}
 
+		let first = bytes[0];
+
+		let rlp = Rlp::new(bytes);
 		if rlp.is_list() {
 			return Ok(Self::Legacy(rlp.as_val()?));
 		}
 
-		let s = slice.get(1..).ok_or(DecoderError::Custom("no tx body"))?;
+		let s = &bytes[1..];
 
 		if first == 0x01 {
-			return rlp::decode(s).map(Self::EIP2930);
+			return Ok(Self::EIP2930(rlp::decode(s)?));
 		}
 
 		if first == 0x02 {
-			return rlp::decode(s).map(Self::EIP1559);
+			return Ok(Self::EIP1559(rlp::decode(s)?));
 		}
 
-		Err(DecoderError::Custom("invalid tx type"))
+		Err(DecoderError::Custom("invalid tx type").into())
 	}
 }
 
@@ -737,9 +779,9 @@ mod tests {
 	fn can_decode_raw_transaction() {
 		let bytes = hex!("f901e48080831000008080b90196608060405234801561001057600080fd5b50336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055507fc68045c3c562488255b55aa2c4c7849de001859ff0d8a36a75c2d5ed80100fb660405180806020018281038252600d8152602001807f48656c6c6f2c20776f726c64210000000000000000000000000000000000000081525060200191505060405180910390a160cf806100c76000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c80638da5cb5b14602d575b600080fd5b60336075565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b6000809054906101000a900473ffffffffffffffffffffffffffffffffffffffff168156fea265627a7a72315820fae816ad954005c42bea7bc7cb5b19f7fd5d3a250715ca2023275c9ca7ce644064736f6c634300050f003278a04cab43609092a99cf095d458b61b47189d1bbab64baed10a0fd7b7d2de2eb960a011ab1bcda76dfed5e733219beb83789f9887b2a7b2e61759c7c90f7d40403201");
 
-		rlp::decode::<TransactionV0>(&bytes).unwrap();
-		rlp::decode::<TransactionV1>(&bytes).unwrap();
-		rlp::decode::<TransactionV2>(&bytes).unwrap();
+		<TransactionV0 as EnvelopedDecodable>::decode(&bytes).unwrap();
+		<TransactionV1 as EnvelopedDecodable>::decode(&bytes).unwrap();
+		<TransactionV2 as EnvelopedDecodable>::decode(&bytes).unwrap();
 	}
 
 	#[test]
@@ -756,7 +798,10 @@ mod tests {
 			signature: TransactionSignature::new(38, hex!("be67e0a07db67da8d446f76add590e54b6e92cb6b8f9835aeb67540579a27717").into(), hex!("2d690516512020171c1ec870f6ff45398cc8609250326be89915fb538e7bd718").into()).unwrap(),
 		};
 
-		assert_eq!(tx, rlp::decode::<TransactionV0>(&rlp::encode(&tx)).unwrap());
+		assert_eq!(
+			tx,
+			<TransactionV0 as EnvelopedDecodable>::decode(&tx.encode()).unwrap()
+		);
 	}
 
 	#[test]
@@ -791,7 +836,10 @@ mod tests {
 			s: hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094").into(),
 		});
 
-		assert_eq!(tx, rlp::decode::<TransactionV1>(&rlp::encode(&tx)).unwrap());
+		assert_eq!(
+			tx,
+			<TransactionV1 as EnvelopedDecodable>::decode(&tx.encode()).unwrap()
+		);
 	}
 
 	#[test]
@@ -827,6 +875,9 @@ mod tests {
 			s: hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094").into(),
 		});
 
-		assert_eq!(tx, rlp::decode::<TransactionV2>(&rlp::encode(&tx)).unwrap());
+		assert_eq!(
+			tx,
+			<TransactionV2 as EnvelopedDecodable>::decode(&tx.encode()).unwrap()
+		);
 	}
 }

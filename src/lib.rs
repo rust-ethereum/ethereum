@@ -4,6 +4,7 @@ extern crate alloc;
 
 mod account;
 mod block;
+mod enveloped;
 mod header;
 mod log;
 mod receipt;
@@ -15,6 +16,7 @@ type Bytes = alloc::vec::Vec<u8>;
 
 pub use account::Account;
 pub use block::*;
+pub use enveloped::*;
 pub use header::{Header, PartialHeader};
 pub use log::Log;
 pub use receipt::*;
