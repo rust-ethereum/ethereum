@@ -1,8 +1,8 @@
-use crate::util::enveloped;
-use crate::Log;
+use crate::{EnvelopedDecodable, EnvelopedDecoderError, EnvelopedEncodable, Log};
 use alloc::vec::Vec;
+use bytes::BytesMut;
 use ethereum_types::{Bloom, H256, U256};
-use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
+use rlp::{Decodable, DecoderError, Rlp};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[derive(rlp::RlpEncodable, rlp::RlpDecodable)]
@@ -38,7 +38,41 @@ pub type EIP1559ReceiptData = EIP658ReceiptData;
 
 pub type ReceiptV0 = FrontierReceiptData;
 
+impl EnvelopedEncodable for ReceiptV0 {
+	fn type_id(&self) -> Option<u8> {
+		None
+	}
+	fn encode_payload(&self) -> BytesMut {
+		rlp::encode(self)
+	}
+}
+
+impl EnvelopedDecodable for ReceiptV0 {
+	type PayloadDecoderError = DecoderError;
+
+	fn decode(bytes: &[u8]) -> Result<Self, EnvelopedDecoderError<Self::PayloadDecoderError>> {
+		Ok(rlp::decode(bytes)?)
+	}
+}
+
 pub type ReceiptV1 = EIP658ReceiptData;
+
+impl EnvelopedEncodable for ReceiptV1 {
+	fn type_id(&self) -> Option<u8> {
+		None
+	}
+	fn encode_payload(&self) -> BytesMut {
+		rlp::encode(self)
+	}
+}
+
+impl EnvelopedDecodable for ReceiptV1 {
+	type PayloadDecoderError = DecoderError;
+
+	fn decode(bytes: &[u8]) -> Result<Self, EnvelopedDecoderError<Self::PayloadDecoderError>> {
+		Ok(rlp::decode(bytes)?)
+	}
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
@@ -53,34 +87,44 @@ pub enum ReceiptV2 {
 	EIP2930(EIP2930ReceiptData),
 }
 
-impl Encodable for ReceiptV2 {
-	fn rlp_append(&self, s: &mut RlpStream) {
+impl EnvelopedEncodable for ReceiptV2 {
+	fn type_id(&self) -> Option<u8> {
 		match self {
-			Self::Legacy(r) => r.rlp_append(s),
-			Self::EIP2930(r) => enveloped(1, r, s),
+			Self::Legacy(_) => None,
+			Self::EIP2930(_) => Some(1),
+		}
+	}
+
+	fn encode_payload(&self) -> BytesMut {
+		match self {
+			Self::Legacy(r) => rlp::encode(r),
+			Self::EIP2930(r) => rlp::encode(r),
 		}
 	}
 }
 
-impl Decodable for ReceiptV2 {
-	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
-		let slice = rlp.data()?;
+impl EnvelopedDecodable for ReceiptV2 {
+	type PayloadDecoderError = DecoderError;
 
-		let first = *slice.first().ok_or(DecoderError::Custom("empty slice"))?;
-
-		if rlp.is_list() {
-			return Ok(Self::Legacy(Decodable::decode(rlp)?));
+	fn decode(bytes: &[u8]) -> Result<Self, EnvelopedDecoderError<Self::PayloadDecoderError>> {
+		if bytes.is_empty() {
+			return Err(EnvelopedDecoderError::UnknownTypeId);
 		}
 
-		let s = slice
-			.get(1..)
-			.ok_or(DecoderError::Custom("no receipt body"))?;
+		let first = bytes[0];
+
+		let rlp = Rlp::new(bytes);
+		if rlp.is_list() {
+			return Ok(Self::Legacy(Decodable::decode(&rlp)?));
+		}
+
+		let s = &bytes[1..];
 
 		if first == 0x01 {
-			return rlp::decode(s).map(Self::EIP2930);
+			return Ok(Self::EIP2930(rlp::decode(s)?));
 		}
 
-		Err(DecoderError::Custom("invalid receipt type"))
+		Err(DecoderError::Custom("invalid receipt type").into())
 	}
 }
 
@@ -108,39 +152,50 @@ pub enum ReceiptV3 {
 	EIP1559(EIP1559ReceiptData),
 }
 
-impl Encodable for ReceiptV3 {
-	fn rlp_append(&self, s: &mut RlpStream) {
+impl EnvelopedEncodable for ReceiptV3 {
+	fn type_id(&self) -> Option<u8> {
 		match self {
-			Self::Legacy(r) => r.rlp_append(s),
-			Self::EIP2930(r) => enveloped(1, r, s),
-			Self::EIP1559(r) => enveloped(2, r, s),
+			Self::Legacy(_) => None,
+			Self::EIP2930(_) => Some(1),
+			Self::EIP1559(_) => Some(2),
+		}
+	}
+
+	fn encode_payload(&self) -> BytesMut {
+		match self {
+			Self::Legacy(r) => rlp::encode(r),
+			Self::EIP2930(r) => rlp::encode(r),
+			Self::EIP1559(r) => rlp::encode(r),
 		}
 	}
 }
 
-impl Decodable for ReceiptV3 {
-	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
-		let slice = rlp.data()?;
+impl EnvelopedDecodable for ReceiptV3 {
+	type PayloadDecoderError = DecoderError;
 
-		let first = *slice.first().ok_or(DecoderError::Custom("empty slice"))?;
-
-		if rlp.is_list() {
-			return Ok(Self::Legacy(Decodable::decode(rlp)?));
+	fn decode(bytes: &[u8]) -> Result<Self, EnvelopedDecoderError<Self::PayloadDecoderError>> {
+		if bytes.is_empty() {
+			return Err(EnvelopedDecoderError::UnknownTypeId);
 		}
 
-		let s = slice
-			.get(1..)
-			.ok_or(DecoderError::Custom("no receipt body"))?;
+		let first = bytes[0];
+
+		let rlp = Rlp::new(bytes);
+		if rlp.is_list() {
+			return Ok(Self::Legacy(Decodable::decode(&rlp)?));
+		}
+
+		let s = &bytes[1..];
 
 		if first == 0x01 {
-			return rlp::decode(s).map(Self::EIP2930);
+			return Ok(Self::EIP2930(rlp::decode(s)?));
 		}
 
 		if first == 0x02 {
-			return rlp::decode(s).map(Self::EIP1559);
+			return Ok(Self::EIP1559(rlp::decode(s)?));
 		}
 
-		Err(DecoderError::Custom("invalid receipt type"))
+		Err(DecoderError::Custom("invalid receipt type").into())
 	}
 }
 
@@ -171,48 +226,60 @@ pub enum ReceiptAny {
 	EIP1559(EIP1559ReceiptData),
 }
 
-impl Encodable for ReceiptAny {
-	fn rlp_append(&self, s: &mut RlpStream) {
+impl EnvelopedEncodable for ReceiptAny {
+	fn type_id(&self) -> Option<u8> {
 		match self {
-			Self::Frontier(r) => r.rlp_append(s),
-			Self::EIP658(r) => r.rlp_append(s),
-			Self::EIP2930(r) => enveloped(1, r, s),
-			Self::EIP1559(r) => enveloped(2, r, s),
+			Self::Frontier(_) => None,
+			Self::EIP658(_) => None,
+			Self::EIP2930(_) => Some(1),
+			Self::EIP1559(_) => Some(2),
+		}
+	}
+
+	fn encode_payload(&self) -> BytesMut {
+		match self {
+			Self::Frontier(r) => rlp::encode(r),
+			Self::EIP658(r) => rlp::encode(r),
+			Self::EIP2930(r) => rlp::encode(r),
+			Self::EIP1559(r) => rlp::encode(r),
 		}
 	}
 }
 
-impl Decodable for ReceiptAny {
-	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
-		let slice = rlp.data()?;
+impl EnvelopedDecodable for ReceiptAny {
+	type PayloadDecoderError = DecoderError;
 
-		let first = *slice.first().ok_or(DecoderError::Custom("empty slice"))?;
+	fn decode(bytes: &[u8]) -> Result<Self, EnvelopedDecoderError<Self::PayloadDecoderError>> {
+		if bytes.is_empty() {
+			return Err(EnvelopedDecoderError::UnknownTypeId);
+		}
 
+		let first = bytes[0];
+
+		let rlp = Rlp::new(bytes);
 		if rlp.is_list() {
 			if rlp.item_count()? == 4 {
 				let first = rlp.at(0)?;
 				if first.is_data() && first.data()?.len() <= 1 {
-					return Ok(Self::Frontier(Decodable::decode(rlp)?));
+					return Ok(Self::Frontier(Decodable::decode(&rlp)?));
 				} else {
-					return Ok(Self::EIP658(Decodable::decode(rlp)?));
+					return Ok(Self::EIP658(Decodable::decode(&rlp)?));
 				}
 			}
 
-			return Err(DecoderError::RlpIncorrectListLen);
+			return Err(DecoderError::RlpIncorrectListLen.into());
 		}
 
-		let s = slice
-			.get(1..)
-			.ok_or(DecoderError::Custom("no receipt body"))?;
+		let s = &bytes[1..];
 
 		if first == 0x01 {
-			return rlp::decode(s).map(Self::EIP2930);
+			return Ok(Self::EIP2930(rlp::decode(s)?));
 		}
 
 		if first == 0x02 {
-			return rlp::decode(s).map(Self::EIP1559);
+			return Ok(Self::EIP1559(rlp::decode(s)?));
 		}
 
-		Err(DecoderError::Custom("invalid receipt type"))
+		Err(DecoderError::Custom("invalid receipt type").into())
 	}
 }
