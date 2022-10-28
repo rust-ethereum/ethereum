@@ -13,8 +13,7 @@ bytes = { version = "1.0", default-features = false }
 ethereum-types = { version = "0.13.1", default-features = false, features = ["rlp", "codec"] }
 hash-db = { version = "0.15", default-features = false }
 hash256-std-hasher = { version = "0.15", default-features = false }
-rlp = { version = "0.5", default-features = false }
-rlp-derive = "0.1"
+rlp = { version = "0.5.2", default-features = false, features = ["derive"] }
 sha3 = { version = "0.10", default-features = false }
 triehash = { version = "0.8", default-features = false }
 
@@ -42,6 +41,3 @@ std = [
     "sha3/std",
     "triehash/std",
 ]
-
-[workspace]
-members = []

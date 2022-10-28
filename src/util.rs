@@ -6,7 +6,7 @@ use hash_db::Hasher;
 use sha3::{Digest, Keccak256};
 
 /// Concrete `Hasher` impl for the Keccak-256 hash
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct KeccakHasher;
 impl Hasher for KeccakHasher {
 	type Out = H256;

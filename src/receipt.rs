@@ -3,9 +3,9 @@ use alloc::vec::Vec;
 use bytes::BytesMut;
 use ethereum_types::{Bloom, H256, U256};
 use rlp::{Decodable, DecoderError, Rlp};
-use rlp_derive::{RlpDecodable, RlpEncodable};
 
-#[derive(Clone, Debug, PartialEq, Eq, RlpEncodable, RlpDecodable)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(rlp::RlpEncodable, rlp::RlpDecodable)]
 #[cfg_attr(
 	feature = "with-codec",
 	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
@@ -18,7 +18,8 @@ pub struct FrontierReceiptData {
 	pub logs: Vec<Log>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, RlpEncodable, RlpDecodable)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(rlp::RlpEncodable, rlp::RlpDecodable)]
 #[cfg_attr(
 	feature = "with-codec",
 	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)

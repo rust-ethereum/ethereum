@@ -1,10 +1,10 @@
 use ethereum_types::{Bloom, H160, H256, H64, U256};
-use rlp_derive::{RlpDecodable, RlpEncodable};
 use sha3::{Digest, Keccak256};
 
 use crate::Bytes;
 
-#[derive(Clone, Debug, PartialEq, Eq, RlpEncodable, RlpDecodable)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(rlp::RlpEncodable, rlp::RlpDecodable)]
 #[cfg_attr(
 	feature = "with-codec",
 	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
