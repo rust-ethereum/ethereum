@@ -51,13 +51,15 @@ impl<T: EnvelopedDecodable> Decodable for Block<T> {
 	}
 }
 
-impl<T: Encodable> Block<T> {
-	#[must_use]
+impl<T: EnvelopedEncodable> Block<T> {
 	pub fn new(partial_header: PartialHeader, transactions: Vec<T>, ommers: Vec<Header>) -> Self {
 		let ommers_hash =
 			H256::from_slice(Keccak256::digest(&rlp::encode_list(&ommers)[..]).as_slice());
-		let transactions_root =
-			ordered_trie_root(transactions.iter().map(|r| rlp::encode(r).freeze()));
+		let transactions_root = ordered_trie_root(
+			transactions
+				.iter()
+				.map(|r| EnvelopedEncodable::encode(r).freeze()),
+		);
 
 		Self {
 			header: Header::new(partial_header, ommers_hash, transactions_root),
