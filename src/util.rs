@@ -1,5 +1,7 @@
 //! Utility functions for Ethereum.
 
+use alloc::vec::Vec;
+
 use ethereum_types::H256;
 use hash256_std_hasher::Hash256StdHasher;
 use hash_db::Hasher;
