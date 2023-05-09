@@ -171,7 +171,7 @@ mod tests {
 	use sha3::{Digest, Keccak256};
 
 	#[derive(Default, Debug, Clone, PartialEq, Eq)]
-	pub struct KeccakHasher15;
+	struct KeccakHasher15;
 	impl hash_db15::Hasher for KeccakHasher15 {
 		type Out = H256;
 		type StdHasher = Hash256StdHasher;
