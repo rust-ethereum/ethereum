@@ -11,33 +11,35 @@ edition = "2018"
 [dependencies]
 bytes = { version = "1.0", default-features = false }
 ethereum-types = { version = "0.14", default-features = false, features = ["rlp", "codec"] }
-hash-db = { version = "0.15", default-features = false }
+hash-db = { version = "0.16", default-features = false }
 hash256-std-hasher = { version = "0.15", default-features = false }
 rlp = { version = "0.5.2", default-features = false, features = ["derive"] }
 sha3 = { version = "0.10", default-features = false }
-triehash = { version = "0.8", default-features = false }
+trie-root = { version = "0.18", default-features = false }
 
 codec = { package = "parity-scale-codec", version = "3.2", default-features = false, features = ["derive"], optional = true }
 scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
 serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
 
 [dev-dependencies]
-hex-literal = "0.3"
+hash-db15 = { package = "hash-db", version = "0.15.2" }
+hex-literal = "0.4.1"
 rand = "0.8"
+triehash = "0.8.4"
 
 [features]
 default = ["std"]
 with-codec = ["codec", "scale-info", "ethereum-types/codec"]
 with-serde = ["serde", "ethereum-types/serialize"]
 std = [
-    "bytes/std",
-    "codec/std",
-    "ethereum-types/std",
-    "hash-db/std",
-    "hash256-std-hasher/std",
-    "rlp/std",
-    "scale-info/std",
-    "serde/std",
-    "sha3/std",
-    "triehash/std",
+	"bytes/std",
+	"codec/std",
+	"ethereum-types/std",
+	"hash-db/std",
+	"hash256-std-hasher/std",
+	"rlp/std",
+	"scale-info/std",
+	"serde/std",
+	"sha3/std",
+	"trie-root/std",
 ]
