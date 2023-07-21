@@ -27,6 +27,7 @@ pub struct Header {
 	pub extra_data: Bytes,
 	pub mix_hash: H256,
 	pub nonce: H64,
+	pub base_fee: U256
 }
 
 impl Header {
@@ -48,6 +49,7 @@ impl Header {
 			extra_data: partial_header.extra_data,
 			mix_hash: partial_header.mix_hash,
 			nonce: partial_header.nonce,
+			base_fee: partial_header.base_fee,
 		}
 	}
 
@@ -73,6 +75,7 @@ pub struct PartialHeader {
 	pub extra_data: Bytes,
 	pub mix_hash: H256,
 	pub nonce: H64,
+	pub base_fee: U256
 }
 
 impl From<Header> for PartialHeader {
@@ -91,6 +94,7 @@ impl From<Header> for PartialHeader {
 			extra_data: header.extra_data,
 			mix_hash: header.mix_hash,
 			nonce: header.nonce,
+			base_fee: header.base_fee,
 		}
 	}
 }
