@@ -40,7 +40,11 @@ impl EnvelopedDecodable for TransactionV0 {
 	feature = "with-codec",
 	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
 )]
-#[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+	feature = "with-serde",
+	derive(serde::Serialize, serde::Deserialize),
+	serde(untagged)
+)]
 pub enum TransactionV1 {
 	/// Legacy transaction type
 	Legacy(LegacyTransaction),
@@ -103,7 +107,11 @@ impl EnvelopedDecodable for TransactionV1 {
 	feature = "with-codec",
 	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
 )]
-#[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+	feature = "with-serde",
+	derive(serde::Serialize, serde::Deserialize),
+	serde(untagged)
+)]
 pub enum TransactionV2 {
 	/// Legacy transaction type
 	Legacy(LegacyTransaction),

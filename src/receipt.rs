@@ -84,7 +84,11 @@ impl EnvelopedDecodable for ReceiptV1 {
 	feature = "with-codec",
 	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
 )]
-#[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+	feature = "with-serde",
+	derive(serde::Serialize, serde::Deserialize),
+	serde(untagged)
+)]
 pub enum ReceiptV2 {
 	/// Legacy receipt type
 	Legacy(EIP658ReceiptData),
@@ -147,7 +151,11 @@ impl From<ReceiptV2> for EIP658ReceiptData {
 	feature = "with-codec",
 	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
 )]
-#[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+	feature = "with-serde",
+	derive(serde::Serialize, serde::Deserialize),
+	serde(untagged)
+)]
 pub enum ReceiptV3 {
 	/// Legacy receipt type
 	Legacy(EIP658ReceiptData),
@@ -219,7 +227,11 @@ impl From<ReceiptV3> for EIP658ReceiptData {
 	feature = "with-codec",
 	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
 )]
-#[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+	feature = "with-serde",
+	derive(serde::Serialize, serde::Deserialize),
+	serde(untagged)
+)]
 pub enum ReceiptAny {
 	/// Frontier receipt type
 	Frontier(FrontierReceiptData),
