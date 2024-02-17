@@ -1,6 +1,9 @@
-use crate::Bytes;
+#[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
+
 use ethereum_types::{H160, H256};
+
+use crate::Bytes;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[derive(rlp::RlpEncodable, rlp::RlpDecodable)]

@@ -1,11 +1,16 @@
-use crate::{
-	util::ordered_trie_root, EnvelopedDecodable, EnvelopedEncodable, Header, PartialHeader,
-	TransactionAny, TransactionV0, TransactionV1, TransactionV2,
-};
+#[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
+
 use ethereum_types::H256;
-use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
+use rlp::{DecoderError, Rlp, RlpStream};
 use sha3::{Digest, Keccak256};
+
+use crate::{
+	enveloped::{EnvelopedDecodable, EnvelopedEncodable},
+	header::{Header, PartialHeader},
+	transaction::{TransactionAny, TransactionV0, TransactionV1, TransactionV2},
+	util::ordered_trie_root,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
@@ -19,7 +24,7 @@ pub struct Block<T> {
 	pub ommers: Vec<Header>,
 }
 
-impl<T: EnvelopedEncodable> Encodable for Block<T> {
+impl<T: EnvelopedEncodable> rlp::Encodable for Block<T> {
 	fn rlp_append(&self, s: &mut RlpStream) {
 		s.begin_list(3);
 		s.append(&self.header);
@@ -34,7 +39,7 @@ impl<T: EnvelopedEncodable> Encodable for Block<T> {
 	}
 }
 
-impl<T: EnvelopedDecodable> Decodable for Block<T> {
+impl<T: EnvelopedDecodable> rlp::Decodable for Block<T> {
 	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
 		Ok(Self {
 			header: rlp.val_at(0)?,

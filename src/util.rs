@@ -1,5 +1,6 @@
 //! Utility functions for Ethereum.
 
+#[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
 use ethereum_types::H256;
