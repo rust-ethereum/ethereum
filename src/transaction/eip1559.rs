@@ -1,6 +1,3 @@
-#[cfg(not(feature = "std"))]
-use alloc::vec;
-
 use ethereum_types::{H256, U256};
 use rlp::{DecoderError, Rlp, RlpStream};
 use sha3::{Digest, Keccak256};
@@ -34,7 +31,7 @@ pub struct EIP1559Transaction {
 impl EIP1559Transaction {
 	pub fn hash(&self) -> H256 {
 		let encoded = rlp::encode(self);
-		let mut out = vec![0; 1 + encoded.len()];
+		let mut out = alloc::vec![0; 1 + encoded.len()];
 		out[0] = 2;
 		out[1..].copy_from_slice(&encoded);
 		H256::from_slice(Keccak256::digest(&out).as_slice())
@@ -120,7 +117,7 @@ pub struct EIP1559TransactionMessage {
 impl EIP1559TransactionMessage {
 	pub fn hash(&self) -> H256 {
 		let encoded = rlp::encode(self);
-		let mut out = vec![0; 1 + encoded.len()];
+		let mut out = alloc::vec![0; 1 + encoded.len()];
 		out[0] = 2;
 		out[1..].copy_from_slice(&encoded);
 		H256::from_slice(Keccak256::digest(&out).as_slice())

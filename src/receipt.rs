@@ -1,4 +1,3 @@
-#[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
 use bytes::BytesMut;
