@@ -1,8 +1,13 @@
-use crate::{EnvelopedDecodable, EnvelopedDecoderError, EnvelopedEncodable, Log};
 use alloc::vec::Vec;
+
 use bytes::BytesMut;
 use ethereum_types::{Bloom, H256, U256};
 use rlp::{Decodable, DecoderError, Rlp};
+
+use crate::{
+	enveloped::{EnvelopedDecodable, EnvelopedDecoderError, EnvelopedEncodable},
+	log::Log,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[derive(rlp::RlpEncodable, rlp::RlpDecodable)]
