@@ -3,14 +3,14 @@ use sha3::{Digest, Keccak256};
 
 use crate::Bytes;
 
+/// Ethereum header definition.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[derive(rlp::RlpEncodable, rlp::RlpDecodable)]
 #[cfg_attr(
-	feature = "with-codec",
-	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
+	feature = "with-scale",
+	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
 )]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
-/// Ethereum header definition.
 pub struct Header {
 	pub parent_hash: H256,
 	pub ommers_hash: H256,
@@ -57,8 +57,8 @@ impl Header {
 	}
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
 /// Partial header definition without ommers hash and transactions root.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PartialHeader {
 	pub parent_hash: H256,
 	pub beneficiary: H160,
