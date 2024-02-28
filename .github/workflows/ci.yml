@@ -34,7 +34,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --all --release
+          args: --all --release --all-features
       - uses: actions-rs/cargo@v1
         with:
           command: build

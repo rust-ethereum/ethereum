@@ -8,14 +8,10 @@ use crate::{transaction::TransactionAction, Bytes};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
-	feature = "with-codec",
-	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
+	feature = "with-scale",
+	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
 )]
-#[cfg_attr(
-	feature = "with-serde",
-	derive(serde::Serialize, serde::Deserialize),
-	serde(rename_all = "camelCase")
-)]
+#[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AccessListItem {
 	pub address: Address,
 	pub storage_keys: Vec<H256>,
@@ -42,8 +38,8 @@ pub type AccessList = Vec<AccessListItem>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
-	feature = "with-codec",
-	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
+	feature = "with-scale",
+	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
 )]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EIP2930Transaction {

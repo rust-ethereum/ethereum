@@ -9,8 +9,8 @@ use crate::{
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
-	feature = "with-codec",
-	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
+	feature = "with-scale",
+	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
 )]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EIP1559Transaction {

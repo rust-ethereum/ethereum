@@ -8,8 +8,8 @@ use crate::Bytes;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(
-	feature = "with-codec",
-	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
+	feature = "with-scale",
+	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
 )]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum TransactionAction {
@@ -44,8 +44,8 @@ impl rlp::Decodable for TransactionAction {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(
-	feature = "with-codec",
-	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
+	feature = "with-scale",
+	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
 )]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TransactionRecoveryId(pub u64);
@@ -77,7 +77,7 @@ impl TransactionRecoveryId {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "with-codec", derive(scale_info::TypeInfo))]
+#[cfg_attr(feature = "with-scale", derive(scale_info::TypeInfo))]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TransactionSignature {
 	v: TransactionRecoveryId,
@@ -146,32 +146,32 @@ impl TransactionSignature {
 	}
 }
 
-#[cfg(feature = "codec")]
-impl codec::Encode for TransactionSignature {
+#[cfg(feature = "with-scale")]
+impl scale_codec::Encode for TransactionSignature {
 	fn size_hint(&self) -> usize {
-		codec::Encode::size_hint(&(self.v.0, self.r, self.s))
+		scale_codec::Encode::size_hint(&(self.v.0, self.r, self.s))
 	}
 
 	fn using_encoded<R, F: FnOnce(&[u8]) -> R>(&self, f: F) -> R {
-		codec::Encode::using_encoded(&(self.v.0, self.r, self.s), f)
+		scale_codec::Encode::using_encoded(&(self.v.0, self.r, self.s), f)
 	}
 }
 
-#[cfg(feature = "codec")]
-impl codec::Decode for TransactionSignature {
-	fn decode<I: codec::Input>(value: &mut I) -> Result<Self, codec::Error> {
-		let (v, r, s) = codec::Decode::decode(value)?;
+#[cfg(feature = "with-scale")]
+impl scale_codec::Decode for TransactionSignature {
+	fn decode<I: scale_codec::Input>(value: &mut I) -> Result<Self, scale_codec::Error> {
+		let (v, r, s) = scale_codec::Decode::decode(value)?;
 		match Self::new(v, r, s) {
 			Some(signature) => Ok(signature),
-			None => Err(codec::Error::from("Invalid signature")),
+			None => Err(scale_codec::Error::from("Invalid signature")),
 		}
 	}
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
-	feature = "with-codec",
-	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
+	feature = "with-scale",
+	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
 )]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LegacyTransaction {
@@ -250,10 +250,6 @@ impl rlp::Decodable for LegacyTransaction {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(
-	feature = "with-codec",
-	derive(codec::Encode, codec::Decode, scale_info::TypeInfo)
-)]
 pub struct LegacyTransactionMessage {
 	pub nonce: U256,
 	pub gas_price: U256,

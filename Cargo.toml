@@ -17,7 +17,7 @@ rlp = { version = "0.5.2", default-features = false, features = ["derive"] }
 sha3 = { version = "0.10", default-features = false }
 trie-root = { version = "0.18", default-features = false }
 
-codec = { package = "parity-scale-codec", version = "3.2", default-features = false, features = ["derive"], optional = true }
+scale-codec = { package = "parity-scale-codec", version = "3.2", default-features = false, features = ["derive"], optional = true }
 scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
 serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
 
@@ -29,17 +29,17 @@ triehash = "0.8.4"
 
 [features]
 default = ["std"]
-with-codec = ["codec", "scale-info", "ethereum-types/codec"]
+with-scale = ["scale-codec", "scale-info", "ethereum-types/codec"]
 with-serde = ["serde", "ethereum-types/serialize"]
 std = [
 	"bytes/std",
-	"codec/std",
 	"ethereum-types/std",
 	"hash-db/std",
 	"hash256-std-hasher/std",
 	"rlp/std",
-	"scale-info/std",
-	"serde/std",
 	"sha3/std",
 	"trie-root/std",
+	"scale-codec?/std",
+	"scale-info?/std",
+	"serde?/std",
 ]
