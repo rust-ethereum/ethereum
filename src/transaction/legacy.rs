@@ -77,7 +77,7 @@ impl TransactionRecoveryId {
 	}
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, DecodeWithMemTracking)]
 #[cfg_attr(feature = "with-scale", derive(scale_info::TypeInfo))]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TransactionSignature {
