@@ -5,6 +5,7 @@ mod legacy;
 use bytes::BytesMut;
 use ethereum_types::H256;
 use rlp::{DecoderError, Rlp};
+use scale_codec::DecodeWithMemTracking;
 
 pub use self::{
 	eip1559::{EIP1559Transaction, EIP1559TransactionMessage},
@@ -102,7 +103,7 @@ impl EnvelopedDecodable for TransactionV1 {
 	}
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, DecodeWithMemTracking)]
 #[cfg_attr(
 	feature = "with-scale",
 	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
