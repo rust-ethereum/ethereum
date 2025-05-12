@@ -1,10 +1,11 @@
 use alloc::vec::Vec;
 
 use ethereum_types::{H160, H256};
+use scale_codec::DecodeWithMemTracking;
 
 use crate::Bytes;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, DecodeWithMemTracking)]
 #[derive(rlp::RlpEncodable, rlp::RlpDecodable)]
 #[cfg_attr(
 	feature = "with-scale",
