@@ -7,7 +7,7 @@ use sha3::{Digest, Keccak256};
 
 use crate::{transaction::TransactionAction, Bytes};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, DecodeWithMemTracking)]
 #[cfg_attr(
 	feature = "with-scale",
 	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
