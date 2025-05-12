@@ -2,6 +2,7 @@ use alloc::vec::Vec;
 
 use ethereum_types::{Address, H256, U256};
 use rlp::{DecoderError, Rlp, RlpStream};
+use scale_codec::DecodeWithMemTracking;
 use sha3::{Digest, Keccak256};
 
 use crate::{transaction::TransactionAction, Bytes};
@@ -36,7 +37,7 @@ impl rlp::Decodable for AccessListItem {
 
 pub type AccessList = Vec<AccessListItem>;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, DecodeWithMemTracking)]
 #[cfg_attr(
 	feature = "with-scale",
 	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
