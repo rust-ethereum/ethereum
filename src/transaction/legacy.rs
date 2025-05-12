@@ -2,15 +2,19 @@ use core::ops::Deref;
 
 use ethereum_types::{H160, H256, U256};
 use rlp::{DecoderError, Rlp, RlpStream};
-use scale_codec::DecodeWithMemTracking;
 use sha3::{Digest, Keccak256};
 
 use crate::Bytes;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, DecodeWithMemTracking)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(
 	feature = "with-scale",
-	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
+	derive(
+		scale_codec::Encode,
+		scale_codec::Decode,
+		scale_codec::DecodeWithMemTracking,
+		scale_info::TypeInfo
+	)
 )]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum TransactionAction {
@@ -43,10 +47,15 @@ impl rlp::Decodable for TransactionAction {
 	}
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, DecodeWithMemTracking)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(
 	feature = "with-scale",
-	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
+	derive(
+		scale_codec::Encode,
+		scale_codec::Decode,
+		scale_codec::DecodeWithMemTracking,
+		scale_info::TypeInfo
+	)
 )]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TransactionRecoveryId(pub u64);
@@ -77,8 +86,11 @@ impl TransactionRecoveryId {
 	}
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, DecodeWithMemTracking)]
-#[cfg_attr(feature = "with-scale", derive(scale_info::TypeInfo))]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(
+	feature = "with-scale",
+	derive(scale_info::TypeInfo, scale_codec::DecodeWithMemTracking)
+)]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TransactionSignature {
 	v: TransactionRecoveryId,
@@ -169,10 +181,15 @@ impl scale_codec::Decode for TransactionSignature {
 	}
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, DecodeWithMemTracking)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
 	feature = "with-scale",
-	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
+	derive(
+		scale_codec::Encode,
+		scale_codec::Decode,
+		scale_codec::DecodeWithMemTracking,
+		scale_info::TypeInfo
+	)
 )]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LegacyTransaction {

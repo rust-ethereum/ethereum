@@ -2,15 +2,19 @@ use alloc::vec::Vec;
 
 use ethereum_types::{Address, H256, U256};
 use rlp::{DecoderError, Rlp, RlpStream};
-use scale_codec::DecodeWithMemTracking;
 use sha3::{Digest, Keccak256};
 
 use crate::{transaction::TransactionAction, Bytes};
 
-#[derive(Clone, Debug, PartialEq, Eq, DecodeWithMemTracking)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
 	feature = "with-scale",
-	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
+	derive(
+		scale_codec::Encode,
+		scale_codec::Decode,
+		scale_codec::DecodeWithMemTracking,
+		scale_info::TypeInfo
+	)
 )]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AccessListItem {
@@ -37,10 +41,15 @@ impl rlp::Decodable for AccessListItem {
 
 pub type AccessList = Vec<AccessListItem>;
 
-#[derive(Clone, Debug, PartialEq, Eq, DecodeWithMemTracking)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
 	feature = "with-scale",
-	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
+	derive(
+		scale_codec::Encode,
+		scale_codec::Decode,
+		scale_codec::DecodeWithMemTracking,
+		scale_info::TypeInfo
+	)
 )]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EIP2930Transaction {
