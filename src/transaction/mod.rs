@@ -1,5 +1,6 @@
 mod eip1559;
 mod eip2930;
+mod eip7702;
 mod legacy;
 
 use bytes::BytesMut;
@@ -9,6 +10,9 @@ use rlp::{DecoderError, Rlp};
 pub use self::{
 	eip1559::{EIP1559Transaction, EIP1559TransactionMessage},
 	eip2930::{AccessList, AccessListItem, EIP2930Transaction, EIP2930TransactionMessage},
+	eip7702::{
+		AuthorizationList, AuthorizationListItem, EIP7702Transaction, EIP7702TransactionMessage,
+	},
 	legacy::{
 		LegacyTransaction, LegacyTransactionMessage, TransactionAction, TransactionRecoveryId,
 		TransactionSignature,
@@ -204,7 +208,122 @@ impl From<TransactionV1> for TransactionV2 {
 	}
 }
 
-pub type TransactionAny = TransactionV2;
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(
+	feature = "with-scale",
+	derive(
+		scale_codec::Encode,
+		scale_codec::Decode,
+		scale_codec::DecodeWithMemTracking,
+		scale_info::TypeInfo
+	)
+)]
+#[cfg_attr(
+	feature = "with-serde",
+	derive(serde::Serialize, serde::Deserialize),
+	serde(untagged)
+)]
+pub enum TransactionV3 {
+	/// Legacy transaction type
+	Legacy(LegacyTransaction),
+	/// EIP-2930 transaction
+	EIP2930(EIP2930Transaction),
+	/// EIP-1559 transaction
+	EIP1559(EIP1559Transaction),
+	/// EIP-7702 transaction
+	EIP7702(EIP7702Transaction),
+}
+
+impl TransactionV3 {
+	pub fn hash(&self) -> H256 {
+		match self {
+			TransactionV3::Legacy(t) => t.hash(),
+			TransactionV3::EIP2930(t) => t.hash(),
+			TransactionV3::EIP1559(t) => t.hash(),
+			TransactionV3::EIP7702(t) => t.hash(),
+		}
+	}
+}
+
+impl EnvelopedEncodable for TransactionV3 {
+	fn type_id(&self) -> Option<u8> {
+		match self {
+			Self::Legacy(_) => None,
+			Self::EIP2930(_) => Some(1),
+			Self::EIP1559(_) => Some(2),
+			Self::EIP7702(_) => Some(5),
+		}
+	}
+
+	fn encode_payload(&self) -> BytesMut {
+		match self {
+			Self::Legacy(tx) => rlp::encode(tx),
+			Self::EIP2930(tx) => rlp::encode(tx),
+			Self::EIP1559(tx) => rlp::encode(tx),
+			Self::EIP7702(tx) => rlp::encode(tx),
+		}
+	}
+}
+
+impl EnvelopedDecodable for TransactionV3 {
+	type PayloadDecoderError = DecoderError;
+
+	fn decode(bytes: &[u8]) -> Result<Self, EnvelopedDecoderError<Self::PayloadDecoderError>> {
+		if bytes.is_empty() {
+			return Err(EnvelopedDecoderError::UnknownTypeId);
+		}
+
+		let first = bytes[0];
+
+		let rlp = Rlp::new(bytes);
+		if rlp.is_list() {
+			return Ok(Self::Legacy(rlp.as_val()?));
+		}
+
+		let s = &bytes[1..];
+
+		if first == 0x01 {
+			return Ok(Self::EIP2930(rlp::decode(s)?));
+		}
+
+		if first == 0x02 {
+			return Ok(Self::EIP1559(rlp::decode(s)?));
+		}
+
+		if first == 0x05 {
+			return Ok(Self::EIP7702(rlp::decode(s)?));
+		}
+
+		Err(DecoderError::Custom("invalid tx type").into())
+	}
+}
+
+impl From<LegacyTransaction> for TransactionV3 {
+	fn from(t: LegacyTransaction) -> Self {
+		TransactionV3::Legacy(t)
+	}
+}
+
+impl From<TransactionV1> for TransactionV3 {
+	fn from(t: TransactionV1) -> Self {
+		match t {
+			TransactionV1::Legacy(t) => TransactionV3::Legacy(t),
+			TransactionV1::EIP2930(t) => TransactionV3::EIP2930(t),
+		}
+	}
+}
+
+impl From<TransactionV2> for TransactionV3 {
+	fn from(t: TransactionV2) -> Self {
+		match t {
+			TransactionV2::Legacy(t) => TransactionV3::Legacy(t),
+			TransactionV2::EIP2930(t) => TransactionV3::EIP2930(t),
+			TransactionV2::EIP1559(t) => TransactionV3::EIP1559(t),
+		}
+	}
+}
+
+pub type TransactionAny = TransactionV3;
 
 #[cfg(test)]
 mod tests {
@@ -219,6 +338,7 @@ mod tests {
 		<TransactionV0 as EnvelopedDecodable>::decode(&bytes).unwrap();
 		<TransactionV1 as EnvelopedDecodable>::decode(&bytes).unwrap();
 		<TransactionV2 as EnvelopedDecodable>::decode(&bytes).unwrap();
+		<TransactionV3 as EnvelopedDecodable>::decode(&bytes).unwrap();
 	}
 
 	#[test]
@@ -315,6 +435,47 @@ mod tests {
 		assert_eq!(
 			tx,
 			<TransactionV2 as EnvelopedDecodable>::decode(&tx.encode()).unwrap()
+		);
+	}
+
+	#[test]
+	fn transaction_v3() {
+		let tx = TransactionV3::EIP7702(EIP7702Transaction {
+			chain_id: 5,
+			nonce: 7.into(),
+			max_priority_fee_per_gas: 10_000_000_000_u64.into(),
+			max_fee_per_gas: 30_000_000_000_u64.into(),
+			gas_limit: 5_748_100_u64.into(),
+			destination: TransactionAction::Call(
+				hex!("811a752c8cd697e3cb27279c330ed1ada745a8d7").into(),
+			),
+			value: U256::from(2) * 1_000_000_000 * 1_000_000_000,
+			data: hex!("6ebaf477f83e051589c1188bcc6ddccd").into(),
+			access_list: vec![AccessListItem {
+				address: hex!("de0b295669a9fd93d5f28d9ec85e40f4cb697bae").into(),
+				storage_keys: vec![hex!(
+					"0000000000000000000000000000000000000000000000000000000000000003"
+				)
+				.into()],
+			}],
+			authorization_list: vec![AuthorizationListItem {
+				chain_id: 5,
+				address: hex!("de0b295669a9fd93d5f28d9ec85e40f4cb697bae").into(),
+				nonce: 1.into(),
+				y_parity: false,
+				r: hex!("36b241b061a36a32ab7fe86c7aa9eb592dd59018cd0443adc0903590c16b02b0").into(),
+				s: hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094").into(),
+			}],
+			signature_y_parity: false,
+			signature_r: hex!("36b241b061a36a32ab7fe86c7aa9eb592dd59018cd0443adc0903590c16b02b0")
+				.into(),
+			signature_s: hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094")
+				.into(),
+		});
+
+		assert_eq!(
+			tx,
+			<TransactionV3 as EnvelopedDecodable>::decode(&tx.encode()).unwrap()
 		);
 	}
 }
