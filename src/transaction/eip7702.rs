@@ -82,9 +82,9 @@ pub struct EIP7702Transaction {
 	pub data: Bytes,
 	pub access_list: AccessList,
 	pub authorization_list: AuthorizationList,
-	pub signature_y_parity: bool,
-	pub signature_r: H256,
-	pub signature_s: H256,
+	pub odd_y_parity: bool,
+	pub r: H256,
+	pub s: H256,
 }
 
 impl EIP7702Transaction {
@@ -125,9 +125,9 @@ impl rlp::Encodable for EIP7702Transaction {
 		s.append(&self.data);
 		s.append_list(&self.access_list);
 		s.append_list(&self.authorization_list);
-		s.append(&self.signature_y_parity);
-		s.append(&U256::from_big_endian(&self.signature_r[..]));
-		s.append(&U256::from_big_endian(&self.signature_s[..]));
+		s.append(&self.odd_y_parity);
+		s.append(&U256::from_big_endian(&self.r[..]));
+		s.append(&U256::from_big_endian(&self.s[..]));
 	}
 }
 
@@ -148,9 +148,9 @@ impl rlp::Decodable for EIP7702Transaction {
 			data: rlp.val_at(7)?,
 			access_list: rlp.list_at(8)?,
 			authorization_list: rlp.list_at(9)?,
-			signature_y_parity: rlp.val_at(10)?,
-			signature_r: H256::from(rlp.val_at::<U256>(11)?.to_big_endian()),
-			signature_s: H256::from(rlp.val_at::<U256>(12)?.to_big_endian()),
+			odd_y_parity: rlp.val_at(10)?,
+			r: H256::from(rlp.val_at::<U256>(11)?.to_big_endian()),
+			s: H256::from(rlp.val_at::<U256>(12)?.to_big_endian()),
 		})
 	}
 }
