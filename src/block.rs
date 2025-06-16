@@ -181,7 +181,7 @@ mod tests {
 
 		assert_eq!(block, decoded);
 		assert_eq!(decoded.transactions.len(), 1);
-		
+
 		// Verify the transaction is preserved correctly
 		match &decoded.transactions[0] {
 			TransactionV3::EIP7702(tx) => {
@@ -234,7 +234,7 @@ mod tests {
 		// Verify conversion worked
 		assert_eq!(block_v3.transactions.len(), 1);
 		match &block_v3.transactions[0] {
-			TransactionV3::EIP1559(_) => {}, // Expected
+			TransactionV3::EIP1559(_) => {} // Expected
 			_ => panic!("Expected EIP1559 transaction in V3"),
 		}
 	}
