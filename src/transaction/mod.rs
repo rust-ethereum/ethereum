@@ -12,6 +12,7 @@ pub use self::{
 	eip2930::{AccessList, AccessListItem, EIP2930Transaction, EIP2930TransactionMessage},
 	eip7702::{
 		AuthorizationList, AuthorizationListItem, EIP7702Transaction, EIP7702TransactionMessage,
+		SET_CODE_TX_TYPE,
 	},
 	legacy::{
 		LegacyTransaction, LegacyTransactionMessage, TransactionAction, TransactionRecoveryId,
@@ -251,7 +252,7 @@ impl EnvelopedEncodable for TransactionV3 {
 			Self::Legacy(_) => None,
 			Self::EIP2930(_) => Some(1),
 			Self::EIP1559(_) => Some(2),
-			Self::EIP7702(_) => Some(5),
+			Self::EIP7702(_) => Some(4),
 		}
 	}
 
@@ -290,7 +291,7 @@ impl EnvelopedDecodable for TransactionV3 {
 			return Ok(Self::EIP1559(rlp::decode(s)?));
 		}
 
-		if first == 0x05 {
+		if first == 0x04 {
 			return Ok(Self::EIP7702(rlp::decode(s)?));
 		}
 

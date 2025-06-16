@@ -41,6 +41,8 @@ pub type EIP2930ReceiptData = EIP658ReceiptData;
 
 pub type EIP1559ReceiptData = EIP658ReceiptData;
 
+pub type EIP7702ReceiptData = EIP658ReceiptData;
+
 pub type ReceiptV0 = FrontierReceiptData;
 
 impl EnvelopedEncodable for ReceiptV0 {
@@ -163,6 +165,8 @@ pub enum ReceiptV3 {
 	EIP2930(EIP2930ReceiptData),
 	/// EIP-1559 receipt type
 	EIP1559(EIP1559ReceiptData),
+	/// EIP-7702 receipt type
+	EIP7702(EIP7702ReceiptData),
 }
 
 impl EnvelopedEncodable for ReceiptV3 {
@@ -171,6 +175,7 @@ impl EnvelopedEncodable for ReceiptV3 {
 			Self::Legacy(_) => None,
 			Self::EIP2930(_) => Some(1),
 			Self::EIP1559(_) => Some(2),
+			Self::EIP7702(_) => Some(4),
 		}
 	}
 
@@ -179,6 +184,7 @@ impl EnvelopedEncodable for ReceiptV3 {
 			Self::Legacy(r) => rlp::encode(r),
 			Self::EIP2930(r) => rlp::encode(r),
 			Self::EIP1559(r) => rlp::encode(r),
+			Self::EIP7702(r) => rlp::encode(r),
 		}
 	}
 }
@@ -208,6 +214,10 @@ impl EnvelopedDecodable for ReceiptV3 {
 			return Ok(Self::EIP1559(rlp::decode(s)?));
 		}
 
+		if first == 0x04 {
+			return Ok(Self::EIP7702(rlp::decode(s)?));
+		}
+
 		Err(DecoderError::Custom("invalid receipt type").into())
 	}
 }
@@ -218,6 +228,7 @@ impl From<ReceiptV3> for EIP658ReceiptData {
 			ReceiptV3::Legacy(r) => r,
 			ReceiptV3::EIP2930(r) => r,
 			ReceiptV3::EIP1559(r) => r,
+			ReceiptV3::EIP7702(r) => r,
 		}
 	}
 }
@@ -241,6 +252,8 @@ pub enum ReceiptAny {
 	EIP2930(EIP2930ReceiptData),
 	/// EIP-1559 receipt type
 	EIP1559(EIP1559ReceiptData),
+	/// EIP-7702 receipt type
+	EIP7702(EIP7702ReceiptData),
 }
 
 impl EnvelopedEncodable for ReceiptAny {
@@ -250,6 +263,7 @@ impl EnvelopedEncodable for ReceiptAny {
 			Self::EIP658(_) => None,
 			Self::EIP2930(_) => Some(1),
 			Self::EIP1559(_) => Some(2),
+			Self::EIP7702(_) => Some(4),
 		}
 	}
 
@@ -259,6 +273,7 @@ impl EnvelopedEncodable for ReceiptAny {
 			Self::EIP658(r) => rlp::encode(r),
 			Self::EIP2930(r) => rlp::encode(r),
 			Self::EIP1559(r) => rlp::encode(r),
+			Self::EIP7702(r) => rlp::encode(r),
 		}
 	}
 }
@@ -295,6 +310,10 @@ impl EnvelopedDecodable for ReceiptAny {
 
 		if first == 0x02 {
 			return Ok(Self::EIP1559(rlp::decode(s)?));
+		}
+
+		if first == 0x04 {
+			return Ok(Self::EIP7702(rlp::decode(s)?));
 		}
 
 		Err(DecoderError::Custom("invalid receipt type").into())

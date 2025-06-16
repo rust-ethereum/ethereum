@@ -9,6 +9,9 @@ use crate::{
 	Bytes,
 };
 
+/// EIP-7702 transaction type as defined in the specification
+pub const SET_CODE_TX_TYPE: u8 = 0x04;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
 	feature = "with-scale",
@@ -91,7 +94,7 @@ impl EIP7702Transaction {
 	pub fn hash(&self) -> H256 {
 		let encoded = rlp::encode(self);
 		let mut out = alloc::vec![0; 1 + encoded.len()];
-		out[0] = 5;
+		out[0] = SET_CODE_TX_TYPE;
 		out[1..].copy_from_slice(&encoded);
 		H256::from_slice(Keccak256::digest(&out).as_slice())
 	}
@@ -173,7 +176,7 @@ impl EIP7702TransactionMessage {
 	pub fn hash(&self) -> H256 {
 		let encoded = rlp::encode(self);
 		let mut out = alloc::vec![0; 1 + encoded.len()];
-		out[0] = 5;
+		out[0] = SET_CODE_TX_TYPE;
 		out[1..].copy_from_slice(&encoded);
 		H256::from_slice(Keccak256::digest(&out).as_slice())
 	}
