@@ -12,6 +12,9 @@ use crate::{
 /// EIP-7702 transaction type as defined in the specification
 pub const SET_CODE_TX_TYPE: u8 = 0x04;
 
+/// EIP-7702 authorization message magic prefix
+pub const AUTHORIZATION_MAGIC: u8 = 0x05;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
 	feature = "with-scale",
