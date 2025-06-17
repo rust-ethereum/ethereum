@@ -12,7 +12,7 @@ pub use self::{
 	eip2930::{AccessList, AccessListItem, EIP2930Transaction, EIP2930TransactionMessage},
 	eip7702::{
 		AuthorizationList, AuthorizationListItem, EIP7702Transaction, EIP7702TransactionMessage,
-		SET_CODE_TX_TYPE, AUTHORIZATION_MAGIC,
+		AUTHORIZATION_MAGIC, SET_CODE_TX_TYPE,
 	},
 	legacy::{
 		LegacyTransaction, LegacyTransactionMessage, TransactionAction, TransactionRecoveryId,
