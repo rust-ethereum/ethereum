@@ -72,15 +72,15 @@ impl AuthorizationListItem {
 
 		// Convert signature components to the format expected by ecrecover
 		let mut signature = [0u8; 65];
-		
+
 		// Convert H256 to bytes
-		signature[0..32].copy_from_slice(&self.r[..]);  // r
-		signature[32..64].copy_from_slice(&self.s[..]);  // s
+		signature[0..32].copy_from_slice(&self.r[..]); // r
+		signature[32..64].copy_from_slice(&self.s[..]); // s
 		signature[64] = if self.y_parity { 1 } else { 0 }; // recovery_id
 
 		// Perform ECDSA recovery
 		let message_bytes: [u8; 32] = message_hash.into();
-		
+
 		// Use a simple ecrecover implementation
 		if let Ok(pubkey) = Self::ecrecover(&message_bytes, &signature) {
 			// Convert public key to Ethereum address
@@ -104,14 +104,14 @@ impl AuthorizationListItem {
 		rlp_stream.append(&self.nonce);
 		message.extend_from_slice(&rlp_stream.out());
 
-		// Return keccak256 hash of the complete message  
+		// Return keccak256 hash of the complete message
 		H256::from_slice(Keccak256::digest(&message).as_slice())
 	}
 
 	/// ECDSA recovery implementation using k256 (pure Rust secp256k1)
 	fn ecrecover(message_hash: &[u8; 32], signature: &[u8; 65]) -> Result<[u8; 64], ()> {
 		use k256::ecdsa::{RecoveryId, Signature, VerifyingKey};
-		
+
 		// Extract signature components
 		let r = &signature[0..32];
 		let s = &signature[32..64];
@@ -143,7 +143,7 @@ impl AuthorizationListItem {
 				// Convert public key to bytes (uncompressed format, skip the 0x04 prefix)
 				let pubkey_bytes = verifying_key.to_encoded_point(false);
 				let pubkey_slice = pubkey_bytes.as_bytes();
-				
+
 				// pubkey_slice is 65 bytes: [0x04, x_coord (32 bytes), y_coord (32 bytes)]
 				// We want just the x and y coordinates (64 bytes total)
 				if pubkey_slice.len() >= 65 && pubkey_slice[0] == 0x04 {
@@ -315,69 +315,78 @@ mod tests {
 	use ethereum_types::{Address, H256, U256};
 
 	#[test]
-	fn test_authorizing_address_basic() {
-		// Create a sample AuthorizationListItem
-		// Note: These are sample values - in real usage they would be valid ECDSA signature components
+	fn test_authorizing_address_with_real_signature() {
+		use k256::ecdsa::SigningKey;
+		use k256::elliptic_curve::SecretKey;
+
+		// Use a fixed test private key for deterministic testing
+		let private_key_bytes = [
+			0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e,
+			0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c,
+			0x1d, 0x1e, 0x1f, 0x20,
+		];
+
+		let secret_key =
+			SecretKey::from_bytes(&private_key_bytes.into()).expect("Invalid private key");
+		let signing_key = SigningKey::from(secret_key);
+		let verifying_key = signing_key.verifying_key();
+
+		// Create authorization data
+		let chain_id = 1u64;
+		let address = Address::from_slice(&[0x42u8; 20]);
+		let nonce = U256::zero();
+
+		// Create the EIP-7702 authorization message hash
+		let mut message = alloc::vec![AUTHORIZATION_MAGIC];
+		let mut rlp_stream = RlpStream::new_list(3);
+		rlp_stream.append(&chain_id);
+		rlp_stream.append(&address);
+		rlp_stream.append(&nonce);
+		message.extend_from_slice(&rlp_stream.out());
+		let message_hash = H256::from_slice(Keccak256::digest(&message).as_slice());
+
+		// Sign the message hash
+		let (signature, recovery_id) = signing_key
+			.sign_prehash_recoverable(message_hash.as_bytes())
+			.expect("Failed to sign message");
+
+		// Extract signature components
+		let signature_bytes = signature.to_bytes();
+		let r = H256::from_slice(&signature_bytes[0..32]);
+		let s = H256::from_slice(&signature_bytes[32..64]);
+		let y_parity = recovery_id.is_y_odd();
+
+		// Create AuthorizationListItem with real signature
 		let auth_item = AuthorizationListItem {
-			chain_id: 1,
-			address: Address::from_slice(&[1u8; 20]),
-			nonce: U256::zero(),
-			y_parity: false,
-			r: H256::from_slice(&[0x12u8; 32]),
-			s: H256::from_slice(&[0x34u8; 32]),
+			chain_id,
+			address,
+			nonce,
+			y_parity,
+			r,
+			s,
 		};
 
-		// Call the authorizing_address method
+		// Recover the authorizing address
 		let recovered_address = auth_item.authorizing_address();
-		
-		// The recovery should produce a deterministic address based on the signature components
-		// Even though these are not valid ECDSA signature components from a real signature,
-		// the secp256k1 library will still process them and produce a deterministic result
+
+		// Convert the original verifying key to an Ethereum address for comparison
+		let pubkey_point = verifying_key.to_encoded_point(false);
+		let pubkey_bytes = pubkey_point.as_bytes();
+		let mut pubkey_64 = [0u8; 64];
+		pubkey_64.copy_from_slice(&pubkey_bytes[1..65]); // Skip 0x04 prefix
+		let expected_address = AuthorizationListItem::pubkey_to_address(&pubkey_64);
+
+		// Verify that the recovered address matches the original signer
+		assert_eq!(recovered_address, expected_address);
 		assert_ne!(recovered_address, Address::zero());
-		
-		// Test that the same input produces the same result (deterministic)
-		let recovered_address2 = auth_item.authorizing_address();
-		assert_eq!(recovered_address, recovered_address2);
-	}
 
-	#[test]
-	fn test_authorization_message_hash() {
-		let auth_item = AuthorizationListItem {
-			chain_id: 1,
-			address: Address::from_slice(&[1u8; 20]),
-			nonce: U256::zero(),
-			y_parity: false,
-			r: H256::from_slice(&[0x12u8; 32]),
-			s: H256::from_slice(&[0x34u8; 32]),
-		};
-
-		let hash = auth_item.authorization_message_hash();
-		
-		// Verify that the hash is not zero (meaning the function executed)
-		assert_ne!(hash, H256::zero());
-		
-		// Verify that the same input produces the same hash (deterministic)
-		let hash2 = auth_item.authorization_message_hash();
-		assert_eq!(hash, hash2);
-	}
-
-	#[test]
-	fn test_authorization_message_hash_format() {
-		// Test with known values to verify the EIP-7702 message format
-		let auth_item = AuthorizationListItem {
-			chain_id: 1,
-			address: Address::zero(),
-			nonce: U256::zero(),
-			y_parity: false,
-			r: H256::zero(),
-			s: H256::zero(),
-		};
-
-		let hash = auth_item.authorization_message_hash();
-		
-		// The hash should be deterministic based on the input
-		// We're not checking the exact value since that would require manually computing
-		// the EIP-7702 message hash, but we verify it's not zero
-		assert_ne!(hash, H256::zero());
+		// For deterministic testing, verify specific expected values
+		// This ensures the implementation is working correctly with known inputs
+		assert_eq!(
+			expected_address,
+			Address::from_slice(&hex_literal::hex!(
+				"6370ef2f4db3611d657b90667de398a2cc2a370c"
+			))
+		);
 	}
 }
