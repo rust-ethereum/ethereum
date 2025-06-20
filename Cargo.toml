@@ -13,6 +13,7 @@ bytes = { version = "1.0", default-features = false }
 ethereum-types = { version = "0.15", default-features = false, features = ["rlp", "codec"] }
 hash-db = { version = "0.16", default-features = false }
 hash256-std-hasher = { version = "0.15", default-features = false }
+k256 = { version = "0.13", default-features = false, features = ["ecdsa", "sha256"] }
 rlp = { version = "0.6", default-features = false, features = ["derive"] }
 sha3 = { version = "0.10", default-features = false }
 trie-root = { version = "0.18", default-features = false }
@@ -36,6 +37,7 @@ std = [
 	"ethereum-types/std",
 	"hash-db/std",
 	"hash256-std-hasher/std",
+	"k256/std",
 	"rlp/std",
 	"sha3/std",
 	"trie-root/std",
