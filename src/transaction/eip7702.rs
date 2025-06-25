@@ -109,7 +109,7 @@ impl AuthorizationListItem {
 	}
 
 	/// Create the authorization message hash according to EIP-7702
-	fn authorization_message_hash(&self) -> H256 {
+	pub fn authorization_message_hash(&self) -> H256 {
 		// EIP-7702 authorization message format:
 		// MAGIC || rlp([chain_id, address, nonce])
 		let mut message = alloc::vec![AUTHORIZATION_MAGIC];
