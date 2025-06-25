@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 
 use ethereum_types::{Address, H256, U256};
+use k256::ecdsa::{RecoveryId, Signature, VerifyingKey};
 use rlp::{DecoderError, Rlp, RlpStream};
 use sha3::{Digest, Keccak256};
 
@@ -81,8 +82,6 @@ impl rlp::Decodable for AuthorizationListItem {
 impl AuthorizationListItem {
 	/// Recover the authorizing address from the authorization signature according to EIP-7702
 	pub fn authorizing_address(&self) -> Result<Address, AuthorizationError> {
-		use k256::ecdsa::{RecoveryId, Signature, VerifyingKey};
-
 		// Create the authorization message hash according to EIP-7702
 		let message_hash = self.authorization_message_hash();
 
@@ -127,10 +126,8 @@ impl AuthorizationListItem {
 
 	/// Convert VerifyingKey to Ethereum address
 	fn verifying_key_to_address(
-		verifying_key: &k256::ecdsa::VerifyingKey,
+		verifying_key: &VerifyingKey,
 	) -> Result<Address, AuthorizationError> {
-		use sha3::{Digest, Keccak256};
-
 		// Convert public key to bytes (uncompressed format, skip the 0x04 prefix)
 		let pubkey_point = verifying_key.to_encoded_point(false);
 		let pubkey_bytes = pubkey_point.as_bytes();
