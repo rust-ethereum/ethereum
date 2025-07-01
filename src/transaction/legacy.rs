@@ -91,7 +91,7 @@ impl TransactionRecoveryId {
 	feature = "with-scale",
 	derive(scale_info::TypeInfo, scale_codec::DecodeWithMemTracking)
 )]
-#[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "with-serde", derive(serde::Serialize))]
 pub struct TransactionSignature {
 	v: TransactionRecoveryId,
 	r: H256,
@@ -178,6 +178,29 @@ impl scale_codec::Decode for TransactionSignature {
 			Some(signature) => Ok(signature),
 			None => Err(scale_codec::Error::from("Invalid signature")),
 		}
+	}
+}
+
+#[cfg(feature = "with-serde")]
+#[derive(serde::Deserialize)]
+struct TransactionSignatureUnchecked {
+	v: u64,
+	r: H256,
+	s: H256,
+}
+
+#[cfg(feature = "with-serde")]
+impl<'de> serde::Deserialize<'de> for TransactionSignature {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: serde::de::Deserializer<'de>,
+	{
+		let unchecked = TransactionSignatureUnchecked::deserialize(deserializer)?;
+
+		Ok(
+			TransactionSignature::new(unchecked.v, unchecked.r, unchecked.s)
+				.ok_or(serde::de::Error::custom("invalid signature"))?,
+		)
 	}
 }
 

@@ -13,7 +13,7 @@ pub use super::legacy::TransactionAction;
 	feature = "with-scale",
 	derive(scale_info::TypeInfo, scale_codec::DecodeWithMemTracking)
 )]
-#[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "with-serde", derive(serde::Serialize))]
 pub struct TransactionSignature {
 	odd_y_parity: bool,
 	r: H256,
@@ -67,6 +67,51 @@ impl TransactionSignature {
 		]);
 
 		self.s <= LOWER
+	}
+}
+
+#[cfg(feature = "with-scale")]
+impl scale_codec::Encode for TransactionSignature {
+	fn size_hint(&self) -> usize {
+		scale_codec::Encode::size_hint(&(self.odd_y_parity, self.r, self.s))
+	}
+
+	fn using_encoded<R, F: FnOnce(&[u8]) -> R>(&self, f: F) -> R {
+		scale_codec::Encode::using_encoded(&(self.odd_y_parity, self.r, self.s), f)
+	}
+}
+
+#[cfg(feature = "with-scale")]
+impl scale_codec::Decode for TransactionSignature {
+	fn decode<I: scale_codec::Input>(value: &mut I) -> Result<Self, scale_codec::Error> {
+		let (v, r, s) = scale_codec::Decode::decode(value)?;
+		match Self::new(v, r, s) {
+			Some(signature) => Ok(signature),
+			None => Err(scale_codec::Error::from("Invalid signature")),
+		}
+	}
+}
+
+#[cfg(feature = "with-serde")]
+#[derive(serde::Deserialize)]
+struct TransactionSignatureUnchecked {
+	odd_y_parity: bool,
+	r: H256,
+	s: H256,
+}
+
+#[cfg(feature = "with-serde")]
+impl<'de> serde::Deserialize<'de> for TransactionSignature {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: serde::de::Deserializer<'de>,
+	{
+		let unchecked = TransactionSignatureUnchecked::deserialize(deserializer)?;
+
+		Ok(
+			TransactionSignature::new(unchecked.odd_y_parity, unchecked.r, unchecked.s)
+				.ok_or(serde::de::Error::custom("invalid signature"))?,
+		)
 	}
 }
 

@@ -131,6 +131,11 @@ mod tests {
 	};
 	use ethereum_types::{H160, H256, U256};
 
+	const ONE: H256 = H256([
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 1,
+	]);
+
 	#[test]
 	fn block_v3_with_eip7702_transaction() {
 		// Create an EIP-7702 transaction
@@ -148,11 +153,9 @@ mod tests {
 				chain_id: 1,
 				address: H160::zero(),
 				nonce: U256::zero(),
-				signature: eip2930::TransactionSignature::new(false, H256::zero(), H256::zero())
-					.unwrap(),
+				signature: eip2930::TransactionSignature::new(false, ONE, ONE).unwrap(),
 			}],
-			signature: eip2930::TransactionSignature::new(false, H256::zero(), H256::zero())
-				.unwrap(),
+			signature: eip2930::TransactionSignature::new(false, ONE, ONE).unwrap(),
 		});
 
 		// Create a block with the EIP-7702 transaction
@@ -206,8 +209,7 @@ mod tests {
 			value: U256::zero(),
 			input: vec![],
 			access_list: vec![],
-			signature: eip2930::TransactionSignature::new(false, H256::zero(), H256::zero())
-				.unwrap(),
+			signature: eip2930::TransactionSignature::new(false, ONE, ONE).unwrap(),
 		});
 
 		let partial_header = PartialHeader {

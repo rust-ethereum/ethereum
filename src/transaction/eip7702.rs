@@ -376,40 +376,21 @@ mod tests {
 	#[test]
 	fn test_authorizing_address_error_handling() {
 		// Test with invalid signature components (zero values are invalid in ECDSA)
-		let auth_item = AuthorizationListItem {
-			chain_id: 1,
-			address: Address::from_slice(&[0x42u8; 20]),
-			nonce: U256::zero(),
-			signature: TransactionSignature::new(
-				false,
-				H256::zero(), // Invalid r value (r cannot be zero)
-				H256::zero(), // Invalid s value (s cannot be zero)
-			)
-			.unwrap(),
-		};
-
-		// This should return an error due to invalid signature
-		let result = auth_item.authorizing_address();
-		assert!(result.is_err());
-		assert_eq!(result.unwrap_err(), AuthorizationError::InvalidSignature);
+		assert!(TransactionSignature::new(
+			false,
+			H256::zero(), // Invalid r value (r cannot be zero)
+			H256::zero(), // Invalid s value (s cannot be zero)
+		)
+		.is_none());
 
 		// Test with values that are too high (greater than secp256k1 curve order)
 		// secp256k1 curve order is FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
-		let auth_item_high_values = AuthorizationListItem {
-			chain_id: 1,
-			address: Address::from_slice(&[0x42u8; 20]),
-			nonce: U256::zero(),
-			signature: TransactionSignature::new(
-				false,
-				// Use maximum possible values which exceed the curve order
-				H256::from_slice(&[0xFF; 32]),
-				H256::from_slice(&[0xFF; 32]),
-			)
-			.unwrap(),
-		};
-
-		let result = auth_item_high_values.authorizing_address();
-		assert!(result.is_err());
-		assert_eq!(result.unwrap_err(), AuthorizationError::InvalidSignature);
+		assert!(TransactionSignature::new(
+			false,
+			// Use maximum possible values which exceed the curve order
+			H256::from_slice(&[0xFF; 32]),
+			H256::from_slice(&[0xFF; 32]),
+		)
+		.is_none());
 	}
 }
