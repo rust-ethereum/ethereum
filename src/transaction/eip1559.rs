@@ -2,10 +2,9 @@ use ethereum_types::{H256, U256};
 use rlp::{DecoderError, Rlp, RlpStream};
 use sha3::{Digest, Keccak256};
 
-use crate::{
-	transaction::{AccessList, TransactionAction},
-	Bytes,
-};
+use crate::Bytes;
+
+use super::eip2930::{AccessList, TransactionAction, TransactionSignature};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
@@ -28,9 +27,7 @@ pub struct EIP1559Transaction {
 	pub value: U256,
 	pub input: Bytes,
 	pub access_list: AccessList,
-	pub odd_y_parity: bool,
-	pub r: H256,
-	pub s: H256,
+	pub signature: TransactionSignature,
 }
 
 impl EIP1559Transaction {
@@ -69,9 +66,9 @@ impl rlp::Encodable for EIP1559Transaction {
 		s.append(&self.value);
 		s.append(&self.input);
 		s.append_list(&self.access_list);
-		s.append(&self.odd_y_parity);
-		s.append(&U256::from_big_endian(&self.r[..]));
-		s.append(&U256::from_big_endian(&self.s[..]));
+		s.append(&self.signature.odd_y_parity());
+		s.append(&U256::from_big_endian(&self.signature.r()[..]));
+		s.append(&U256::from_big_endian(&self.signature.s()[..]));
 	}
 }
 
@@ -91,9 +88,13 @@ impl rlp::Decodable for EIP1559Transaction {
 			value: rlp.val_at(6)?,
 			input: rlp.val_at(7)?,
 			access_list: rlp.list_at(8)?,
-			odd_y_parity: rlp.val_at(9)?,
-			r: H256::from(rlp.val_at::<U256>(10)?.to_big_endian()),
-			s: H256::from(rlp.val_at::<U256>(11)?.to_big_endian()),
+			signature: {
+				let odd_y_parity = rlp.val_at(9)?;
+				let r = H256::from(rlp.val_at::<U256>(10)?.to_big_endian());
+				let s = H256::from(rlp.val_at::<U256>(11)?.to_big_endian());
+				TransactionSignature::new(odd_y_parity, r, s)
+					.ok_or(DecoderError::Custom("Invalid transaction signature format"))?
+			},
 		})
 	}
 }

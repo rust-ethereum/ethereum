@@ -1,23 +1,15 @@
-mod eip1559;
-mod eip2930;
-mod eip7702;
-mod legacy;
+pub mod eip1559;
+pub mod eip2930;
+pub mod eip7702;
+pub mod legacy;
 
 use bytes::BytesMut;
 use ethereum_types::H256;
 use rlp::{DecoderError, Rlp};
 
 pub use self::{
-	eip1559::{EIP1559Transaction, EIP1559TransactionMessage},
-	eip2930::{AccessList, AccessListItem, EIP2930Transaction, EIP2930TransactionMessage},
-	eip7702::{
-		AuthorizationList, AuthorizationListItem, EIP7702Transaction, EIP7702TransactionMessage,
-		AUTHORIZATION_MAGIC, SET_CODE_TX_TYPE,
-	},
-	legacy::{
-		LegacyTransaction, LegacyTransactionMessage, TransactionAction, TransactionRecoveryId,
-		TransactionSignature,
-	},
+	eip1559::EIP1559Transaction, eip2930::EIP2930Transaction, eip7702::EIP7702Transaction,
+	legacy::LegacyTransaction,
 };
 use crate::enveloped::{EnvelopedDecodable, EnvelopedDecoderError, EnvelopedEncodable};
 
@@ -328,7 +320,14 @@ pub type TransactionAny = TransactionV3;
 
 #[cfg(test)]
 mod tests {
-	use super::*;
+	use super::{
+		eip2930::{self, AccessListItem},
+		eip7702::AuthorizationListItem,
+		legacy::{self, TransactionAction},
+		EIP1559Transaction, EIP2930Transaction, EIP7702Transaction, EnvelopedDecodable,
+		TransactionV0, TransactionV1, TransactionV2, TransactionV3,
+	};
+	use crate::enveloped::*;
 	use ethereum_types::U256;
 	use hex_literal::hex;
 
@@ -353,7 +352,7 @@ mod tests {
 			),
 			value: U256::from(10) * 1_000_000_000 * 1_000_000_000,
 			input: hex!("a9059cbb000000000213ed0f886efd100b67c7e4ec0a85a7d20dc971600000000000000000000015af1d78b58c4000").into(),
-			signature: TransactionSignature::new(38, hex!("be67e0a07db67da8d446f76add590e54b6e92cb6b8f9835aeb67540579a27717").into(), hex!("2d690516512020171c1ec870f6ff45398cc8609250326be89915fb538e7bd718").into()).unwrap(),
+			signature: legacy::TransactionSignature::new(38, hex!("be67e0a07db67da8d446f76add590e54b6e92cb6b8f9835aeb67540579a27717").into(), hex!("2d690516512020171c1ec870f6ff45398cc8609250326be89915fb538e7bd718").into()).unwrap(),
 		};
 
 		assert_eq!(
@@ -389,9 +388,12 @@ mod tests {
 					storage_keys: vec![],
 				},
 			],
-			odd_y_parity: false,
-			r: hex!("36b241b061a36a32ab7fe86c7aa9eb592dd59018cd0443adc0903590c16b02b0").into(),
-			s: hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094").into(),
+			signature: eip2930::TransactionSignature::new(
+				false,
+				hex!("36b241b061a36a32ab7fe86c7aa9eb592dd59018cd0443adc0903590c16b02b0").into(),
+				hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094").into(),
+			)
+			.unwrap(),
 		});
 
 		assert_eq!(
@@ -428,9 +430,12 @@ mod tests {
 					storage_keys: vec![],
 				},
 			],
-			odd_y_parity: false,
-			r: hex!("36b241b061a36a32ab7fe86c7aa9eb592dd59018cd0443adc0903590c16b02b0").into(),
-			s: hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094").into(),
+			signature: eip2930::TransactionSignature::new(
+				false,
+				hex!("36b241b061a36a32ab7fe86c7aa9eb592dd59018cd0443adc0903590c16b02b0").into(),
+				hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094").into(),
+			)
+			.unwrap(),
 		});
 
 		assert_eq!(
@@ -463,13 +468,19 @@ mod tests {
 				chain_id: 5,
 				address: hex!("de0b295669a9fd93d5f28d9ec85e40f4cb697bae").into(),
 				nonce: 1.into(),
-				y_parity: false,
-				r: hex!("36b241b061a36a32ab7fe86c7aa9eb592dd59018cd0443adc0903590c16b02b0").into(),
-				s: hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094").into(),
+				signature: eip2930::TransactionSignature::new(
+					false,
+					hex!("36b241b061a36a32ab7fe86c7aa9eb592dd59018cd0443adc0903590c16b02b0").into(),
+					hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094").into(),
+				)
+				.unwrap(),
 			}],
-			odd_y_parity: false,
-			r: hex!("36b241b061a36a32ab7fe86c7aa9eb592dd59018cd0443adc0903590c16b02b0").into(),
-			s: hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094").into(),
+			signature: eip2930::TransactionSignature::new(
+				false,
+				hex!("36b241b061a36a32ab7fe86c7aa9eb592dd59018cd0443adc0903590c16b02b0").into(),
+				hex!("5edcc541b4741c5cc6dd347c5ed9577ef293a62787b4510465fadbfe39ee4094").into(),
+			)
+			.unwrap(),
 		});
 
 		assert_eq!(

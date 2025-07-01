@@ -4,7 +4,71 @@ use ethereum_types::{Address, H256, U256};
 use rlp::{DecoderError, Rlp, RlpStream};
 use sha3::{Digest, Keccak256};
 
-use crate::{transaction::TransactionAction, Bytes};
+use crate::Bytes;
+
+pub use super::legacy::TransactionAction;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(
+	feature = "with-scale",
+	derive(scale_info::TypeInfo, scale_codec::DecodeWithMemTracking)
+)]
+#[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct TransactionSignature {
+	odd_y_parity: bool,
+	r: H256,
+	s: H256,
+}
+
+impl TransactionSignature {
+	#[must_use]
+	pub fn new(odd_y_parity: bool, r: H256, s: H256) -> Option<Self> {
+		const LOWER: H256 = H256([
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x01,
+		]);
+		const UPPER: H256 = H256([
+			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+			0xff, 0xfe, 0xba, 0xae, 0xdc, 0xe6, 0xaf, 0x48, 0xa0, 0x3b, 0xbf, 0xd2, 0x5e, 0x8c,
+			0xd0, 0x36, 0x41, 0x41,
+		]);
+
+		let is_valid = r < UPPER && r >= LOWER && s < UPPER && s >= LOWER;
+
+		if is_valid {
+			Some(Self { odd_y_parity, r, s })
+		} else {
+			None
+		}
+	}
+
+	#[must_use]
+	pub fn odd_y_parity(&self) -> bool {
+		self.odd_y_parity
+	}
+
+	#[must_use]
+	pub fn r(&self) -> &H256 {
+		&self.r
+	}
+
+	#[must_use]
+	pub fn s(&self) -> &H256 {
+		&self.s
+	}
+
+	#[must_use]
+	pub fn is_low_s(&self) -> bool {
+		const LOWER: H256 = H256([
+			0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+			0xff, 0xff, 0x5d, 0x57, 0x6e, 0x73, 0x57, 0xa4, 0x50, 0x1d, 0xdf, 0xe9, 0x2f, 0x46,
+			0x68, 0x1b, 0x20, 0xa0,
+		]);
+
+		self.s <= LOWER
+	}
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
@@ -61,9 +125,7 @@ pub struct EIP2930Transaction {
 	pub value: U256,
 	pub input: Bytes,
 	pub access_list: AccessList,
-	pub odd_y_parity: bool,
-	pub r: H256,
-	pub s: H256,
+	pub signature: TransactionSignature,
 }
 
 impl EIP2930Transaction {
@@ -100,9 +162,9 @@ impl rlp::Encodable for EIP2930Transaction {
 		s.append(&self.value);
 		s.append(&self.input);
 		s.append_list(&self.access_list);
-		s.append(&self.odd_y_parity);
-		s.append(&U256::from_big_endian(&self.r[..]));
-		s.append(&U256::from_big_endian(&self.s[..]));
+		s.append(&self.signature.odd_y_parity());
+		s.append(&U256::from_big_endian(&self.signature.r()[..]));
+		s.append(&U256::from_big_endian(&self.signature.s()[..]));
 	}
 }
 
@@ -121,9 +183,13 @@ impl rlp::Decodable for EIP2930Transaction {
 			value: rlp.val_at(5)?,
 			input: rlp.val_at(6)?,
 			access_list: rlp.list_at(7)?,
-			odd_y_parity: rlp.val_at(8)?,
-			r: H256::from(rlp.val_at::<U256>(9)?.to_big_endian()),
-			s: H256::from(rlp.val_at::<U256>(10)?.to_big_endian()),
+			signature: {
+				let odd_y_parity = rlp.val_at(8)?;
+				let r = H256::from(rlp.val_at::<U256>(9)?.to_big_endian());
+				let s = H256::from(rlp.val_at::<U256>(10)?.to_big_endian());
+				TransactionSignature::new(odd_y_parity, r, s)
+					.ok_or(DecoderError::Custom("Invalid transaction signature format"))?
+			},
 		})
 	}
 }

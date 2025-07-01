@@ -5,10 +5,9 @@ use k256::ecdsa::{RecoveryId, Signature, VerifyingKey};
 use rlp::{DecoderError, Rlp, RlpStream};
 use sha3::{Digest, Keccak256};
 
-use crate::{
-	transaction::{AccessList, TransactionAction},
-	Bytes,
-};
+use crate::Bytes;
+
+pub use super::eip2930::{AccessList, TransactionAction, TransactionSignature};
 
 /// Error type for EIP-7702 authorization signature recovery
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -45,9 +44,7 @@ pub struct AuthorizationListItem {
 	pub chain_id: u64,
 	pub address: Address,
 	pub nonce: U256,
-	pub y_parity: bool,
-	pub r: H256,
-	pub s: H256,
+	pub signature: TransactionSignature,
 }
 
 impl rlp::Encodable for AuthorizationListItem {
@@ -56,9 +53,9 @@ impl rlp::Encodable for AuthorizationListItem {
 		s.append(&self.chain_id);
 		s.append(&self.address);
 		s.append(&self.nonce);
-		s.append(&self.y_parity);
-		s.append(&U256::from_big_endian(&self.r[..]));
-		s.append(&U256::from_big_endian(&self.s[..]));
+		s.append(&self.signature.odd_y_parity());
+		s.append(&U256::from_big_endian(&self.signature.r()[..]));
+		s.append(&U256::from_big_endian(&self.signature.s()[..]));
 	}
 }
 
@@ -72,9 +69,13 @@ impl rlp::Decodable for AuthorizationListItem {
 			chain_id: rlp.val_at(0)?,
 			address: rlp.val_at(1)?,
 			nonce: rlp.val_at(2)?,
-			y_parity: rlp.val_at(3)?,
-			r: H256::from(rlp.val_at::<U256>(4)?.to_big_endian()),
-			s: H256::from(rlp.val_at::<U256>(5)?.to_big_endian()),
+			signature: {
+				let odd_y_parity = rlp.val_at(3)?;
+				let r = H256::from(rlp.val_at::<U256>(4)?.to_big_endian());
+				let s = H256::from(rlp.val_at::<U256>(5)?.to_big_endian());
+				TransactionSignature::new(odd_y_parity, r, s)
+					.ok_or(DecoderError::Custom("Invalid transaction signature format"))?
+			},
 		})
 	}
 }
@@ -87,15 +88,19 @@ impl AuthorizationListItem {
 
 		// Create signature from r and s components
 		let mut signature_bytes = [0u8; 64];
-		signature_bytes[0..32].copy_from_slice(&self.r[..]);
-		signature_bytes[32..64].copy_from_slice(&self.s[..]);
+		signature_bytes[0..32].copy_from_slice(&self.signature.r()[..]);
+		signature_bytes[32..64].copy_from_slice(&self.signature.s()[..]);
 
 		// Create the signature and recovery ID
 		let signature = Signature::from_bytes(&signature_bytes.into())
 			.map_err(|_| AuthorizationError::InvalidSignature)?;
 
-		let recovery_id = RecoveryId::try_from(if self.y_parity { 1u8 } else { 0u8 })
-			.map_err(|_| AuthorizationError::InvalidRecoveryId)?;
+		let recovery_id = RecoveryId::try_from(if self.signature.odd_y_parity() {
+			1u8
+		} else {
+			0u8
+		})
+		.map_err(|_| AuthorizationError::InvalidRecoveryId)?;
 
 		// Recover the verifying key using VerifyingKey::recover_from_prehash
 		// message_hash is already a 32-byte Keccak256 hash, so we use recover_from_prehash
@@ -169,9 +174,7 @@ pub struct EIP7702Transaction {
 	pub data: Bytes,
 	pub access_list: AccessList,
 	pub authorization_list: AuthorizationList,
-	pub odd_y_parity: bool,
-	pub r: H256,
-	pub s: H256,
+	pub signature: TransactionSignature,
 }
 
 impl EIP7702Transaction {
@@ -212,9 +215,9 @@ impl rlp::Encodable for EIP7702Transaction {
 		s.append(&self.data);
 		s.append_list(&self.access_list);
 		s.append_list(&self.authorization_list);
-		s.append(&self.odd_y_parity);
-		s.append(&U256::from_big_endian(&self.r[..]));
-		s.append(&U256::from_big_endian(&self.s[..]));
+		s.append(&self.signature.odd_y_parity());
+		s.append(&U256::from_big_endian(&self.signature.r()[..]));
+		s.append(&U256::from_big_endian(&self.signature.s()[..]));
 	}
 }
 
@@ -235,9 +238,13 @@ impl rlp::Decodable for EIP7702Transaction {
 			data: rlp.val_at(7)?,
 			access_list: rlp.list_at(8)?,
 			authorization_list: rlp.list_at(9)?,
-			odd_y_parity: rlp.val_at(10)?,
-			r: H256::from(rlp.val_at::<U256>(11)?.to_big_endian()),
-			s: H256::from(rlp.val_at::<U256>(12)?.to_big_endian()),
+			signature: {
+				let odd_y_parity = rlp.val_at(10)?;
+				let r = H256::from(rlp.val_at::<U256>(11)?.to_big_endian());
+				let s = H256::from(rlp.val_at::<U256>(12)?.to_big_endian());
+				TransactionSignature::new(odd_y_parity, r, s)
+					.ok_or(DecoderError::Custom("Invalid transaction signature format"))?
+			},
 		})
 	}
 }
@@ -340,9 +347,7 @@ mod tests {
 			chain_id,
 			address,
 			nonce,
-			y_parity,
-			r,
-			s,
+			signature: TransactionSignature::new(y_parity, r, s).unwrap(),
 		};
 
 		// Recover the authorizing address
@@ -375,9 +380,12 @@ mod tests {
 			chain_id: 1,
 			address: Address::from_slice(&[0x42u8; 20]),
 			nonce: U256::zero(),
-			y_parity: false,
-			r: H256::zero(), // Invalid r value (r cannot be zero)
-			s: H256::zero(), // Invalid s value (s cannot be zero)
+			signature: TransactionSignature::new(
+				false,
+				H256::zero(), // Invalid r value (r cannot be zero)
+				H256::zero(), // Invalid s value (s cannot be zero)
+			)
+			.unwrap(),
 		};
 
 		// This should return an error due to invalid signature
@@ -391,10 +399,13 @@ mod tests {
 			chain_id: 1,
 			address: Address::from_slice(&[0x42u8; 20]),
 			nonce: U256::zero(),
-			y_parity: false,
-			// Use maximum possible values which exceed the curve order
-			r: H256::from_slice(&[0xFF; 32]),
-			s: H256::from_slice(&[0xFF; 32]),
+			signature: TransactionSignature::new(
+				false,
+				// Use maximum possible values which exceed the curve order
+				H256::from_slice(&[0xFF; 32]),
+				H256::from_slice(&[0xFF; 32]),
+			)
+			.unwrap(),
 		};
 
 		let result = auth_item_high_values.authorizing_address();
