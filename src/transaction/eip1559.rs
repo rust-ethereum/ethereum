@@ -4,7 +4,7 @@ use sha3::{Digest, Keccak256};
 
 use crate::Bytes;
 
-use super::eip2930::{AccessList, TransactionAction, TransactionSignature};
+pub use super::eip2930::{AccessList, TransactionAction, TransactionSignature};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
