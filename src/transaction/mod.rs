@@ -8,8 +8,12 @@ use ethereum_types::H256;
 use rlp::{DecoderError, Rlp};
 
 pub use self::{
-	eip1559::EIP1559Transaction, eip2930::EIP2930Transaction, eip7702::EIP7702Transaction,
-	legacy::LegacyTransaction,
+	eip1559::{EIP1559Transaction, EIP1559TransactionMessage},
+	eip2930::{AccessList, AccessListItem, EIP2930Transaction, EIP2930TransactionMessage},
+	eip7702::{
+		AuthorizationList, AuthorizationListItem, EIP7702Transaction, EIP7702TransactionMessage,
+	},
+	legacy::{LegacyTransaction, LegacyTransactionMessage, TransactionAction},
 };
 use crate::enveloped::{EnvelopedDecodable, EnvelopedDecoderError, EnvelopedEncodable};
 
