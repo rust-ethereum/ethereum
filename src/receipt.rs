@@ -165,11 +165,87 @@ pub enum ReceiptV3 {
 	EIP2930(EIP2930ReceiptData),
 	/// EIP-1559 receipt type
 	EIP1559(EIP1559ReceiptData),
+}
+
+impl EnvelopedEncodable for ReceiptV3 {
+	fn type_id(&self) -> Option<u8> {
+		match self {
+			Self::Legacy(_) => None,
+			Self::EIP2930(_) => Some(1),
+			Self::EIP1559(_) => Some(2),
+		}
+	}
+
+	fn encode_payload(&self) -> BytesMut {
+		match self {
+			Self::Legacy(r) => rlp::encode(r),
+			Self::EIP2930(r) => rlp::encode(r),
+			Self::EIP1559(r) => rlp::encode(r),
+		}
+	}
+}
+
+impl EnvelopedDecodable for ReceiptV3 {
+	type PayloadDecoderError = DecoderError;
+
+	fn decode(bytes: &[u8]) -> Result<Self, EnvelopedDecoderError<Self::PayloadDecoderError>> {
+		if bytes.is_empty() {
+			return Err(EnvelopedDecoderError::UnknownTypeId);
+		}
+
+		let first = bytes[0];
+
+		let rlp = Rlp::new(bytes);
+		if rlp.is_list() {
+			return Ok(Self::Legacy(Decodable::decode(&rlp)?));
+		}
+
+		let s = &bytes[1..];
+
+		if first == 0x01 {
+			return Ok(Self::EIP2930(rlp::decode(s)?));
+		}
+
+		if first == 0x02 {
+			return Ok(Self::EIP1559(rlp::decode(s)?));
+		}
+
+		Err(DecoderError::Custom("invalid receipt type").into())
+	}
+}
+
+impl From<ReceiptV3> for EIP658ReceiptData {
+	fn from(v3: ReceiptV3) -> Self {
+		match v3 {
+			ReceiptV3::Legacy(r) => r,
+			ReceiptV3::EIP2930(r) => r,
+			ReceiptV3::EIP1559(r) => r,
+		}
+	}
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(
+	feature = "with-scale",
+	derive(scale_codec::Encode, scale_codec::Decode, scale_info::TypeInfo)
+)]
+#[cfg_attr(
+	feature = "with-serde",
+	derive(serde::Serialize, serde::Deserialize),
+	serde(untagged)
+)]
+pub enum ReceiptV4 {
+	/// Legacy receipt type
+	Legacy(EIP658ReceiptData),
+	/// EIP-2930 receipt type
+	EIP2930(EIP2930ReceiptData),
+	/// EIP-1559 receipt type
+	EIP1559(EIP1559ReceiptData),
 	/// EIP-7702 receipt type
 	EIP7702(EIP7702ReceiptData),
 }
 
-impl EnvelopedEncodable for ReceiptV3 {
+impl EnvelopedEncodable for ReceiptV4 {
 	fn type_id(&self) -> Option<u8> {
 		match self {
 			Self::Legacy(_) => None,
@@ -189,7 +265,7 @@ impl EnvelopedEncodable for ReceiptV3 {
 	}
 }
 
-impl EnvelopedDecodable for ReceiptV3 {
+impl EnvelopedDecodable for ReceiptV4 {
 	type PayloadDecoderError = DecoderError;
 
 	fn decode(bytes: &[u8]) -> Result<Self, EnvelopedDecoderError<Self::PayloadDecoderError>> {
@@ -222,13 +298,13 @@ impl EnvelopedDecodable for ReceiptV3 {
 	}
 }
 
-impl From<ReceiptV3> for EIP658ReceiptData {
-	fn from(v3: ReceiptV3) -> Self {
+impl From<ReceiptV4> for EIP658ReceiptData {
+	fn from(v3: ReceiptV4) -> Self {
 		match v3 {
-			ReceiptV3::Legacy(r) => r,
-			ReceiptV3::EIP2930(r) => r,
-			ReceiptV3::EIP1559(r) => r,
-			ReceiptV3::EIP7702(r) => r,
+			ReceiptV4::Legacy(r) => r,
+			ReceiptV4::EIP2930(r) => r,
+			ReceiptV4::EIP1559(r) => r,
+			ReceiptV4::EIP7702(r) => r,
 		}
 	}
 }
