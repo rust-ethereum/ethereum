@@ -153,7 +153,11 @@ mod tests {
 				chain_id: 1,
 				address: H160::zero(),
 				nonce: U256::zero(),
-				signature: eip2930::TransactionSignature::new(false, ONE, ONE).unwrap(),
+				signature: eip2930::MalleableTransactionSignature {
+					odd_y_parity: false,
+					r: ONE,
+					s: ONE,
+				},
 			}],
 			signature: eip2930::TransactionSignature::new(false, ONE, ONE).unwrap(),
 		});

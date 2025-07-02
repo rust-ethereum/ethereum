@@ -7,7 +7,9 @@ use sha3::{Digest, Keccak256};
 
 use crate::Bytes;
 
-pub use super::eip2930::{AccessList, TransactionAction, TransactionSignature};
+pub use super::eip2930::{
+	AccessList, MalleableTransactionSignature, TransactionAction, TransactionSignature,
+};
 
 /// Error type for EIP-7702 authorization signature recovery
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -44,7 +46,7 @@ pub struct AuthorizationListItem {
 	pub chain_id: u64,
 	pub address: Address,
 	pub nonce: U256,
-	pub signature: TransactionSignature,
+	pub signature: MalleableTransactionSignature,
 }
 
 impl rlp::Encodable for AuthorizationListItem {
@@ -53,9 +55,9 @@ impl rlp::Encodable for AuthorizationListItem {
 		s.append(&self.chain_id);
 		s.append(&self.address);
 		s.append(&self.nonce);
-		s.append(&self.signature.odd_y_parity());
-		s.append(&U256::from_big_endian(&self.signature.r()[..]));
-		s.append(&U256::from_big_endian(&self.signature.s()[..]));
+		s.append(&self.signature.odd_y_parity);
+		s.append(&U256::from_big_endian(&self.signature.r[..]));
+		s.append(&U256::from_big_endian(&self.signature.s[..]));
 	}
 }
 
@@ -73,34 +75,45 @@ impl rlp::Decodable for AuthorizationListItem {
 				let odd_y_parity = rlp.val_at(3)?;
 				let r = H256::from(rlp.val_at::<U256>(4)?.to_big_endian());
 				let s = H256::from(rlp.val_at::<U256>(5)?.to_big_endian());
-				TransactionSignature::new(odd_y_parity, r, s)
-					.ok_or(DecoderError::Custom("Invalid transaction signature format"))?
+				MalleableTransactionSignature { odd_y_parity, r, s }
 			},
 		})
 	}
 }
 
 impl AuthorizationListItem {
+	/// Check and get the signature.
+	///
+	/// This checks that the signature is not malleable, but does not otherwise check or recover
+	/// the public key.
+	pub fn signature(&self) -> Option<TransactionSignature> {
+		TransactionSignature::new(
+			self.signature.odd_y_parity,
+			self.signature.r,
+			self.signature.s,
+		)
+	}
+
 	/// Recover the authorizing address from the authorization signature according to EIP-7702
 	pub fn authorizing_address(&self) -> Result<Address, AuthorizationError> {
 		// Create the authorization message hash according to EIP-7702
 		let message_hash = self.authorization_message_hash();
 
+		let sigv = self
+			.signature()
+			.ok_or(AuthorizationError::InvalidSignature)?;
+
 		// Create signature from r and s components
 		let mut signature_bytes = [0u8; 64];
-		signature_bytes[0..32].copy_from_slice(&self.signature.r()[..]);
-		signature_bytes[32..64].copy_from_slice(&self.signature.s()[..]);
+		signature_bytes[0..32].copy_from_slice(&sigv.r()[..]);
+		signature_bytes[32..64].copy_from_slice(&sigv.s()[..]);
 
 		// Create the signature and recovery ID
 		let signature = Signature::from_bytes(&signature_bytes.into())
 			.map_err(|_| AuthorizationError::InvalidSignature)?;
 
-		let recovery_id = RecoveryId::try_from(if self.signature.odd_y_parity() {
-			1u8
-		} else {
-			0u8
-		})
-		.map_err(|_| AuthorizationError::InvalidRecoveryId)?;
+		let recovery_id = RecoveryId::try_from(if sigv.odd_y_parity() { 1u8 } else { 0u8 })
+			.map_err(|_| AuthorizationError::InvalidRecoveryId)?;
 
 		// Recover the verifying key using VerifyingKey::recover_from_prehash
 		// message_hash is already a 32-byte Keccak256 hash, so we use recover_from_prehash
@@ -347,7 +360,11 @@ mod tests {
 			chain_id,
 			address,
 			nonce,
-			signature: TransactionSignature::new(y_parity, r, s).unwrap(),
+			signature: MalleableTransactionSignature {
+				odd_y_parity: y_parity,
+				r,
+				s,
+			},
 		};
 
 		// Recover the authorizing address

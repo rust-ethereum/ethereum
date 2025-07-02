@@ -11,7 +11,28 @@ pub use super::legacy::TransactionAction;
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(
 	feature = "with-scale",
-	derive(scale_info::TypeInfo, scale_codec::DecodeWithMemTracking)
+	derive(
+		scale_info::TypeInfo,
+		scale_codec::Encode,
+		scale_codec::Decode,
+		scale_codec::DecodeWithMemTracking
+	)
+)]
+#[cfg_attr(feature = "with-serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct MalleableTransactionSignature {
+	pub odd_y_parity: bool,
+	pub r: H256,
+	pub s: H256,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(
+	feature = "with-scale",
+	derive(
+		scale_info::TypeInfo,
+		scale_codec::Encode,
+		scale_codec::DecodeWithMemTracking
+	)
 )]
 #[cfg_attr(feature = "with-serde", derive(serde::Serialize))]
 pub struct TransactionSignature {
@@ -71,33 +92,14 @@ impl TransactionSignature {
 }
 
 #[cfg(feature = "with-scale")]
-impl scale_codec::Encode for TransactionSignature {
-	fn size_hint(&self) -> usize {
-		scale_codec::Encode::size_hint(&(self.odd_y_parity, self.r, self.s))
-	}
-
-	fn using_encoded<R, F: FnOnce(&[u8]) -> R>(&self, f: F) -> R {
-		scale_codec::Encode::using_encoded(&(self.odd_y_parity, self.r, self.s), f)
-	}
-}
-
-#[cfg(feature = "with-scale")]
 impl scale_codec::Decode for TransactionSignature {
 	fn decode<I: scale_codec::Input>(value: &mut I) -> Result<Self, scale_codec::Error> {
-		let (v, r, s) = scale_codec::Decode::decode(value)?;
-		match Self::new(v, r, s) {
+		let unchecked = MalleableTransactionSignature::decode(value)?;
+		match Self::new(unchecked.odd_y_parity, unchecked.r, unchecked.s) {
 			Some(signature) => Ok(signature),
 			None => Err(scale_codec::Error::from("Invalid signature")),
 		}
 	}
-}
-
-#[cfg(feature = "with-serde")]
-#[derive(serde::Deserialize)]
-struct TransactionSignatureUnchecked {
-	odd_y_parity: bool,
-	r: H256,
-	s: H256,
 }
 
 #[cfg(feature = "with-serde")]
@@ -106,8 +108,7 @@ impl<'de> serde::Deserialize<'de> for TransactionSignature {
 	where
 		D: serde::de::Deserializer<'de>,
 	{
-		let unchecked = TransactionSignatureUnchecked::deserialize(deserializer)?;
-
+		let unchecked = MalleableTransactionSignature::deserialize(deserializer)?;
 		Ok(
 			TransactionSignature::new(unchecked.odd_y_parity, unchecked.r, unchecked.s)
 				.ok_or(serde::de::Error::custom("invalid signature"))?,
