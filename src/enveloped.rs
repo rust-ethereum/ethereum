@@ -29,11 +29,25 @@ pub trait EnvelopedEncodable {
 		out
 	}
 
+	/// Returns the length of the encoded transaction.
+	///
+	/// This is the EIP-2718 encoded length: type_id (1 byte for typed txs) + RLP payload.
+	/// Matches geth's `tx.Size()` and reth/alloy's `encoded_length()`.
+	fn encoded_len(&self) -> usize {
+		let type_id_len = if self.type_id().is_some() { 1 } else { 0 };
+		type_id_len + self.payload_len()
+	}
+
 	/// Type Id of the transaction.
 	fn type_id(&self) -> Option<u8>;
 
 	/// Encode inner payload.
 	fn encode_payload(&self) -> BytesMut;
+
+	/// Returns the length of the RLP-encoded payload without the type byte.
+	fn payload_len(&self) -> usize {
+		self.encode_payload().len()
+	}
 }
 
 /// Decodable typed transactions.

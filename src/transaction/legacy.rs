@@ -283,6 +283,11 @@ impl LegacyTransactionMessage {
 	pub fn hash(&self) -> H256 {
 		H256::from_slice(Keccak256::digest(rlp::encode(self)).as_ref())
 	}
+
+	/// Returns the RLP-encoded length of this unsigned message.
+	pub fn encoded_len(&self) -> usize {
+		rlp::encode(self).len()
+	}
 }
 
 impl rlp::Encodable for LegacyTransactionMessage {

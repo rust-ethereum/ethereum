@@ -284,6 +284,11 @@ impl EIP7702TransactionMessage {
 		out[1..].copy_from_slice(&encoded);
 		H256::from_slice(Keccak256::digest(&out).as_ref())
 	}
+
+	/// Returns the RLP-encoded length of this unsigned message.
+	pub fn encoded_len(&self) -> usize {
+		rlp::encode(self).len()
+	}
 }
 
 impl rlp::Encodable for EIP7702TransactionMessage {
