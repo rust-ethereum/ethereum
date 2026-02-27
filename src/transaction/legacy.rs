@@ -4,6 +4,7 @@ use ethereum_types::{H160, H256, U256};
 use rlp::{DecoderError, Rlp, RlpStream};
 use sha3::{Digest, Keccak256};
 
+use super::rlp_len::{rlp_h256_as_u256_len, rlp_list_len, RlpEncodableLen};
 use super::signature;
 use crate::Bytes;
 
@@ -44,6 +45,20 @@ impl rlp::Decodable for TransactionAction {
 			}
 		} else {
 			Ok(TransactionAction::Call(rlp.as_val()?))
+		}
+	}
+}
+
+impl TransactionAction {
+	/// Non-allocating RLP-encoded length.
+	///
+	/// `Call(address)` encodes as a 20-byte string (1-byte prefix + 20 data
+	/// bytes); `Create` encodes as the empty string (`0x80`, 1 byte).
+	#[inline]
+	pub fn rlp_len(&self) -> usize {
+		match self {
+			Self::Call(_) => 1 + 20,
+			Self::Create => 1,
 		}
 	}
 }
@@ -183,10 +198,8 @@ impl<'de> serde::Deserialize<'de> for TransactionSignature {
 	{
 		let unchecked = TransactionSignatureUnchecked::deserialize(deserializer)?;
 
-		Ok(
-			TransactionSignature::new(unchecked.v, unchecked.r, unchecked.s)
-				.ok_or(serde::de::Error::custom("invalid signature"))?,
-		)
+		TransactionSignature::new(unchecked.v, unchecked.r, unchecked.s)
+			.ok_or(serde::de::Error::custom("invalid signature"))
 	}
 }
 
@@ -226,6 +239,20 @@ impl LegacyTransaction {
 			input: self.input,
 			chain_id: self.signature.chain_id(),
 		}
+	}
+
+	/// Non-allocating RLP-encoded length of this signed transaction.
+	pub fn rlp_len(&self) -> usize {
+		let payload = self.nonce.rlp_len()
+			+ self.gas_price.rlp_len()
+			+ self.gas_limit.rlp_len()
+			+ self.action.rlp_len()
+			+ self.value.rlp_len()
+			+ self.input.rlp_len()
+			+ self.signature.v().rlp_len()
+			+ rlp_h256_as_u256_len(self.signature.r())
+			+ rlp_h256_as_u256_len(self.signature.s());
+		rlp_list_len(payload)
 	}
 }
 
@@ -282,6 +309,24 @@ pub struct LegacyTransactionMessage {
 impl LegacyTransactionMessage {
 	pub fn hash(&self) -> H256 {
 		H256::from_slice(Keccak256::digest(rlp::encode(self)).as_ref())
+	}
+
+	/// Returns the RLP-encoded length of this unsigned message without
+	/// allocating.
+	pub fn encoded_len(&self) -> usize {
+		let common = self.nonce.rlp_len()
+			+ self.gas_price.rlp_len()
+			+ self.gas_limit.rlp_len()
+			+ self.action.rlp_len()
+			+ self.value.rlp_len()
+			+ self.input.rlp_len();
+		let payload = if let Some(chain_id) = self.chain_id {
+			// EIP-155: 6 common fields + chain_id + two zero-bytes
+			common + chain_id.rlp_len() + 1 + 1
+		} else {
+			common
+		};
+		rlp_list_len(payload)
 	}
 }
 

@@ -2,6 +2,7 @@ use ethereum_types::{H256, U256};
 use rlp::{DecoderError, Rlp, RlpStream};
 use sha3::{Digest, Keccak256};
 
+use super::rlp_len::{rlp_h256_as_u256_len, rlp_list_len, RlpEncodableLen};
 use crate::Bytes;
 
 pub use super::eip2930::{AccessList, TransactionAction, TransactionSignature};
@@ -51,6 +52,23 @@ impl EIP1559Transaction {
 			input: self.input,
 			access_list: self.access_list,
 		}
+	}
+
+	/// Non-allocating RLP-encoded length of this signed transaction.
+	pub fn rlp_len(&self) -> usize {
+		let payload = self.chain_id.rlp_len()
+			+ self.nonce.rlp_len()
+			+ self.max_priority_fee_per_gas.rlp_len()
+			+ self.max_fee_per_gas.rlp_len()
+			+ self.gas_limit.rlp_len()
+			+ self.action.rlp_len()
+			+ self.value.rlp_len()
+			+ self.input.rlp_len()
+			+ self.access_list.rlp_len()
+			+ self.signature.odd_y_parity().rlp_len()
+			+ rlp_h256_as_u256_len(self.signature.r())
+			+ rlp_h256_as_u256_len(self.signature.s());
+		rlp_list_len(payload)
 	}
 }
 
@@ -119,6 +137,21 @@ impl EIP1559TransactionMessage {
 		out[0] = 2;
 		out[1..].copy_from_slice(&encoded);
 		H256::from_slice(Keccak256::digest(&out).as_ref())
+	}
+
+	/// Returns the RLP-encoded length of this unsigned message without
+	/// allocating.
+	pub fn encoded_len(&self) -> usize {
+		let payload = self.chain_id.rlp_len()
+			+ self.nonce.rlp_len()
+			+ self.max_priority_fee_per_gas.rlp_len()
+			+ self.max_fee_per_gas.rlp_len()
+			+ self.gas_limit.rlp_len()
+			+ self.action.rlp_len()
+			+ self.value.rlp_len()
+			+ self.input.rlp_len()
+			+ self.access_list.rlp_len();
+		rlp_list_len(payload)
 	}
 }
 

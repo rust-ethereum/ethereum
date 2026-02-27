@@ -5,6 +5,7 @@ use k256::ecdsa::{RecoveryId, Signature, VerifyingKey};
 use rlp::{DecoderError, Rlp, RlpStream};
 use sha3::{Digest, Keccak256};
 
+use super::rlp_len::{rlp_h256_as_u256_len, rlp_list_len, RlpEncodableLen};
 use crate::Bytes;
 
 pub use super::eip2930::{
@@ -161,6 +162,24 @@ impl AuthorizationListItem {
 			Err(AuthorizationError::InvalidPublicKey)
 		}
 	}
+
+	/// Non-allocating RLP-encoded length of this authorization item.
+	pub fn rlp_len(&self) -> usize {
+		let payload = self.chain_id.rlp_len()
+			+ self.address.rlp_len()
+			+ self.nonce.rlp_len()
+			+ self.signature.odd_y_parity.rlp_len()
+			+ rlp_h256_as_u256_len(&self.signature.r)
+			+ rlp_h256_as_u256_len(&self.signature.s);
+		rlp_list_len(payload)
+	}
+}
+
+impl RlpEncodableLen for [AuthorizationListItem] {
+	fn rlp_len(&self) -> usize {
+		let items_len: usize = self.iter().map(|item| item.rlp_len()).sum();
+		rlp_list_len(items_len)
+	}
 }
 
 pub type AuthorizationList = Vec<AuthorizationListItem>;
@@ -212,6 +231,24 @@ impl EIP7702Transaction {
 			access_list: self.access_list,
 			authorization_list: self.authorization_list,
 		}
+	}
+
+	/// Non-allocating RLP-encoded length of this signed transaction.
+	pub fn rlp_len(&self) -> usize {
+		let payload = self.chain_id.rlp_len()
+			+ self.nonce.rlp_len()
+			+ self.max_priority_fee_per_gas.rlp_len()
+			+ self.max_fee_per_gas.rlp_len()
+			+ self.gas_limit.rlp_len()
+			+ self.destination.rlp_len()
+			+ self.value.rlp_len()
+			+ self.data.rlp_len()
+			+ self.access_list.rlp_len()
+			+ self.authorization_list.rlp_len()
+			+ self.signature.odd_y_parity().rlp_len()
+			+ rlp_h256_as_u256_len(self.signature.r())
+			+ rlp_h256_as_u256_len(self.signature.s());
+		rlp_list_len(payload)
 	}
 }
 
@@ -283,6 +320,22 @@ impl EIP7702TransactionMessage {
 		out[0] = SET_CODE_TX_TYPE;
 		out[1..].copy_from_slice(&encoded);
 		H256::from_slice(Keccak256::digest(&out).as_ref())
+	}
+
+	/// Returns the RLP-encoded length of this unsigned message without
+	/// allocating.
+	pub fn encoded_len(&self) -> usize {
+		let payload = self.chain_id.rlp_len()
+			+ self.nonce.rlp_len()
+			+ self.max_priority_fee_per_gas.rlp_len()
+			+ self.max_fee_per_gas.rlp_len()
+			+ self.gas_limit.rlp_len()
+			+ self.destination.rlp_len()
+			+ self.value.rlp_len()
+			+ self.data.rlp_len()
+			+ self.access_list.rlp_len()
+			+ self.authorization_list.rlp_len();
+		rlp_list_len(payload)
 	}
 }
 

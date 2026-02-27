@@ -4,6 +4,7 @@ use ethereum_types::{Address, H256, U256};
 use rlp::{DecoderError, Rlp, RlpStream};
 use sha3::{Digest, Keccak256};
 
+use super::rlp_len::{rlp_h256_as_u256_len, rlp_list_len, RlpEncodableLen};
 use super::signature;
 use crate::Bytes;
 
@@ -94,10 +95,8 @@ impl<'de> serde::Deserialize<'de> for TransactionSignature {
 		D: serde::de::Deserializer<'de>,
 	{
 		let unchecked = MalleableTransactionSignature::deserialize(deserializer)?;
-		Ok(
-			TransactionSignature::new(unchecked.odd_y_parity, unchecked.r, unchecked.s)
-				.ok_or(serde::de::Error::custom("invalid signature"))?,
-		)
+		TransactionSignature::new(unchecked.odd_y_parity, unchecked.r, unchecked.s)
+			.ok_or(serde::de::Error::custom("invalid signature"))
 	}
 }
 
@@ -131,6 +130,25 @@ impl rlp::Decodable for AccessListItem {
 			address: rlp.val_at(0)?,
 			storage_keys: rlp.list_at(1)?,
 		})
+	}
+}
+
+impl AccessListItem {
+	/// Non-allocating RLP-encoded length.
+	///
+	/// Layout: `RLP_LIST(address‖RLP_LIST(storage_keys…))`
+	///  * address (H160) is always 21 bytes (1-byte prefix + 20 data).
+	///  * each storage key (H256) is always 33 bytes (1-byte prefix + 32 data).
+	pub fn rlp_len(&self) -> usize {
+		let payload = self.address.rlp_len() + self.storage_keys.rlp_len();
+		rlp_list_len(payload)
+	}
+}
+
+impl RlpEncodableLen for [AccessListItem] {
+	fn rlp_len(&self) -> usize {
+		let items_len: usize = self.iter().map(|item| item.rlp_len()).sum();
+		rlp_list_len(items_len)
 	}
 }
 
@@ -179,6 +197,22 @@ impl EIP2930Transaction {
 			input: self.input,
 			access_list: self.access_list,
 		}
+	}
+
+	/// Non-allocating RLP-encoded length of this signed transaction.
+	pub fn rlp_len(&self) -> usize {
+		let payload = self.chain_id.rlp_len()
+			+ self.nonce.rlp_len()
+			+ self.gas_price.rlp_len()
+			+ self.gas_limit.rlp_len()
+			+ self.action.rlp_len()
+			+ self.value.rlp_len()
+			+ self.input.rlp_len()
+			+ self.access_list.rlp_len()
+			+ self.signature.odd_y_parity().rlp_len()
+			+ rlp_h256_as_u256_len(self.signature.r())
+			+ rlp_h256_as_u256_len(self.signature.s());
+		rlp_list_len(payload)
 	}
 }
 
@@ -244,6 +278,20 @@ impl EIP2930TransactionMessage {
 		out[0] = 1;
 		out[1..].copy_from_slice(&encoded);
 		H256::from_slice(Keccak256::digest(&out).as_ref())
+	}
+
+	/// Returns the RLP-encoded length of this unsigned message without
+	/// allocating.
+	pub fn encoded_len(&self) -> usize {
+		let payload = self.chain_id.rlp_len()
+			+ self.nonce.rlp_len()
+			+ self.gas_price.rlp_len()
+			+ self.gas_limit.rlp_len()
+			+ self.action.rlp_len()
+			+ self.value.rlp_len()
+			+ self.input.rlp_len()
+			+ self.access_list.rlp_len();
+		rlp_list_len(payload)
 	}
 }
 
