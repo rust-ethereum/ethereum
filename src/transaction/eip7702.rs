@@ -1,7 +1,6 @@
 use alloc::vec::Vec;
 
 use ethereum_types::{Address, H256, U256};
-use k256::ecdsa::{RecoveryId, Signature, VerifyingKey};
 use rlp::{DecoderError, Rlp, RlpStream};
 use sha3::{Digest, Keccak256};
 
@@ -10,6 +9,7 @@ use crate::Bytes;
 pub use super::eip2930::{
 	AccessList, MalleableTransactionSignature, TransactionAction, TransactionSignature,
 };
+use super::{recovery, TransactionRecoveryError};
 
 /// Error type for EIP-7702 authorization signature recovery
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -103,26 +103,18 @@ impl AuthorizationListItem {
 			.signature()
 			.ok_or(AuthorizationError::InvalidSignature)?;
 
-		// Create signature from r and s components
-		let mut signature_bytes = [0u8; 64];
-		signature_bytes[0..32].copy_from_slice(&sigv.r()[..]);
-		signature_bytes[32..64].copy_from_slice(&sigv.s()[..]);
-
-		// Create the signature and recovery ID
-		let signature = Signature::from_bytes(&signature_bytes.into())
-			.map_err(|_| AuthorizationError::InvalidSignature)?;
-
-		let recovery_id = RecoveryId::try_from(if sigv.odd_y_parity() { 1u8 } else { 0u8 })
-			.map_err(|_| AuthorizationError::InvalidRecoveryId)?;
-
-		// Recover the verifying key using VerifyingKey::recover_from_prehash
-		// message_hash is already a 32-byte Keccak256 hash, so we use recover_from_prehash
-		let verifying_key =
-			VerifyingKey::recover_from_prehash(message_hash.as_bytes(), &signature, recovery_id)
-				.map_err(|_| AuthorizationError::RecoveryFailed)?;
-
-		// Convert public key to Ethereum address
-		Self::verifying_key_to_address(&verifying_key)
+		recovery::recover_address(
+			message_hash,
+			u8::from(sigv.odd_y_parity()),
+			sigv.r(),
+			sigv.s(),
+		)
+		.map_err(|error| match error {
+			TransactionRecoveryError::InvalidSignature => AuthorizationError::InvalidSignature,
+			TransactionRecoveryError::InvalidRecoveryId => AuthorizationError::InvalidRecoveryId,
+			TransactionRecoveryError::RecoveryFailed => AuthorizationError::RecoveryFailed,
+			TransactionRecoveryError::InvalidPublicKey => AuthorizationError::InvalidPublicKey,
+		})
 	}
 
 	/// Create the authorization message hash according to EIP-7702
@@ -140,26 +132,6 @@ impl AuthorizationListItem {
 
 		// Return keccak256 hash of the complete message
 		H256::from_slice(Keccak256::digest(&message).as_ref())
-	}
-
-	/// Convert VerifyingKey to Ethereum address
-	fn verifying_key_to_address(
-		verifying_key: &VerifyingKey,
-	) -> Result<Address, AuthorizationError> {
-		// Convert public key to bytes (uncompressed format, skip the 0x04 prefix)
-		let pubkey_point = verifying_key.to_encoded_point(false);
-		let pubkey_bytes = pubkey_point.as_bytes();
-
-		// pubkey_bytes is 65 bytes: [0x04, x_coord (32 bytes), y_coord (32 bytes)]
-		// We want just the x and y coordinates (64 bytes total)
-		if pubkey_bytes.len() >= 65 && pubkey_bytes[0] == 0x04 {
-			let pubkey_coords = &pubkey_bytes[1..65];
-			// Ethereum address is the last 20 bytes of keccak256(pubkey)
-			let hash = Keccak256::digest(pubkey_coords);
-			Ok(Address::from_slice(&hash[12..]))
-		} else {
-			Err(AuthorizationError::InvalidPublicKey)
-		}
 	}
 }
 
@@ -213,6 +185,21 @@ impl EIP7702Transaction {
 			authorization_list: self.authorization_list,
 		}
 	}
+
+	/// Hash of the unsigned transaction payload covered by the signature.
+	pub fn signing_hash(&self) -> H256 {
+		self.clone().to_message().hash()
+	}
+
+	/// Recover the account that signed this transaction.
+	pub fn recover_signer(&self) -> Result<Address, TransactionRecoveryError> {
+		recovery::recover_address(
+			self.signing_hash(),
+			u8::from(self.signature.odd_y_parity()),
+			self.signature.r(),
+			self.signature.s(),
+		)
+	}
 }
 
 impl rlp::Encodable for EIP7702Transaction {
@@ -240,13 +227,20 @@ impl rlp::Decodable for EIP7702Transaction {
 			return Err(DecoderError::RlpIncorrectListLen);
 		}
 
+		let destination = rlp.val_at(5)?;
+		if destination == TransactionAction::Create {
+			return Err(DecoderError::Custom(
+				"EIP-7702 transactions cannot create contracts",
+			));
+		}
+
 		Ok(Self {
 			chain_id: rlp.val_at(0)?,
 			nonce: rlp.val_at(1)?,
 			max_priority_fee_per_gas: rlp.val_at(2)?,
 			max_fee_per_gas: rlp.val_at(3)?,
 			gas_limit: rlp.val_at(4)?,
-			destination: rlp.val_at(5)?,
+			destination,
 			value: rlp.val_at(6)?,
 			data: rlp.val_at(7)?,
 			access_list: rlp.list_at(8)?,
@@ -373,8 +367,10 @@ mod tests {
 			.expect("Failed to recover authorizing address");
 
 		// Convert the original verifying key to an Ethereum address for comparison
-		let expected_address = AuthorizationListItem::verifying_key_to_address(&verifying_key)
-			.expect("Failed to convert verifying key to address");
+		let encoded_key = verifying_key.to_encoded_point(false);
+		let encoded_key = encoded_key.as_bytes();
+		let key_hash = Keccak256::digest(&encoded_key[1..]);
+		let expected_address = Address::from_slice(&key_hash[12..]);
 
 		// Verify that the recovered address matches the original signer
 		assert_eq!(recovered_address, expected_address);
@@ -409,5 +405,32 @@ mod tests {
 			H256::from_slice(&[0xFF; 32]),
 		)
 		.is_none());
+	}
+
+	#[test]
+	fn checked_rlp_decode_rejects_contract_creation() {
+		let signature =
+			TransactionSignature::new(false, H256::from_low_u64_be(1), H256::from_low_u64_be(1))
+				.unwrap();
+		let transaction = EIP7702Transaction {
+			chain_id: 1,
+			nonce: U256::zero(),
+			max_priority_fee_per_gas: U256::one(),
+			max_fee_per_gas: U256::from(2),
+			gas_limit: U256::from(21_000),
+			destination: TransactionAction::Create,
+			value: U256::zero(),
+			data: Vec::new(),
+			access_list: Vec::new(),
+			authorization_list: Vec::new(),
+			signature,
+		};
+
+		assert_eq!(
+			rlp::decode::<EIP7702Transaction>(&rlp::encode(&transaction)),
+			Err(DecoderError::Custom(
+				"EIP-7702 transactions cannot create contracts"
+			))
+		);
 	}
 }

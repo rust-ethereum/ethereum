@@ -1,8 +1,11 @@
 pub mod eip1559;
 pub mod eip2930;
+pub mod eip4844;
 pub mod eip7702;
 pub mod legacy;
+mod recovery;
 mod signature;
+pub mod unchecked;
 
 use bytes::BytesMut;
 use ethereum_types::H256;
@@ -11,12 +14,17 @@ use rlp::{DecoderError, Rlp};
 pub use self::{
 	eip1559::{EIP1559Transaction, EIP1559TransactionMessage},
 	eip2930::{AccessList, AccessListItem, EIP2930Transaction, EIP2930TransactionMessage},
+	eip4844::{EIP4844Transaction, EIP4844TransactionMessage, BLOB_TX_TYPE},
 	eip7702::{
 		AuthorizationList, AuthorizationListItem, EIP7702Transaction, EIP7702TransactionMessage,
 	},
 	legacy::{LegacyTransaction, LegacyTransactionMessage, TransactionAction},
+	recovery::TransactionRecoveryError,
+	unchecked::*,
 };
-use crate::enveloped::{EnvelopedDecodable, EnvelopedDecoderError, EnvelopedEncodable};
+use crate::enveloped::{
+	decode_rlp_exact, EnvelopedDecodable, EnvelopedDecoderError, EnvelopedEncodable,
+};
 
 pub type TransactionV0 = LegacyTransaction;
 
@@ -321,7 +329,201 @@ impl From<TransactionV2> for TransactionV3 {
 	}
 }
 
-pub type TransactionAny = TransactionV3;
+/// Latest transaction envelope, supporting legacy and EIP-2718 transaction
+/// types 1 through 4.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(
+	feature = "with-scale",
+	derive(
+		scale_codec::Encode,
+		scale_codec::Decode,
+		scale_codec::DecodeWithMemTracking,
+		scale_info::TypeInfo
+	)
+)]
+#[cfg_attr(
+	feature = "with-serde",
+	derive(serde::Serialize, serde::Deserialize),
+	serde(untagged)
+)]
+pub enum TransactionV4 {
+	/// Legacy transaction type.
+	Legacy(LegacyTransaction),
+	/// EIP-2930 transaction type 1.
+	EIP2930(EIP2930Transaction),
+	/// EIP-1559 transaction type 2.
+	EIP1559(EIP1559Transaction),
+	/// EIP-4844 transaction type 3.
+	EIP4844(EIP4844Transaction),
+	/// EIP-7702 transaction type 4.
+	EIP7702(EIP7702Transaction),
+}
+
+impl TransactionV4 {
+	/// Return the EIP-2718 transaction hash.
+	pub fn hash(&self) -> H256 {
+		match self {
+			Self::Legacy(transaction) => transaction.hash(),
+			Self::EIP2930(transaction) => transaction.hash(),
+			Self::EIP1559(transaction) => transaction.hash(),
+			Self::EIP4844(transaction) => transaction.hash(),
+			Self::EIP7702(transaction) => transaction.hash(),
+		}
+	}
+
+	/// Return the hash of the transaction's unsigned signing payload.
+	pub fn signing_hash(&self) -> H256 {
+		match self {
+			Self::Legacy(transaction) => transaction.signing_hash(),
+			Self::EIP2930(transaction) => transaction.signing_hash(),
+			Self::EIP1559(transaction) => transaction.signing_hash(),
+			Self::EIP4844(transaction) => transaction.signing_hash(),
+			Self::EIP7702(transaction) => transaction.signing_hash(),
+		}
+	}
+
+	/// Recover the account that signed the transaction.
+	pub fn recover_signer(&self) -> Result<ethereum_types::Address, TransactionRecoveryError> {
+		match self {
+			Self::Legacy(transaction) => transaction.recover_signer(),
+			Self::EIP2930(transaction) => transaction.recover_signer(),
+			Self::EIP1559(transaction) => transaction.recover_signer(),
+			Self::EIP4844(transaction) => transaction.recover_signer(),
+			Self::EIP7702(transaction) => transaction.recover_signer(),
+		}
+	}
+}
+
+impl EnvelopedEncodable for TransactionV4 {
+	fn type_id(&self) -> Option<u8> {
+		match self {
+			Self::Legacy(_) => None,
+			Self::EIP2930(_) => Some(1),
+			Self::EIP1559(_) => Some(2),
+			Self::EIP4844(_) => Some(BLOB_TX_TYPE),
+			Self::EIP7702(_) => Some(4),
+		}
+	}
+
+	fn encode_payload(&self) -> BytesMut {
+		match self {
+			Self::Legacy(transaction) => rlp::encode(transaction),
+			Self::EIP2930(transaction) => rlp::encode(transaction),
+			Self::EIP1559(transaction) => rlp::encode(transaction),
+			Self::EIP4844(transaction) => rlp::encode(transaction),
+			Self::EIP7702(transaction) => rlp::encode(transaction),
+		}
+	}
+}
+
+impl EnvelopedDecodable for TransactionV4 {
+	type PayloadDecoderError = DecoderError;
+
+	fn decode(bytes: &[u8]) -> Result<Self, EnvelopedDecoderError<Self::PayloadDecoderError>> {
+		if bytes.is_empty() {
+			return Err(EnvelopedDecoderError::UnknownTypeId);
+		}
+
+		let rlp = Rlp::new(bytes);
+		if rlp.is_list() {
+			return Ok(Self::Legacy(decode_rlp_exact(bytes)?));
+		}
+
+		match bytes[0] {
+			1 => Ok(Self::EIP2930(decode_rlp_exact(&bytes[1..])?)),
+			2 => Ok(Self::EIP1559(decode_rlp_exact(&bytes[1..])?)),
+			BLOB_TX_TYPE => Ok(Self::EIP4844(decode_rlp_exact(&bytes[1..])?)),
+			4 => Ok(Self::EIP7702(decode_rlp_exact(&bytes[1..])?)),
+			_ => Err(DecoderError::Custom("invalid tx type").into()),
+		}
+	}
+}
+
+impl From<LegacyTransaction> for TransactionV4 {
+	fn from(transaction: LegacyTransaction) -> Self {
+		Self::Legacy(transaction)
+	}
+}
+
+impl From<EIP2930Transaction> for TransactionV4 {
+	fn from(transaction: EIP2930Transaction) -> Self {
+		Self::EIP2930(transaction)
+	}
+}
+
+impl From<EIP1559Transaction> for TransactionV4 {
+	fn from(transaction: EIP1559Transaction) -> Self {
+		Self::EIP1559(transaction)
+	}
+}
+
+impl From<EIP4844Transaction> for TransactionV4 {
+	fn from(transaction: EIP4844Transaction) -> Self {
+		Self::EIP4844(transaction)
+	}
+}
+
+impl From<EIP7702Transaction> for TransactionV4 {
+	fn from(transaction: EIP7702Transaction) -> Self {
+		Self::EIP7702(transaction)
+	}
+}
+
+impl TryFrom<UncheckedTransactionEnvelope> for TransactionV4 {
+	type Error = TransactionConversionError;
+
+	fn try_from(transaction: UncheckedTransactionEnvelope) -> Result<Self, Self::Error> {
+		match transaction {
+			UncheckedTransactionEnvelope::Legacy(transaction) => {
+				Ok(Self::Legacy(transaction.try_into()?))
+			}
+			UncheckedTransactionEnvelope::EIP2930(transaction) => {
+				Ok(Self::EIP2930(transaction.try_into()?))
+			}
+			UncheckedTransactionEnvelope::EIP1559(transaction) => {
+				Ok(Self::EIP1559(transaction.try_into()?))
+			}
+			UncheckedTransactionEnvelope::EIP4844(transaction) => {
+				Ok(Self::EIP4844(transaction.try_into()?))
+			}
+			UncheckedTransactionEnvelope::EIP7702(transaction) => {
+				Ok(Self::EIP7702(transaction.try_into()?))
+			}
+		}
+	}
+}
+
+impl From<TransactionV1> for TransactionV4 {
+	fn from(transaction: TransactionV1) -> Self {
+		match transaction {
+			TransactionV1::Legacy(transaction) => Self::Legacy(transaction),
+			TransactionV1::EIP2930(transaction) => Self::EIP2930(transaction),
+		}
+	}
+}
+
+impl From<TransactionV2> for TransactionV4 {
+	fn from(transaction: TransactionV2) -> Self {
+		match transaction {
+			TransactionV2::Legacy(transaction) => Self::Legacy(transaction),
+			TransactionV2::EIP2930(transaction) => Self::EIP2930(transaction),
+			TransactionV2::EIP1559(transaction) => Self::EIP1559(transaction),
+		}
+	}
+}
+
+impl From<TransactionV3> for TransactionV4 {
+	fn from(transaction: TransactionV3) -> Self {
+		match transaction {
+			TransactionV3::Legacy(transaction) => Self::Legacy(transaction),
+			TransactionV3::EIP2930(transaction) => Self::EIP2930(transaction),
+			TransactionV3::EIP1559(transaction) => Self::EIP1559(transaction),
+			TransactionV3::EIP7702(transaction) => Self::EIP7702(transaction),
+		}
+	}
+}
+
+pub type TransactionAny = TransactionV4;
 
 #[cfg(test)]
 mod tests {
@@ -330,7 +532,7 @@ mod tests {
 		eip7702::AuthorizationListItem,
 		legacy::{self, TransactionAction},
 		EIP1559Transaction, EIP2930Transaction, EIP7702Transaction, EnvelopedDecodable,
-		TransactionV0, TransactionV1, TransactionV2, TransactionV3,
+		TransactionV0, TransactionV1, TransactionV2, TransactionV3, TransactionV4,
 	};
 	use crate::enveloped::*;
 	use ethereum_types::U256;
@@ -344,6 +546,11 @@ mod tests {
 		<TransactionV1 as EnvelopedDecodable>::decode(&bytes).unwrap();
 		<TransactionV2 as EnvelopedDecodable>::decode(&bytes).unwrap();
 		<TransactionV3 as EnvelopedDecodable>::decode(&bytes).unwrap();
+		<TransactionV4 as EnvelopedDecodable>::decode(&bytes).unwrap();
+
+		let mut trailing = bytes.to_vec();
+		trailing.push(0);
+		assert!(<TransactionV4 as EnvelopedDecodable>::decode(&trailing).is_err());
 	}
 
 	#[test]
@@ -405,6 +612,9 @@ mod tests {
 			tx,
 			<TransactionV1 as EnvelopedDecodable>::decode(&tx.encode()).unwrap()
 		);
+		let mut trailing = tx.encode().to_vec();
+		trailing.push(0);
+		assert!(<TransactionV4 as EnvelopedDecodable>::decode(&trailing).is_err());
 	}
 
 	#[test]
