@@ -4,6 +4,8 @@ use sha3::{Digest, Keccak256};
 
 use crate::Bytes;
 
+use super::{recovery, TransactionRecoveryError};
+
 pub use super::eip2930::{AccessList, TransactionAction, TransactionSignature};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -51,6 +53,21 @@ impl EIP1559Transaction {
 			input: self.input,
 			access_list: self.access_list,
 		}
+	}
+
+	/// Hash of the unsigned transaction payload covered by the signature.
+	pub fn signing_hash(&self) -> H256 {
+		self.clone().to_message().hash()
+	}
+
+	/// Recover the account that signed this transaction.
+	pub fn recover_signer(&self) -> Result<ethereum_types::Address, TransactionRecoveryError> {
+		recovery::recover_address(
+			self.signing_hash(),
+			u8::from(self.signature.odd_y_parity()),
+			self.signature.r(),
+			self.signature.s(),
+		)
 	}
 }
 

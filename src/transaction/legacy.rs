@@ -4,7 +4,7 @@ use ethereum_types::{H160, H256, U256};
 use rlp::{DecoderError, Rlp, RlpStream};
 use sha3::{Digest, Keccak256};
 
-use super::signature;
+use super::{recovery, signature, TransactionRecoveryError};
 use crate::Bytes;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -71,7 +71,7 @@ impl Deref for TransactionRecoveryId {
 
 impl TransactionRecoveryId {
 	pub fn standard(self) -> u8 {
-		if self.0 == 27 || self.0 == 28 || self.0 > 36 {
+		if self.0 == 27 || self.0 == 28 || self.0 >= 35 {
 			((self.0 - 1) % 2) as u8
 		} else {
 			4
@@ -79,7 +79,7 @@ impl TransactionRecoveryId {
 	}
 
 	pub fn chain_id(self) -> Option<u64> {
-		if self.0 > 36 {
+		if self.0 >= 35 {
 			Some((self.0 - 35) / 2)
 		} else {
 			None
@@ -183,10 +183,8 @@ impl<'de> serde::Deserialize<'de> for TransactionSignature {
 	{
 		let unchecked = TransactionSignatureUnchecked::deserialize(deserializer)?;
 
-		Ok(
-			TransactionSignature::new(unchecked.v, unchecked.r, unchecked.s)
-				.ok_or(serde::de::Error::custom("invalid signature"))?,
-		)
+		TransactionSignature::new(unchecked.v, unchecked.r, unchecked.s)
+			.ok_or(serde::de::Error::custom("invalid signature"))
 	}
 }
 
@@ -226,6 +224,24 @@ impl LegacyTransaction {
 			input: self.input,
 			chain_id: self.signature.chain_id(),
 		}
+	}
+
+	/// Hash of the unsigned transaction payload covered by the signature.
+	pub fn signing_hash(&self) -> H256 {
+		self.clone().to_message().hash()
+	}
+
+	/// Recover the account that signed this transaction.
+	///
+	/// This performs cryptographic recovery only. Fork-specific low-S checks are
+	/// intentionally left to callers via [`TransactionSignature::is_low_s`].
+	pub fn recover_signer(&self) -> Result<H160, TransactionRecoveryError> {
+		recovery::recover_address(
+			self.signing_hash(),
+			self.signature.standard_v(),
+			self.signature.r(),
+			self.signature.s(),
+		)
 	}
 }
 
@@ -313,5 +329,24 @@ impl rlp::Encodable for LegacyTransactionMessage {
 impl From<LegacyTransaction> for LegacyTransactionMessage {
 	fn from(t: LegacyTransaction) -> Self {
 		t.to_message()
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn eip155_chain_zero_recovery_ids_are_valid() {
+		let r = H256::from_low_u64_be(1);
+		let s = H256::from_low_u64_be(1);
+
+		let even = TransactionSignature::new(35, r, s).unwrap();
+		assert_eq!(even.chain_id(), Some(0));
+		assert_eq!(even.standard_v(), 0);
+
+		let odd = TransactionSignature::new(36, r, s).unwrap();
+		assert_eq!(odd.chain_id(), Some(0));
+		assert_eq!(odd.standard_v(), 1);
 	}
 }

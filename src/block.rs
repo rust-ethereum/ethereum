@@ -7,7 +7,9 @@ use sha3::{Digest, Keccak256};
 use crate::{
 	enveloped::{EnvelopedDecodable, EnvelopedEncodable},
 	header::{Header, PartialHeader},
-	transaction::{TransactionAny, TransactionV0, TransactionV1, TransactionV2, TransactionV3},
+	transaction::{
+		TransactionAny, TransactionV0, TransactionV1, TransactionV2, TransactionV3, TransactionV4,
+	},
 	util::ordered_trie_root,
 };
 
@@ -77,6 +79,7 @@ pub type BlockV0 = Block<TransactionV0>;
 pub type BlockV1 = Block<TransactionV1>;
 pub type BlockV2 = Block<TransactionV2>;
 pub type BlockV3 = Block<TransactionV3>;
+pub type BlockV4 = Block<TransactionV4>;
 pub type BlockAny = Block<TransactionAny>;
 
 impl<T> From<BlockV0> for Block<T>
@@ -122,12 +125,42 @@ impl From<BlockV1> for BlockV3 {
 	}
 }
 
+impl From<BlockV3> for BlockV4 {
+	fn from(block: BlockV3) -> Self {
+		Self {
+			header: block.header,
+			transactions: block.transactions.into_iter().map(Into::into).collect(),
+			ommers: block.ommers,
+		}
+	}
+}
+
+impl From<BlockV2> for BlockV4 {
+	fn from(block: BlockV2) -> Self {
+		Self {
+			header: block.header,
+			transactions: block.transactions.into_iter().map(Into::into).collect(),
+			ommers: block.ommers,
+		}
+	}
+}
+
+impl From<BlockV1> for BlockV4 {
+	fn from(block: BlockV1) -> Self {
+		Self {
+			header: block.header,
+			transactions: block.transactions.into_iter().map(Into::into).collect(),
+			ommers: block.ommers,
+		}
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
 	use crate::transaction::{
-		eip2930, eip7702::AuthorizationListItem, legacy::TransactionAction, EIP7702Transaction,
-		TransactionV3,
+		eip2930, eip7702::AuthorizationListItem, legacy::TransactionAction, EIP4844Transaction,
+		EIP7702Transaction, TransactionV3, TransactionV4,
 	};
 	use ethereum_types::{H160, H256, U256};
 
@@ -196,6 +229,44 @@ mod tests {
 			}
 			_ => panic!("Expected EIP7702 transaction"),
 		}
+	}
+
+	#[test]
+	fn block_v4_with_eip4844_transaction() {
+		let transaction = TransactionV4::EIP4844(EIP4844Transaction {
+			chain_id: 1,
+			nonce: U256::zero(),
+			max_priority_fee_per_gas: U256::one(),
+			max_fee_per_gas: U256::from(2),
+			gas_limit: U256::from(100_000),
+			destination: H160::repeat_byte(0x11),
+			value: U256::zero(),
+			data: vec![],
+			access_list: vec![],
+			max_fee_per_blob_gas: U256::one(),
+			blob_versioned_hashes: vec![H256::repeat_byte(0x01)],
+			signature: eip2930::TransactionSignature::new(false, ONE, ONE).unwrap(),
+		});
+		let partial_header = PartialHeader {
+			parent_hash: H256::zero(),
+			beneficiary: H160::zero(),
+			state_root: H256::zero(),
+			receipts_root: H256::zero(),
+			logs_bloom: ethereum_types::Bloom::zero(),
+			difficulty: U256::zero(),
+			number: U256::zero(),
+			gas_limit: U256::from(1_000_000),
+			gas_used: U256::zero(),
+			timestamp: 0,
+			extra_data: vec![],
+			mix_hash: H256::zero(),
+			nonce: ethereum_types::H64::zero(),
+		};
+
+		let block = BlockV4::new(partial_header, vec![transaction], vec![]);
+		let decoded: BlockV4 = rlp::decode(&rlp::encode(&block)).unwrap();
+		assert_eq!(decoded, block);
+		assert!(matches!(decoded.transactions[0], TransactionV4::EIP4844(_)));
 	}
 
 	#[test]

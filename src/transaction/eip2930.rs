@@ -4,7 +4,7 @@ use ethereum_types::{Address, H256, U256};
 use rlp::{DecoderError, Rlp, RlpStream};
 use sha3::{Digest, Keccak256};
 
-use super::signature;
+use super::{recovery, signature, TransactionRecoveryError};
 use crate::Bytes;
 
 pub use super::legacy::TransactionAction;
@@ -94,10 +94,8 @@ impl<'de> serde::Deserialize<'de> for TransactionSignature {
 		D: serde::de::Deserializer<'de>,
 	{
 		let unchecked = MalleableTransactionSignature::deserialize(deserializer)?;
-		Ok(
-			TransactionSignature::new(unchecked.odd_y_parity, unchecked.r, unchecked.s)
-				.ok_or(serde::de::Error::custom("invalid signature"))?,
-		)
+		TransactionSignature::new(unchecked.odd_y_parity, unchecked.r, unchecked.s)
+			.ok_or(serde::de::Error::custom("invalid signature"))
 	}
 }
 
@@ -127,6 +125,10 @@ impl rlp::Encodable for AccessListItem {
 
 impl rlp::Decodable for AccessListItem {
 	fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
+		if rlp.item_count()? != 2 {
+			return Err(DecoderError::RlpIncorrectListLen);
+		}
+
 		Ok(Self {
 			address: rlp.val_at(0)?,
 			storage_keys: rlp.list_at(1)?,
@@ -179,6 +181,21 @@ impl EIP2930Transaction {
 			input: self.input,
 			access_list: self.access_list,
 		}
+	}
+
+	/// Hash of the unsigned transaction payload covered by the signature.
+	pub fn signing_hash(&self) -> H256 {
+		self.clone().to_message().hash()
+	}
+
+	/// Recover the account that signed this transaction.
+	pub fn recover_signer(&self) -> Result<Address, TransactionRecoveryError> {
+		recovery::recover_address(
+			self.signing_hash(),
+			u8::from(self.signature.odd_y_parity()),
+			self.signature.r(),
+			self.signature.s(),
+		)
 	}
 }
 
@@ -264,5 +281,23 @@ impl rlp::Encodable for EIP2930TransactionMessage {
 impl From<EIP2930Transaction> for EIP2930TransactionMessage {
 	fn from(t: EIP2930Transaction) -> Self {
 		t.to_message()
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn access_list_item_rejects_extra_fields() {
+		let mut stream = RlpStream::new_list(3);
+		stream.append(&Address::repeat_byte(0x11));
+		stream.begin_list(0);
+		stream.append(&0_u8);
+
+		assert_eq!(
+			rlp::decode::<AccessListItem>(&stream.out()),
+			Err(DecoderError::RlpIncorrectListLen)
+		);
 	}
 }

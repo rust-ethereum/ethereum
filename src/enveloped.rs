@@ -1,5 +1,13 @@
 use bytes::BytesMut;
 
+pub(crate) fn decode_rlp_exact<T: rlp::Decodable>(bytes: &[u8]) -> Result<T, rlp::DecoderError> {
+	match rlp::PayloadInfo::from(bytes)?.total().cmp(&bytes.len()) {
+		core::cmp::Ordering::Less => Err(rlp::DecoderError::RlpIsTooBig),
+		core::cmp::Ordering::Greater => Err(rlp::DecoderError::RlpIsTooShort),
+		core::cmp::Ordering::Equal => rlp::decode(bytes),
+	}
+}
+
 /// DecoderError for typed transactions.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum EnvelopedDecoderError<T> {
